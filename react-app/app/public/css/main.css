@@ -621,8 +621,8 @@ html[data-shell-route='home'] #simulations > .page-content {
   pointer-events: none;
 }
 
-/* Route loading is a shell-owned input shield. Its default opaque fallback
-   protects routes that have not yet certified a persistent backplane handoff. */
+/* Route loading retains a transparent shell-owned input shield while the
+   destination finishes readiness. The separate document boot owns its loader. */
 .route-transition-loader {
   --abs-loader-exit-scale: 1.45;
   --abs-boot-overlay-out-ms: var(--abs-route-spinner-exit-duration, 160ms);
@@ -637,7 +637,7 @@ html[data-shell-route='home'] #simulations > .page-content {
   place-items: center;
   overflow: hidden;
   border-radius: var(--frame-outer-radius);
-  background: var(--abs-route-loader-backdrop, var(--studio-window-bg));
+  background: transparent;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -2568,15 +2568,7 @@ p {
 }
 
 html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
-  opacity: 0;
   pointer-events: none;
-  filter: blur(var(--space-xs));
-  transition-duration: var(--ui-duration-out, 455ms);
-  transition-timing-function: var(--ui-ease-out, cubic-bezier(0.4, 0, 1, 1));
-}
-
-html[data-abs-transition-phase='route-out'] .simulation-focus-switcher-slot {
-  transform: translateX(-50%) translateY(calc(-1 * var(--space-xs)));
 }
 
 /* Legacy JS-driven stagger classes removed — nav links use the CSS
@@ -4869,6 +4861,29 @@ html.portfolio-access-gate-closing #modal-content-layer {
 html[data-shell-route='home'] #simulations > canvas.simulation-title-canvas {
   opacity: calc(1 - var(--ui-obscured, 0));
   visibility: visible;
+}
+
+/* The visible Home title lives outside the route wrappers. Let the same phase
+   and duration fade it before loading hides its retained bitmap. */
+html[data-shell-route='home'][data-abs-transition-phase='route-out']
+  #simulations > canvas.simulation-title-canvas {
+  animation: home-title-route-exit var(--abs-route-exit-duration, 300ms)
+    var(--ui-ease-out, cubic-bezier(0.4, 0, 1, 1)) forwards;
+}
+
+@keyframes home-title-route-exit {
+  to {
+    opacity: 0;
+    transform: scale(var(--home-title-route-exit-scale, var(--instrument-wake-recede-scale)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-shell-route='home'][data-abs-transition-phase='route-out']
+    #simulations > canvas.simulation-title-canvas {
+    --home-title-route-exit-scale: 1;
+    animation-duration: 120ms;
+  }
 }
 
 /* The stable title plane deliberately retains its last Home bitmap while route

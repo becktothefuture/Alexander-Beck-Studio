@@ -13,6 +13,10 @@ const DEFAULT_URL = 'http://127.0.0.1:8013';
 const WAIT_MS = Number(process.env.ABS_TRANSITION_HARD_TIMEOUT_MS || 60000);
 const BROWSER_NAME = String(process.env.ABS_BROWSER || 'chromium').toLowerCase();
 const HEADED = process.env.ABS_HEADED === '1';
+const GPU_BACKEND = String(process.env.ABS_TRANSITION_GPU || 'default');
+if (!['default', 'metal'].includes(GPU_BACKEND) || (GPU_BACKEND === 'metal' && BROWSER_NAME !== 'chromium')) {
+  throw new Error('ABS_TRANSITION_GPU supports default, or metal with Chromium.');
+}
 const STRICT_RAF = process.env.ABS_TRANSITION_STRICT_RAF === '1';
 const REDUCED_MOTION = process.env.ABS_TRANSITION_REDUCED_MOTION === '1';
 const BUTTON_BAR_ONLY = process.env.ABS_TRANSITION_BUTTON_BAR_ONLY === '1';
@@ -35,9 +39,6 @@ const VISIBILITY_EPSILON = 0.011;
 const FULL_COVER_OPACITY = 0.98;
 const GEOMETRY_TOLERANCE_PX = 1.5;
 const FRAME_TOLERANCE_MS = 20;
-const REDUCED_SPINNER_ESTABLISHMENT_MS = 80;
-const SPINNER_DELAY_MS = 120;
-const SPINNER_MINIMUM_MS = 140;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outputRoot = resolve(__dirname, '..', 'output', 'playwright', 'transition-flows');
 const simulationCatalogPath = resolve(__dirname, '..', 'react-app/app/src/data/simulationCatalog.json');
@@ -56,6 +57,7 @@ const runStem = [
   DWELL_MS > 0 ? `dwell-${DWELL_MS}ms` : '',
   REQUESTED_THEME ? `theme-${REQUESTED_THEME}` : '',
   HEADED ? 'headed' : '',
+  GPU_BACKEND !== 'default' ? `gpu-${GPU_BACKEND}` : '',
 ].filter(Boolean).join('-');
 
 const ROUTE_DEFINITIONS = Object.freeze({
@@ -184,8 +186,14 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
     label: traceLabel,
     reducedMotion,
     dailyFocusRouteIds,
+    routeViewAliases,
   }) => {
     window.__ABS_TRANSITION_FLOW_RECORDER__?.stop?.();
+    const isDestinationRouteView = (routeViewId) => (
+      routeViewId === target
+      || (routeViewAliases[target] || []).includes(routeViewId)
+      || (target === 'home' && dailyFocusRouteIds.includes(routeViewId))
+    );
 
     const state = {
       label: traceLabel,
@@ -773,16 +781,10 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       latest.incoming.routeMaxOpacity = Math.max(
         0,
         ...Object.entries(latest.routeViews)
-          .filter(([routeViewId]) => (
-            routeViewId === target
-            || (target === 'home' && dailyFocusRouteIds.includes(routeViewId))
-          ))
+          .filter(([routeViewId]) => isDestinationRouteView(routeViewId))
           .map(([, routeView]) => routeView?.maxOpacity || 0),
       );
-      const incomingChildren = children.filter((child) => (
-        child.routeId === target
-        || (target === 'home' && dailyFocusRouteIds.includes(child.routeId))
-      ));
+      const incomingChildren = children.filter((child) => isDestinationRouteView(child.routeId));
       latest.incoming.childCount = incomingChildren.length;
       latest.incoming.childMaxOpacity = round(Math.max(0, ...incomingChildren.map((child) => child.effectiveOpacity || 0)));
       latest.incoming.inertCount = incomingChildren.filter((child) => child.inert).length;
@@ -846,6 +848,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
     label,
     reducedMotion: REDUCED_MOTION,
     dailyFocusRouteIds: DAILY_FOCUS_ROUTE_IDS,
+    routeViewAliases: ROUTE_VIEW_ALIASES,
   });
 }
 
@@ -912,7 +915,6 @@ function rectCoversWindow(loaderRect, windowRect) {
 
 function assertTransitionTrace(trace, {
   requireRouteOut = true,
-  allowIndicatorReversal = false,
 } = {}) {
   assert(trace?.samples?.length > 2, `${trace?.label || 'transition'} did not record enough RAF samples`, trace);
   const samples = trace.samples;
@@ -1105,54 +1107,16 @@ function assertTransitionTrace(trace, {
     `${trace.label}: active indicator did not finish within 0.5px of the destination tab centre`,
     finalIndicator,
   );
-  if (trace.fromRouteId !== trace.toRouteId) {
-    const positions = indicatorSamples.map((sample) => sample.buttonBarIndicator.rect.left);
-    const uniquePositions = [...new Set(positions.map((value) => Math.round(value * 10) / 10))];
-    if (REDUCED_MOTION) {
-      assert(uniquePositions.length <= 2, `${trace.label}: reduced motion retained indicator travel`, { uniquePositions });
-    } else {
-      const compositorTransitionCompleted = (
-        trace.indicatorTransitions?.some((event) => event.type === 'transitionrun')
-        && trace.indicatorTransitions?.some((event) => (
-          event.type === 'transitionend' && event.elapsedTimeMs >= 250
-        ))
-      );
-      assert(
-        uniquePositions.length >= 3 || compositorTransitionCompleted,
-        `${trace.label}: indicator produced no sampled or compositor-confirmed motion sequence`,
-        { uniquePositions, indicatorTransitions: trace.indicatorTransitions },
-      );
-      const direction = Math.sign(positions.at(-1) - positions[0]);
-      if (direction) {
-        const signedDeltas = positions.slice(1).map((position, index) => (
-          (position - positions[index]) * direction
-        ));
-        if (allowIndicatorReversal) {
-          assert(
-            signedDeltas.some((delta) => delta > 1)
-              && signedDeltas.some((delta) => delta < -1),
-            `${trace.label}: retargeted indicator did not preserve its expected reversal`,
-            { positions, signedDeltas },
-          );
-        } else {
-          signedDeltas.forEach((signedDelta, index) => {
-            assert(signedDelta >= -1, `${trace.label}: indicator travel was not monotonic`, {
-              index: index + 1,
-              previous: positions[index],
-              current: positions[index + 1],
-            });
-          });
-        }
-      }
-      if (uniquePositions.length >= 3) {
-        assert(
-          Math.abs(positions.at(-1) - positions.at(-2)) <= 1,
-          `${trace.label}: indicator snapped by more than 1px at settlement`,
-          { finalPositions: positions.slice(-3) },
-        );
-      }
-    }
-  }
+  // The current tactile Button Bar has one fixed selected surface per tab.
+  // Its opacity changes in place; selecting another tab changes the sampled
+  // element, so comparing their screen positions would invent sliding motion.
+  indicatorSamples.forEach((sample) => {
+    assert(
+      Math.abs(sample.buttonBarIndicator.targetCenterDelta) <= 0.5,
+      `${trace.label}: selected surface moved away from its own tab centre`,
+      sample.buttonBarIndicator,
+    );
+  });
   const loadingStart = samples[loadingIndex]?.elapsedMs || 0;
   const routeInStart = samples[routeInIndex]?.elapsedMs || 0;
   if (requireRouteOut && !REDUCED_MOTION && CPU_THROTTLE_RATE === 1) {
@@ -1214,73 +1178,14 @@ function assertTransitionTrace(trace, {
     }
   }
 
-  const spinnerSamples = samples.filter((sample) => (
-    (sample.phase === 'route-loading' || sample.phase === 'route-in')
-    && sample.loader?.effectiveOpacity >= FULL_COVER_OPACITY
-    && sample.loader?.presentation === 'spinner'
-  ));
-  const visiblyEstablishedSpinner = spinnerSamples.some((sample) => sample.spinner?.effectiveOpacity > 0.5);
-  const loadingDurationMs = Math.max(0, routeInStart - loadingStart);
-  const spinnerExpected = READINESS_DELAY_MS > SPINNER_DELAY_MS;
-  const mountsRouteBackedHomeSurface = trace.toRouteId === 'home'
-    && trace.readyEvents.some((event) => event.detail?.routeId === ROUTE_BACKED_HOME_ID);
-  // A clean Home URL may still own a route-backed Daily surface. Its readiness
-  // now requires a real renderer frame and atmosphere composite, so it is not
-  // the static warm-Home case for which a spinner would be unnecessary.
-  const readinessCompletesBeforeSpinnerDelay = loadingDurationMs
-    < Math.max(0, trace.spinnerDelayMs - FRAME_TOLERANCE_MS);
-  const spinnerForbidden = !mountsRouteBackedHomeSurface
-    && readinessCompletesBeforeSpinnerDelay
-    && (READINESS_DELAY_MS > 0
-      ? READINESS_DELAY_MS <= SPINNER_DELAY_MS
-      : (!STRESS_MODE && CPU_THROTTLE_RATE === 1));
-  if (spinnerExpected && (!REDUCED_MOTION || loadingDurationMs >= REDUCED_SPINNER_ESTABLISHMENT_MS)) {
-    assert(
-      visiblyEstablishedSpinner,
-      `${trace.label}: sustained readiness did not escalate to the spinner`,
-      { phases, loadingDurationMs, reducedMotion: REDUCED_MOTION },
-    );
-  }
-  if (spinnerForbidden) {
-    assert(
-      spinnerSamples.length === 0,
-      `${trace.label}: warm readiness showed an unnecessary SPA spinner`,
-      { phases, loadingDurationMs, readinessDelayMs: READINESS_DELAY_MS },
-    );
-  }
-  if (spinnerSamples.length > 0) {
-    const firstSpinner = spinnerSamples[0];
-    const firstEstablishedSpinnerIndex = samples.findIndex((sample) => (
-      sample.loader?.presentation === 'spinner'
-      && sample.spinner?.effectiveOpacity > 0.5
-    ));
-    const firstDisappearingSpinner = firstEstablishedSpinnerIndex >= 0
-      ? samples.slice(firstEstablishedSpinnerIndex + 1).find((sample) => (
-          sample.loader?.presentation !== 'spinner'
-          || sample.spinner?.effectiveOpacity <= 0.5
-        ))
-      : null;
-    const visibleUntilElapsedMs = firstDisappearingSpinner?.elapsedMs
-      ?? samples.at(-1)?.elapsedMs
-      ?? routeInStart;
-    const spinnerVisibleForMs = firstSpinner.loader?.spinnerStartedAt > 0
-      ? Math.max(0, (trace.startedAt + visibleUntilElapsedMs) - firstSpinner.loader.spinnerStartedAt)
-      : Math.max(0, visibleUntilElapsedMs - firstSpinner.elapsedMs);
-    if (!REDUCED_MOTION) {
-      assert(
-        spinnerVisibleForMs >= SPINNER_MINIMUM_MS - FRAME_TOLERANCE_MS,
-        `${trace.label}: spinner disappeared before its minimum presence`,
-        { spinnerVisibleForMs, configuredMinimumMs: trace.spinnerMinimumMs },
-      );
-    }
-    assert(firstSpinner.spinner?.dots?.length === 8, `${trace.label}: spinner does not have eight dots`, firstSpinner.spinner);
-    firstSpinner.spinner.dots.forEach((dot, index) => {
-      assert(Math.abs(dot.width - dot.height) <= 0.05, `${trace.label}: spinner dot ${index + 1} is not square`, dot);
-      assert(dot.borderRadius === '50%', `${trace.label}: spinner dot ${index + 1} lost circular radius`, dot);
-      assert(dot.clipPath.includes('circle(50%'), `${trace.label}: spinner dot ${index + 1} lost circular clipping`, dot);
-      assert(dot.backgroundColor === firstSpinner.spinner.color, `${trace.label}: spinner dot ${index + 1} did not inherit theme ink`, dot);
-    });
-  }
+  assert(
+    samples.every((sample) => !sample.spinner?.dots?.length),
+    `${trace.label}: inter-view navigation mounted a visible loader`,
+  );
+  assert(
+    samples.every((sample) => !sample.loader || isTransparentBackground(sample.loader.backgroundColor)),
+    `${trace.label}: inter-view navigation painted a loading plate`,
+  );
 
   const firstRouteIn = samples[routeInIndex];
   assert(
@@ -1561,7 +1466,6 @@ async function runTransition(page, {
   label,
   activate,
   requireRouteOut = true,
-  allowIndicatorReversal = false,
   afterActivate,
 }) {
   await startRafRecorder(page, { fromRouteId, toRouteId: step.id, label });
@@ -1571,11 +1475,13 @@ async function runTransition(page, {
     // A destination can commit in the same task that schedules the shell phase.
     // Do not let the settled-state waiter accept that narrow idle gap and stop
     // the RAF recorder while the visible transition is only just beginning.
-    await waitForTransitionObserved(page);
+    // A delayed preload is released while the outgoing route is still idle.
+    // Waiting for route-out first would deadlock this probe until its timeout.
     await afterActivate?.();
+    await waitForTransitionObserved(page);
     await waitForTargetSettled(page, step);
     trace = await stopRafRecorder(page);
-    assertTransitionTrace(trace, { requireRouteOut, allowIndicatorReversal });
+    assertTransitionTrace(trace, { requireRouteOut });
     return trace;
   } catch (error) {
     trace ||= await stopRafRecorder(page).catch(() => null);
@@ -1634,7 +1540,6 @@ async function runStressProbe(page, traces, nextIndex) {
     fromRouteId: 'home',
     step: aboutStep,
     label: `${String(nextIndex).padStart(2, '0')}-stress-home-to-contact-to-about`,
-    allowIndicatorReversal: true,
     activate: async () => {
       await clickRouteTab(page, contactStep.id);
       await page.waitForFunction(() => (
@@ -1659,7 +1564,10 @@ async function runStressProbe(page, traces, nextIndex) {
 
 async function runPreloadFailureProbe(page, traces, nextIndex) {
   const portfolioStep = ROUTE_DEFINITIONS.portfolio;
-  const renderedRoute = await page.locator('[data-shell-route-view]').getAttribute('data-shell-route-view');
+  const renderedRoute = await page.evaluate(() => (
+    document.querySelector('[data-shell-route-view]')?.dataset.shellRouteView
+    || document.documentElement.dataset.shellRoute
+  ));
   if (renderedRoute !== 'portfolio') {
     traces.push(await runTransition(page, {
       fromRouteId: renderedRoute || 'home',
@@ -1726,7 +1634,10 @@ async function main() {
   const simulationCatalog = JSON.parse(await readFile(simulationCatalogPath, 'utf8'));
   const dailySimulations = simulationCatalog.simulations.filter((entry) => entry.stage === 'daily-rotation');
   const browserType = BROWSERS[BROWSER_NAME] || chromium;
-  const browser = await browserType.launch({ headless: !HEADED });
+  const browser = await browserType.launch({
+    headless: !HEADED,
+    ...(GPU_BACKEND === 'metal' ? { args: ['--use-gl=angle', '--use-angle=metal'] } : {}),
+  });
   const context = await browser.newContext({
     viewport: VIEWPORT,
     reducedMotion: REDUCED_MOTION ? 'reduce' : 'no-preference',
@@ -1765,6 +1676,7 @@ async function main() {
 
   try {
     await page.addInitScript(({ readinessDelayMs, requestedTheme }) => {
+      if (window.top !== window) return;
       // Legacy route runtimes temporarily scope requestAnimationFrame so they can
       // clean up their own loops. Keep the audit recorder outside that scope or
       // a route unmount can cancel the very observer intended to inspect it.
@@ -1852,24 +1764,12 @@ async function main() {
               noiseTexture: noise ? getComputedStyle(noise, '::before').backgroundImage : '',
             };
           });
-          const outgoingStillCovers = heldState.phase === 'route-out'
-            && heldState.outgoingOpacity > VISIBILITY_EPSILON;
-          const loaderNowProtects = heldState.phase === 'route-loading'
-            && heldState.loaderOpacity >= FULL_COVER_OPACITY
-            && rectCoversWindow(heldState.loaderRect, heldState.studioWindowRect)
-            && (
-              (heldState.loaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.OPAQUE
-                && heldState.loaderBackgroundColor === heldState.studioWindowBackgroundColor)
-              || (heldState.loaderBackdropMode === ROUTE_LOADER_BACKDROP_MODES.PRESERVE
-                && isTransparentBackground(heldState.loaderBackgroundColor)
-                && heldState.noiseOpacity > VISIBILITY_EPSILON
-                && heldState.noiseTexture.startsWith('url('))
-            );
           assert(
-            outgoingStillCovers || loaderNowProtects,
-            'Delayed Portfolio preload exposed neither outgoing content, an opaque loader, nor the persistent backplane',
+            heldState.phase === 'idle' && heldState.outgoingOpacity > 0.95,
+            'Cold preload must retain the visible outgoing scene before its exit starts',
             heldState,
           );
+          assert(isTransparentBackground(heldState.loaderBackgroundColor), 'Cold preload painted a loading plate', heldState);
           await delayedDependency.release();
         };
       }
@@ -1911,6 +1811,7 @@ async function main() {
     const reportPath = resolve(outputRoot, `${runStem}.json`);
     await writeFile(reportPath, `${JSON.stringify({
       browser: BROWSER_NAME,
+      gpuBackend: GPU_BACKEND,
       viewport: VIEWPORT,
       reducedMotion: REDUCED_MOTION,
       continuousRaf: true,
@@ -1941,6 +1842,7 @@ async function main() {
 
     console.log(JSON.stringify({
       browser: BROWSER_NAME,
+      gpuBackend: GPU_BACKEND,
       viewport: VIEWPORT,
       reducedMotion: REDUCED_MOTION,
       theme: REQUESTED_THEME || 'auto',

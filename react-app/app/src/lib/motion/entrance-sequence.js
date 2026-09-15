@@ -3,6 +3,7 @@ import { getSimulationPaletteSnapshot } from '../../palette/simulationPaletteCon
 import { isDarkThemeDocument } from '../theme-state.js';
 import { resolvePairKerningEm } from './glyph-kerning.js';
 import { requestHomeTitlePlaneRender } from './route-transition-title-plane.js';
+import { createTitleActivationSequence } from './title-activation-order.js';
 
 const ENTRANCE_SELECTOR = '[data-route-enter]';
 const ENTRANCE_GLYPH_SELECTOR = '[data-route-enter-glyph]';
@@ -438,6 +439,9 @@ function readGroup(profile, name) {
 }
 
 function getTitleGlyphDelayOffset(target, glyphIndex) {
+  if (target.glyphActivationDelays) {
+    return target.glyphActivationDelays[glyphIndex] - target.delayMs;
+  }
   const glyph = target.glyphs[glyphIndex];
   const lineIndex = Number(glyph?.dataset.routeEnterLineIndex || 0);
   const lineGlyphIndex = Number(glyph?.dataset.routeEnterLineGlyphIndex ?? glyphIndex);
@@ -571,6 +575,7 @@ function sequenceTargets(targets, profile) {
 function collectTargets(scopes, profile, {
   trigger = 'route',
   sequenceSeed = 0,
+  titleActivation = null,
   targetSelector = ENTRANCE_SELECTOR,
   targetDefaults = null,
 } = {}) {
@@ -698,11 +703,25 @@ function collectTargets(scopes, profile, {
       });
     });
 
-  return sequenceTargets(targets.sort((a, b) => (
+  const sequenced = sequenceTargets(targets.sort((a, b) => (
     a.delayMs - b.delayMs
     || a.groupName.localeCompare(b.groupName)
     || a.order - b.order
   )), profile);
+  if (titleActivation) {
+    const titles = sequenced.filter((target) => target.variant === 'bookend-title');
+    const key = titles.map((target) => target.glyphs.map((glyph) => glyph.textContent).join('')).join('');
+    const slots = titles.flatMap((target) => target.glyphs.map((_glyph, index) => (
+      target.delayMs + getTitleGlyphDelayOffset(target, index)
+    )));
+    const delays = titleActivation.delaysFor(key, slots);
+    let offset = 0;
+    titles.forEach((target) => {
+      target.glyphActivationDelays = delays.slice(offset, offset + target.glyphs.length);
+      offset += target.glyphs.length;
+    });
+  }
+  return sequenced;
 }
 
 function setHomePhase(root, phase) {
@@ -795,7 +814,12 @@ function settleTarget(target) {
   if (target.variant === 'lockup-rule') {
     target.element.style.transform = 'scaleX(1)';
   } else if (target.variant === 'bookend-title') {
-    target.element.style.opacity = '1';
+    // Canvas switches to the live source at settlement, before deferred style
+    // cleanup. Preserve its endpoint opacity through that intervening paint.
+    const canvasOwnsMovement = target.glyphs.some((glyph) => (
+      glyph.__absRouteEntranceState?.canvasOwnsMovement
+    ));
+    target.element.style.opacity = canvasOwnsMovement ? String(target.finalOpacity) : '1';
     target.element.style.filter = 'none';
     target.glyphs.forEach((glyph) => {
       glyph.style.opacity = String(target.finalOpacity);
@@ -948,6 +972,7 @@ export function createEntranceSequence({
   const targetOptions = {
     trigger,
     sequenceSeed,
+    titleActivation: reducedMotion ? null : createTitleActivationSequence(),
     targetSelector,
     targetDefaults,
   };

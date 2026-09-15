@@ -41,7 +41,6 @@ import {
 } from '../lib/transition-phase.js';
 import {
   createEntranceSequence,
-  createExitSequence,
   resetEntranceTargets,
 } from '../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../lib/motion/route-entrance-events.js';
@@ -580,42 +579,37 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
   const anims = [];
   const seen = new Set();
   const ownedSurfaces = getOwnedRouteSurfaceNodes(surfaceRefs);
-  const { wall } = getRouteContentLayers(surfaceRefs);
-  const typographyExit = createExitSequence({
-    scopes: ownedSurfaces,
-    reducedMotion: opacityOnly,
-    onAnimation: (animation) => animationRegistry.add(animation),
-  });
-  const typographyExitPromise = typographyExit.play();
+  const { controls, hero } = getRouteContentLayers(surfaceRefs);
+  const canvasTitleSource = hero?.querySelector('[data-canvas-title-source="home"]');
 
   setInstrumentWakeState(opacityOnly ? null : 'out');
 
   ownedSurfaces.forEach((el) => {
     if (!el) return;
-    // Circle and particle material exits through its renderer scale. Fading or
-    // shrinking the wall here would hide that authored exit and double-compose
-    // the same pixels.
-    if (el === wall) return;
+    // Fade each route surface once. The wall includes unmarked spatial copy
+    // (About/Work), while its material participant still owns local scale.
+    // Controls keep their containing block and all child positioning transforms.
+    const fadeOnly = opacityOnly || el === controls || (el === hero && canvasTitleSource);
     if (seen.has(el)) return;
     seen.add(el);
     if (typeof el.animate !== 'function') {
       el.style.opacity = String(finalOpacity);
-      if (!opacityOnly) {
-        el.style.filter = 'blur(var(--instrument-wake-blur))';
+      if (!fadeOnly) {
         el.style.transform = 'scale(var(--instrument-wake-recede-scale))';
       }
       return;
     }
-    const resolvedOpacity = Number.parseFloat(getComputedStyle(el).opacity);
+    const currentStyle = getComputedStyle(el);
+    const resolvedOpacity = Number.parseFloat(currentStyle.opacity);
     const startOpacity = Number.isFinite(resolvedOpacity) ? resolvedOpacity : 1;
+    const startTransform = currentStyle.transform === 'none' ? 'scale(1)' : currentStyle.transform;
     const anim = el.animate(
-      opacityOnly
+      fadeOnly
         ? [{ opacity: startOpacity }, { opacity: finalOpacity }]
         : [
-            { opacity: startOpacity, filter: 'blur(0)', transform: 'scale(1)' },
+            { opacity: startOpacity, transform: startTransform },
             {
               opacity: finalOpacity,
-              filter: 'blur(var(--instrument-wake-blur))',
               transform: 'scale(var(--instrument-wake-recede-scale))',
             },
           ],
@@ -625,12 +619,9 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
     anims.push(anim);
   });
 
-  if (anims.length === 0) return typographyExitPromise;
+  if (anims.length === 0) return Promise.resolve();
 
-  return Promise.all([
-    typographyExitPromise,
-    ...(
-    anims.map((a) => new Promise((r) => {
+  return Promise.all(anims.map((a) => new Promise((r) => {
       let settled = false;
       let fallbackId = null;
       const finish = () => {
@@ -642,9 +633,7 @@ function fadeOutContent(durationMs, easing = EASE_OUT, surfaceRefs, animationReg
       a.onfinish = finish;
       a.oncancel = finish;
       fallbackId = animationRegistry.addTimer(finish, durationMs + 80, finish);
-    }))
-    ),
-  ]);
+  })));
 }
 
 function removePortfolioGateSceneBridge() {
@@ -1003,6 +992,9 @@ function staggeredEntrance({
     const targets = getGroupedTransitionItems(routeId, surfaceRefs);
     const { wall, hero, ui, chrome, secondary, footer, controls } = getRouteContentLayers(surfaceRefs);
     const isRouteTransition = isRouteTransitionPhase(getTransitionPhase());
+    // The persistent Canvas reads this hidden source at its final geometry.
+    // Scaling it caches an intermediate endpoint until glyph settlement.
+    const canvasTitleSource = hero?.querySelector('[data-canvas-title-source="home"]');
     // Safety: if DOM is unexpectedly empty, just restore layers.
     if (targets.length === 0) {
       animationRegistry.cancel();
@@ -1080,20 +1072,28 @@ function staggeredEntrance({
             el.style.transform = '';
             el.style.filter = '';
             el.style.willChange = 'auto';
+            if (hasWaapi && !reducedMotion && isRouteTransition) {
+              const depth = el.animate([
+                { transform: routeSlideOffset },
+                { transform: 'scale(1)' },
+              ], { duration: enterMs, easing: revealEasing, fill: 'forwards' });
+              animationRegistry.add(depth);
+              surfacePromises.push(depth.finished.catch(() => undefined));
+            }
             return;
           }
 
           if (hasWaapi) {
-            const keyframes = reducedMotion
+            const keyframes = reducedMotion || el === controls || (el === hero && canvasTitleSource)
               ? [{ opacity: 0 }, { opacity: 1 }]
               : slide
               ? [
-                  { opacity: 0, transform: routeSlideOffset, filter: 'blur(var(--instrument-wake-blur))' },
-                  { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' },
+                  { opacity: 0, transform: routeSlideOffset },
+                  { opacity: 1, transform: 'translateY(0) scale(1)' },
                 ]
               : [
-                  { opacity: 0, filter: 'blur(var(--instrument-wake-blur))' },
-                  { opacity: 1, filter: 'blur(0)' },
+                  { opacity: 0 },
+                  { opacity: 1 },
                 ];
 
             const anim = el.animate(keyframes, {
@@ -1126,7 +1126,7 @@ function staggeredEntrance({
                 }
                 el.style.transition = reducedMotion
                   ? `opacity ${enterMs}ms ${revealEasing}`
-                  : `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}, filter ${enterMs}ms ${revealEasing}`;
+                  : `opacity ${enterMs}ms ${revealEasing}, transform ${enterMs}ms ${revealEasing}`;
                 el.style.opacity = '1';
                 el.style.transform = '';
                 el.style.filter = '';
@@ -2139,55 +2139,23 @@ export function useShellRouteTransition({
     }
 
     if (canRecoverIncomingTransition) {
-      queuedNavigationRef.current = {
-        href: targetUrl.toString(),
-        options,
-        routeId: nextRouteId,
-        routeContentSignature: nextRouteContentSignature,
-        focusSimulationId: nextFocusSimulationId,
-      };
-      activeTransaction.recovering = true;
+      // The committed destination is already visible. Supersede its transaction
+      // without settling its partly revealed copy or hiding its surfaces. The
+      // next transaction exits from the current presentation immediately; its
+      // cover then owns cancellation of the remaining child entrance animations.
       ++transitionGenerationRef.current;
       cancelRouteTransitionTransaction(activeTransaction, 'route-in-retargeted');
       activeTransaction.abortController.abort('route-in-retargeted');
-      activeTransaction.participants.cancel('route-in-retargeted');
+      activeTransaction.participants.complete('arrival-retargeted');
       activeRouteReadyCancelRef.current?.();
       activeRouteReadyCancelRef.current = null;
-      animationRegistry.cancel();
-      publishLoaderBackdropMode(resolveRouteLoaderBackdropMode(
-        activeRouteIdRef.current,
-        nextRouteId,
-      ));
-      publishTransitionPhase(
-        TRANSITION_PHASES.ROUTE_LOADING,
-        transitionGenerationRef.current,
-        nextRouteId,
-        activation,
-      );
-      routeLoaderSessionRef.current?.retarget();
-      setRouteSurfaceVisibility(false, surfaceRefs);
-      setStableTimeout(() => {
-        const queued = queuedNavigationRef.current;
-        queuedNavigationRef.current = null;
-        const targetRouteId = queued?.routeId || nextRouteId;
-        publishTransitionPhase(
-          TRANSITION_PHASES.ROUTE_LOADING,
-          transitionGenerationRef.current,
-          targetRouteId,
-          queued?.options?.activation || activation,
-        );
-        activeTransactionRef.current = null;
-        transitionActiveRef.current = false;
-        activeGateTransitionRef.current = false;
-        setPendingActiveRouteId(null);
-        navigateRef.current?.(queued?.href || targetUrl.toString(), {
-          ...(queued?.options || options),
-          replace: true,
-          resumeCovered: true,
-          forceTransition: true,
-        });
-      }, 0);
-      return true;
+      activeTransactionRef.current = null;
+      transitionActiveRef.current = false;
+      activeGateTransitionRef.current = false;
+      queuedNavigationRef.current = null;
+      settledRouteStateRef.current = activeRouteStateRef.current;
+      settledReadinessRouteIdRef.current = activeReadinessRouteIdRef.current;
+      visitedRouteIdsRef.current.add(activeRouteIdRef.current);
     }
 
     if (canRetargetCoveredTransition) {
@@ -2307,7 +2275,7 @@ export function useShellRouteTransition({
       activeGateTransitionRef.current = isGate;
       activeTransitionCommittedRef.current = historyCommitted;
       setPendingActiveRouteId(nextRouteId);
-      setLegacyRouteTransitionActive(true, { gate: isGate });
+
       const token = ++transitionGenerationRef.current;
       activeHomeTitlePresentationGateRef.current?.cancel('superseded');
       activeHomeTitlePresentationGateRef.current = null;
@@ -2331,12 +2299,7 @@ export function useShellRouteTransition({
       let loaderTimingDriver = resumeCovered ? routeLoaderSessionRef.current : null;
       if (!loaderTimingDriver) {
         routeLoaderSessionRef.current?.clear();
-        loaderTimingDriver = createRouteLoaderTimingDriver({
-          spinnerDelayMs: routeTimings.spinnerDelay,
-          spinnerMinimumMs: routeTimings.spinnerMinimum,
-          reducedMotion: routeTimings.opacityOnly,
-          onPresentationChange: publishLoaderPresentation,
-        });
+        loaderTimingDriver = createRouteLoaderTimingDriver();
         routeLoaderSessionRef.current = loaderTimingDriver;
         publishLoaderPresentation('plate');
       }
@@ -2362,12 +2325,9 @@ export function useShellRouteTransition({
         token !== transitionGenerationRef.current
         || abortController.signal.aborted
       );
-      publishTransitionPhase(
-        resumeCovered ? TRANSITION_PHASES.ROUTE_LOADING : TRANSITION_PHASES.ROUTE_OUT,
-        token,
-        nextRouteId,
-        activation,
-      );
+      if (resumeCovered) {
+        publishTransitionPhase(TRANSITION_PHASES.ROUTE_LOADING, token, nextRouteId, activation);
+      }
 
       let routeReadyWaiter = null;
       let routeReadinessStartedAt = 0;
@@ -2381,48 +2341,48 @@ export function useShellRouteTransition({
       const preloadRouteModule = typeof options.preloadRouteModule === 'function'
         ? options.preloadRouteModule
         : nextRouteRuntime?.loadModule;
-      const participantDepartureResult = waitWithTransitionTimeout(
-        Promise.all([
-          participants.prepare(),
-          resumeCovered ? Promise.resolve() : participants.exit(),
-        ]),
-        routeTimings.ready,
-        abortController.signal,
-      ).then(() => ({ error: null }), (error) => ({ error }));
-      const exitPromise = resumeCovered
-        ? Promise.resolve()
-        : fadeOutContent(
-            routeTimings.fadeOut,
-            routeTimings.fadeEasing,
-            surfaceRefs,
-            animationRegistry,
-            {
-              finalOpacity: isGate ? 0 : 0.08,
-              opacityOnly: routeTimings.opacityOnly,
-            },
-          );
-      const departurePromise = Promise.all([exitPromise, participantDepartureResult]);
-      // Keep normal destination compilation out of the short route-out window.
-      // Canvas material needs those paint turns to shrink through intermediate
-      // scales; cold module evaluation can otherwise turn a valid timeline into
-      // two visible frames (full size, then zero). Explicit preload overrides
-      // remain eager because callers use them to coordinate external readiness.
+      // Prepare a cold destination while the current scene is still visible.
+      // Compilation must not consume the exit's paint budget or become an empty
+      // interstitial now that navigation has no visible loader.
       const preloadPromise = typeof options.preloadRouteModule === 'function'
         ? loadRouteRuntimeModule(preloadRouteModule)
-        : departurePromise.then(() => prepareRouteRuntime({
+        : prepareRouteRuntime({
             routeId: nextRouteId,
             contentSignature: nextRouteContentSignature,
             runtime: nextRouteRuntime,
             priority: 'navigation',
             reason: 'navigation',
             signal: abortController.signal,
-          }));
-      const preloadResult = preloadPromise
-        .then(() => ({ error: null }), (error) => ({ error }));
+          });
+      const preloadResult = waitWithTransitionTimeout(
+        preloadPromise, routeTimings.ready, abortController.signal,
+      ).then(() => ({ error: null }), (error) => ({ error }));
+      const departurePromise = preloadResult.then(() => {
+        if (stale()) return [null, { error: null }];
+        setLegacyRouteTransitionActive(true, { gate: isGate });
+        if (!resumeCovered) {
+          publishTransitionPhase(TRANSITION_PHASES.ROUTE_OUT, token, nextRouteId, activation);
+        }
+        const participantDepartureResult = waitWithTransitionTimeout(
+          Promise.all([
+            participants.prepare(),
+            resumeCovered ? Promise.resolve() : participants.exit(),
+          ]),
+          routeTimings.ready,
+          abortController.signal,
+        ).then(() => ({ error: null }), (error) => ({ error }));
+        const exitPromise = resumeCovered
+          ? Promise.resolve()
+          : fadeOutContent(
+              routeTimings.fadeOut,
+              routeTimings.fadeEasing,
+              surfaceRefs,
+              animationRegistry,
+              { finalOpacity: 0, opacityOnly: routeTimings.opacityOnly },
+            );
+        return Promise.all([exitPromise, participantDepartureResult]);
+      });
 
-      // Departure motion has a fixed, intentionally short budget. Do not hold
-      // the outgoing view open while a destination module compiles or fetches:
-      // finish the exit, establish the cover, then await preload behind it.
       departurePromise
         .then(async ([, participantDeparture]) => {
           if (stale()) return;
@@ -2498,7 +2458,7 @@ export function useShellRouteTransition({
         })
         .then(() => {
           if (stale()) return;
-          let participantEnterPromise = Promise.resolve();
+          let participantEnterPromise = Promise.resolve({ error: null });
           const shellEntrancePromise = staggeredEntrance({
             routeId: nextState.route.id,
             surfaceRefs,
@@ -2516,7 +2476,7 @@ export function useShellRouteTransition({
                 participants.enter(),
                 routeTimings.ready,
                 abortController.signal,
-              );
+              ).then(() => ({ error: null }), (error) => ({ error }));
               dismissPortfolioGateSceneBridge({
                 durationMs: PORTFOLIO_GATE_SCENE_FADE_MS,
                 delayMs: GROUPED_ROUTE_OFFSET_MS,
@@ -2535,7 +2495,13 @@ export function useShellRouteTransition({
               }
             },
           });
-          return Promise.all([shellEntrancePromise, participantEnterPromise]);
+          // onPrepared runs after the staged paint barrier. Read its actual
+          // participant promise after preparation, and handle aborts immediately
+          // so an interrupted arrival cannot leak an unhandled rejection.
+          return shellEntrancePromise.then(async () => {
+            const { error } = await participantEnterPromise;
+            if (error) throw error;
+          });
         })
         .then(() => {
           if (stale()) return;

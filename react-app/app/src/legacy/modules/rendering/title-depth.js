@@ -390,13 +390,9 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
     target.fontSizeCssPx = fontSizeCssPx;
     target.blurPx = parseBlurPx(style.filter) * scaleY;
 
-    let drawAsSettledLine = body?.classList?.contains('atmosphere-lab-page') && glyphNodes.length > 0;
-    for (let glyphIndex = 0; drawAsSettledLine && glyphIndex < glyphNodes.length; glyphIndex += 1) {
-      if (glyphNodes[glyphIndex].__absRouteEntranceState?.settled !== true) drawAsSettledLine = false;
-    }
-    target.glyphCount = drawAsSettledLine
-      ? 0
-      : Math.min(TITLE_RENDER_MAX_GLYPHS, glyphNodes.length);
+    // Keep the same glyph shaping and coordinates after the entrance. Switching
+    // to whole-line Canvas shaping here changes kerning at the final frame.
+    target.glyphCount = Math.min(TITLE_RENDER_MAX_GLYPHS, glyphNodes.length);
     for (let glyphIndex = 0; glyphIndex < target.glyphs.length; glyphIndex += 1) {
       const glyphTarget = target.glyphs[glyphIndex];
       const glyphSource = glyphNodes[glyphIndex];

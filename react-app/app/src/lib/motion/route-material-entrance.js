@@ -7,10 +7,10 @@ import {
 } from '../legacy-runtime-scope.js';
 import { getShellRouteTransitionConfig } from '../../legacy/modules/visual/site-shell.js';
 
-// Cubic ease-out keeps both directions visibly moving from their first painted
-// frames and avoids hiding most of an exit in an abrupt endpoint collapse.
+// Arrivals decelerate into place. Departures share the surface's acceleration
+// so material remains visible through the small depth exchange before clearing.
 const MATERIAL_ENTER_EASING = 'cubic-bezier(0.215, 0.61, 0.355, 1)';
-const MATERIAL_EXIT_EASING = 'cubic-bezier(0.215, 0.61, 0.355, 1)';
+const MATERIAL_EXIT_EASING = 'cubic-bezier(0.4, 0, 1, 1)';
 
 function clamp(value, min, max, fallback = min) {
   const numeric = Number(value);

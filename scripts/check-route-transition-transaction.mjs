@@ -18,7 +18,7 @@ import {
   createRouteHistoryDriver,
 } from '../react-app/app/src/lib/motion/route-transition-navigation.js';
 import {
-  createAdaptiveSpinnerController,
+  createRouteLoaderTimingDriver,
 } from '../react-app/app/src/lib/motion/route-transition-loader-timing.js';
 import {
   ROUTE_LOADER_BACKDROP_MODES,
@@ -522,89 +522,30 @@ test('provisional history rollback performs no browser write', () => {
   }
 });
 
-test('adaptive spinner cancels a warm wait before the delay', async () => {
-  const clock = createFakeClock();
-  const presentations = [];
-  const spinner = createAdaptiveSpinnerController({
-    delayMs: 120,
-    minimumMs: 140,
-    now: clock.now,
-    setTimer: clock.setTimer,
-    clearTimer: clock.clearTimer,
-    onPresentationChange: (presentation) => presentations.push(presentation),
-  });
-  spinner.begin();
-  clock.tick(80);
-  await spinner.resolve();
-  clock.tick(100);
-  assert.equal(spinner.presentation, 'plate');
-  assert.deepEqual(presentations, []);
-  assert.equal(clock.pendingCount, 0);
-});
-
-test('adaptive spinner escalates once and honours its minimum presence', async () => {
-  const clock = createFakeClock();
-  const presentations = [];
-  const spinner = createAdaptiveSpinnerController({
-    delayMs: 120,
-    minimumMs: 140,
-    now: clock.now,
-    setTimer: clock.setTimer,
-    clearTimer: clock.clearTimer,
-    onPresentationChange: (presentation) => presentations.push([presentation, clock.now()]),
-  });
-  spinner.begin();
-  clock.tick(120);
-  assert.equal(spinner.presentation, 'spinner');
-  const resolution = spinner.resolve();
-  let resolved = false;
-  void resolution.then(() => { resolved = true; });
-  clock.tick(139);
-  await Promise.resolve();
-  assert.equal(resolved, false);
-  clock.tick(1);
-  await resolution;
-  assert.deepEqual(presentations, [['spinner', 120]]);
-});
-
-test('covered retarget reuses the original spinner delay and cancellation clears timers', async () => {
-  const clock = createFakeClock();
-  const presentations = [];
-  const spinner = createAdaptiveSpinnerController({
-    delayMs: 120,
-    minimumMs: 140,
-    now: clock.now,
-    setTimer: clock.setTimer,
-    clearTimer: clock.clearTimer,
-    onPresentationChange: (presentation) => presentations.push([presentation, clock.now()]),
-  });
-  spinner.begin();
-  clock.tick(90);
-  spinner.begin();
-  clock.tick(30);
-  assert.deepEqual(presentations, [['spinner', 120]]);
-  const resolution = spinner.resolve();
-  spinner.cancel();
-  await resolution;
-  assert.equal(spinner.presentation, 'plate');
-  assert.equal(clock.pendingCount, 0);
-});
-
-test('reduced motion uses the same delay without an artificial spinner hold', async () => {
-  const clock = createFakeClock();
-  const spinner = createAdaptiveSpinnerController({
-    delayMs: 120,
-    minimumMs: 140,
-    reducedMotion: true,
-    now: clock.now,
-    setTimer: clock.setTimer,
-    clearTimer: clock.clearTimer,
-  });
-  spinner.begin();
-  clock.tick(150);
-  assert.equal(spinner.presentation, 'spinner');
-  await spinner.resolve();
-  assert.equal(clock.pendingCount, 0);
+test('navigation readiness has no visible spinner or minimum hold and preserves the covered retarget barrier', async () => {
+  const previousDocument = globalThis.document;
+  const root = { dataset: {} };
+  globalThis.document = { documentElement: root };
+  try {
+    const driver = createRouteLoaderTimingDriver();
+    driver.beginReadinessWait();
+    await driver.waitForReadiness();
+    assert.equal(driver.presentation, 'none');
+    assert.equal(driver.spinnerShownAt, 0);
+    const coveredAt = await driver.establishCover();
+    assert.ok(coveredAt > 0);
+    driver.retarget();
+    assert.equal(await driver.establishCover(), coveredAt);
+    await driver.waitForDestinationPaint();
+    assert.equal(root.dataset.absRouteLoadingCoveredAt, String(coveredAt));
+    driver.clear();
+    assert.equal(driver.coveredAt, 0);
+    assert.equal(root.dataset.absRouteLoadingCoveredAt, undefined);
+    assert.equal(driver.presentation, 'none');
+  } finally {
+    if (previousDocument === undefined) delete globalThis.document;
+    else globalThis.document = previousDocument;
+  }
 });
 
 test('participant generation preserves the complete route lifecycle order', async () => {
@@ -1030,4 +971,18 @@ test('Daily readiness requires both a prepared Canvas and the matching visual so
     unregisterOther();
     harness.restore();
   }
+});
+
+
+test('depth exchange tuning survives canonical save and flattening with restrained bounds', async () => {
+  const { normalizeDesignSystemConfig, deriveLegacyConfigFiles } = await import('../react-app/app/src/legacy/modules/utils/design-config.js');
+  const { getShellRouteTransitionConfig } = await import('../react-app/app/src/legacy/modules/visual/site-shell.js');
+  const authored = { exitDurationMs: 300, surfaceEnterDurationMs: 330, depthExitScale: 0.982, depthEnterScale: 0.991 };
+  const normalized = normalizeDesignSystemConfig({ shell: { motion: { routeTransition: authored } } });
+  const generated = deriveLegacyConfigFiles(normalized).shell;
+  const runtime = getShellRouteTransitionConfig(generated);
+  for (const [key, value] of Object.entries(authored)) assert.equal(runtime[key], value);
+  const bounded = getShellRouteTransitionConfig({ motion: { routeTransition: { depthExitScale: 0.1, depthEnterScale: 2 } } });
+  assert.equal(bounded.depthExitScale, 0.95);
+  assert.equal(bounded.depthEnterScale, 1);
 });

@@ -122,7 +122,7 @@ const DEFAULT_SHELL_CONFIG = {
     modalDepthScale: 0.943,
     modalDepthTranslateY: 1,
     routeTransition: {
-      exitDurationMs: 100,
+      exitDurationMs: 300,
       loaderEnterDurationMs: 70,
       spinnerDelayMs: 120,
       spinnerMinimumMs: 140,
@@ -131,6 +131,8 @@ const DEFAULT_SHELL_CONFIG = {
       plateExitDelayMs: 40,
       plateExitDurationMs: 160,
       surfaceEnterDurationMs: 330,
+      depthExitScale: 0.976,
+      depthEnterScale: 0.984,
       typographyDelayMs: 1100,
       typographyExitDurationMs: 100,
       typographyExitStaggerMs: 24,
@@ -145,8 +147,8 @@ const DEFAULT_SHELL_CONFIG = {
       materialDurationMs: 1200,
       materialStaggerMs: 720,
       materialDelayMs: 80,
-      materialExitDurationMs: 140,
-      materialExitStaggerMs: 70,
+      materialExitDurationMs: 260,
+      materialExitStaggerMs: 40,
       cardTravelPx: 16,
       cardTiltDeg: 1.2
     }
@@ -216,6 +218,8 @@ export function getShellRouteTransitionConfig(config = currentShellConfig) {
     plateExitDelayMs: roundedNumberInRange(source.plateExitDelayMs, 0, 2000, defaults.plateExitDelayMs),
     plateExitDurationMs: roundedNumberInRange(source.plateExitDurationMs, 0, 2000, defaults.plateExitDurationMs),
     surfaceEnterDurationMs: roundedNumberInRange(source.surfaceEnterDurationMs, 0, 3000, defaults.surfaceEnterDurationMs),
+    depthExitScale: numberInRange(source.depthExitScale, 0.95, 1, defaults.depthExitScale),
+    depthEnterScale: numberInRange(source.depthEnterScale, 0.95, 1, defaults.depthEnterScale),
     typographyDelayMs: roundedNumberInRange(source.typographyDelayMs, 0, 3000, defaults.typographyDelayMs),
     typographyExitDurationMs: roundedNumberInRange(source.typographyExitDurationMs, 0, 1000, defaults.typographyExitDurationMs),
     typographyExitStaggerMs: roundedNumberInRange(source.typographyExitStaggerMs, 0, 500, defaults.typographyExitStaggerMs),
@@ -530,6 +534,8 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-route-plate-exit-delay', `${routeTransition.plateExitDelayMs}ms`);
   root.style.setProperty('--abs-route-plate-exit-duration', `${routeTransition.plateExitDurationMs}ms`);
   root.style.setProperty('--abs-route-surface-enter-duration', `${routeTransition.surfaceEnterDurationMs}ms`);
+  root.style.setProperty('--instrument-wake-recede-scale', String(routeTransition.depthExitScale));
+  root.style.setProperty('--instrument-wake-resolve-scale', String(routeTransition.depthEnterScale));
   root.style.setProperty('--abs-route-typography-delay', `${routeTransition.typographyDelayMs}ms`);
   root.style.setProperty('--abs-route-typography-exit-duration', `${routeTransition.typographyExitDurationMs}ms`);
   root.style.setProperty('--abs-route-typography-exit-stagger', `${routeTransition.typographyExitStaggerMs}ms`);

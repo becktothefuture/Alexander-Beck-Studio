@@ -405,8 +405,8 @@
   --instrument-wake-duration-pass: 245ms;
   --instrument-wake-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --instrument-wake-blur: 2px;
-  --instrument-wake-recede-scale: 0.992;
-  --instrument-wake-resolve-scale: 0.996;
+  --instrument-wake-recede-scale: 0.976;
+  --instrument-wake-resolve-scale: 0.984;
   --instrument-wake-pass-opacity: 0.58;
   /* Edge inset: wall thickness + content padding (set via JS in applyLayoutCSSVars) */
   --edge-inset: 0px;

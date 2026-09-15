@@ -91,7 +91,7 @@ export function pinRouteSurfacesForCommit(surfaceRefs, animationRegistry) {
     element.style.opacity = COVERED_PREPAINT_OPACITY;
     element.style.removeProperty('visibility');
     element.style.pointerEvents = 'none';
-    element.style.willChange = 'opacity, transform, filter';
+    element.style.willChange = 'opacity, transform';
   });
   animationRegistry.cancel();
 }

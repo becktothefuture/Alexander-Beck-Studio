@@ -613,7 +613,7 @@
       "modalDepthScale": 0.943,
       "modalDepthTranslateY": 1,
       "routeTransition": {
-        "exitDurationMs": 100,
+        "exitDurationMs": 300,
         "loaderEnterDurationMs": 70,
         "spinnerDelayMs": 120,
         "spinnerMinimumMs": 140,
@@ -622,6 +622,8 @@
         "plateExitDelayMs": 40,
         "plateExitDurationMs": 160,
         "surfaceEnterDurationMs": 330,
+        "depthExitScale": 0.976,
+        "depthEnterScale": 0.984,
         "typographyDelayMs": 1100,
         "typographyExitDurationMs": 100,
         "typographyExitStaggerMs": 24,
@@ -642,8 +644,8 @@
         "materialDurationMs": 1200,
         "materialStaggerMs": 720,
         "materialDelayMs": 80,
-        "materialExitDurationMs": 140,
-        "materialExitStaggerMs": 70,
+        "materialExitDurationMs": 260,
+        "materialExitStaggerMs": 40,
         "cardTravelPx": 16,
         "cardTiltDeg": 1.2
       },

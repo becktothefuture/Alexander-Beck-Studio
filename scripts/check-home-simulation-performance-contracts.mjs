@@ -68,12 +68,26 @@ test('canonical Home atmosphere keeps the broad field and disables the tight fie
   ));
   const authored = designSystem.shell.surface.simulationAtmosphere;
   const normalized = normalizeSimulationAtmosphereConfig(authored);
-  const profile = resolveSimulationAtmosphereRenderProfile(authored, 'light');
-  assert.equal(authored.largeSpread, 0.11);
+  assert.ok(Number.isFinite(authored.largeSpread));
+  assert.ok(authored.largeSpread >= 0.06 && authored.largeSpread <= 0.2);
   assert.equal(authored.fieldMode, 'broad');
   assert.equal(normalized.fieldMode, 'broad');
-  assert.equal(profile.fieldMode, 'broad');
-  assert.equal(profile.largeSpread, 0.11);
+  assert.equal(normalized.largeSpread, authored.largeSpread);
+  for (const theme of ['light', 'dark']) {
+    const profile = resolveSimulationAtmosphereRenderProfile(authored, theme);
+    assert.equal(profile.fieldMode, 'broad');
+    assert.equal(profile.largeSpread, authored.largeSpread);
+  }
+});
+
+test('atmosphere spread propagates authored tuning and clamps invalid bounds in both themes', () => {
+  for (const [largeSpread, expected] of [[0, 0.06], [0.08, 0.08], [0.11, 0.11], [0.2, 0.2], [1, 0.2]]) {
+    const authored = { fieldMode: 'broad', largeSpread };
+    assert.equal(normalizeSimulationAtmosphereConfig(authored).largeSpread, expected);
+    for (const theme of ['light', 'dark']) {
+      assert.equal(resolveSimulationAtmosphereRenderProfile(authored, theme).largeSpread, expected);
+    }
+  }
 });
 
 test('legacy atmosphere configs remain combined unless they explicitly choose a field', () => {

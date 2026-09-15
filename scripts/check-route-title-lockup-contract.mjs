@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { createTitleActivationSequence } from '../react-app/app/src/lib/motion/title-activation-order.js';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const designConfig = JSON.parse(await read('../react-app/app/public/config/design-system.json'));
@@ -199,4 +200,46 @@ test('About prewarms its code-split scene and cannot paint an unstaged opener', 
     sources.main,
     /data-abs-transition-phase='route-loading'[\s\S]*?\.about-narrative-indicator-layer[\s\S]*?visibility: hidden/,
   );
+});
+
+
+test('letter activation assigns every existing time slot once without changing the time window', () => {
+  for (const count of [0, 1, 2, 4, 48]) {
+    const slots = Array.from({ length: count }, (_, index) => 500 + index * 31.36);
+    const sequence = createTitleActivationSequence({ random: () => 0, history: new Map(), remember: () => {} });
+    const shuffled = sequence.delaysFor(`title-${count}`, slots);
+    assert.deepEqual([...shuffled].sort((a, b) => a - b), slots);
+    assert.equal(new Set(shuffled).size, count);
+    assert.ok(Object.isFrozen(shuffled));
+    if (count > 1) assert.notDeepEqual(shuffled, slots);
+  }
+});
+
+test('letter activation survives recollection and resize within one entrance', () => {
+  let draws = 0;
+  const sequence = createTitleActivationSequence({
+    random: () => { draws += 1; return 0.25; }, history: new Map(), remember: () => {},
+  });
+  const initial = sequence.delaysFor('AlexanderBeck|Creative&Technologist.', [500, 530, 560, 590]);
+  const initialDraws = draws;
+  const recollected = sequence.delaysFor('AlexanderBeck|Creative&Technologist.', [500, 530, 560, 590]);
+  const resized = sequence.delaysFor('AlexanderBeck|Creative&Technologist.', [500, 500, 640, 640]);
+  assert.strictEqual(recollected, initial);
+  assert.strictEqual(resized, initial);
+  assert.equal(draws, initialDraws);
+});
+
+test('successive entrances and restored reload history cannot repeat the same letter order', () => {
+  for (const count of [2, 4, 48]) {
+    const slots = Array.from({ length: count }, (_, index) => index);
+    const history = new Map();
+    const options = { random: () => 0, history, remember: () => {} };
+    const first = createTitleActivationSequence(options).delaysFor('title', slots);
+    const second = createTitleActivationSequence(options).delaysFor('title', slots);
+    assert.notDeepEqual(second, first);
+    const restored = new Map(JSON.parse(JSON.stringify([...history])));
+    const afterReload = createTitleActivationSequence({ ...options, history: restored }).delaysFor('title', slots);
+    assert.notDeepEqual(afterReload, second);
+    assert.deepEqual([...afterReload].sort((a, b) => a - b), slots);
+  }
 });
