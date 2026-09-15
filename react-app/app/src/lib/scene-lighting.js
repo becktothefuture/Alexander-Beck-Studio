@@ -4,7 +4,7 @@ import { normalizeSurfaceFinish } from './surface-finish.js';
 export const SCENE_LIGHT_DIRECTIONS = [[-1, 'Even'], [0, 'Top'], [45, 'Top right'], [90, 'Right'],
   [135, 'Bottom right'], [180, 'Bottom'], [225, 'Bottom left'], [270, 'Left'], [315, 'Top left']];
 export const SCENE_LIGHT_CONTROLS = [
-  { id: 'intensity', label: 'Light intensity', min: 0, max: 3, step: 0.05, default: 1 },
+  { id: 'intensity', label: 'Light intensity', min: 0, max: 3, step: 0.01, default: 1 },
   { id: 'direction', label: 'Light direction', options: SCENE_LIGHT_DIRECTIONS, default: -1 },
   { id: 'softness', label: 'Scene softness', min: 0, max: 3, step: 0.05, default: 1 },
   { id: 'thickness', label: 'Scene depth', min: 0, max: 3, step: 0.05, default: 1 },

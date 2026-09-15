@@ -125,6 +125,8 @@ The separate parent **Utility Rail** category has **Desktop** and **Mobile** sec
 
 **Surface Finish → Scene light & materials** is the central lighting editor. **Edit & preview mode** switches the actual site theme through the existing theme controller. Light and dark have independent saved profiles. The four scene controls are **Light intensity**, **Light direction**, **Scene softness**, and **Scene depth**. Amounts span 0–300%; direction offers Even and eight compass directions.
 
+The light-mode finish uses the approved dark-mode direction, scene softness, depth and five material responses as its baseline, with independent light-intensity and window adjustments. Its authored sheen, rim, reflection and ball-material calibration also copy the dark-mode settings. The separate atmosphere uses the same colour strength with 30% more intensity (0.468 versus 0.36). Theme colours and sphere reference materials retain their existing owners. The profiles remain independently editable. Light intensity uses 1% steps so precise values such as 52% can be adjusted without rounding to a 5% increment.
+
 Choose a material to tune its **Thickness**, **Softness**, **Shine**, and **Shadow**, also from 0–300%. The window omits Shadow because its edge is light-only. **Reset this mode** restores only the selected lighting profile to neutral. It leaves the other mode and detailed material calibration intact.
 
 | Material | Consumers |

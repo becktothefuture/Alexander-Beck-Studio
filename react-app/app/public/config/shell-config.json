@@ -29,37 +29,37 @@
     "blur": "8px",
     "saturation": 1.12,
     "indicatorLineThickness": "3px",
-    "sheenTopOpacityLight": 0.03,
+    "sheenTopOpacityLight": 0.045,
     "sheenTopOpacityDark": 0.045,
-    "sheenMidOpacityLight": 0.01,
+    "sheenMidOpacityLight": 0.018,
     "sheenMidOpacityDark": 0.018,
     "shadowBlur": "18px",
     "shadowOffsetY": "6px",
     "innerWallRimSize": "25px",
     "innerWallRimBlur": "160px",
-    "innerWallRimOpacityLight": 0.85,
+    "innerWallRimOpacityLight": 0.06,
     "innerWallRimOpacityDark": 0.06,
     "outerWallGlowNearSize": "3px",
     "outerWallGlowNearBlur": "5px",
     "outerWallGlowNearShift": "1px",
-    "outerWallGlowNearOpacityLight": 0.295,
+    "outerWallGlowNearOpacityLight": 0.097,
     "outerWallGlowNearOpacityDark": 0.097,
     "outerWallGlowFarSize": "8px",
     "outerWallGlowFarBlur": "24px",
     "outerWallGlowFarSizeMobile": "4px",
     "outerWallGlowFarBlurMobile": "10px",
     "outerWallGlowFarShift": "0px",
-    "outerWallGlowFarOpacityLight": 0.199,
+    "outerWallGlowFarOpacityLight": 0.069,
     "outerWallGlowFarOpacityDark": 0.069,
     "menuEdgeNearSize": "12px",
     "menuEdgeNearBlur": "5px",
     "menuEdgeNearShift": "-12px",
-    "menuEdgeNearOpacityLight": 0.66,
+    "menuEdgeNearOpacityLight": 0.158,
     "menuEdgeNearOpacityDark": 0.158,
     "menuEdgeFarSize": "7px",
     "menuEdgeFarBlur": "29px",
     "menuEdgeFarShift": "0px",
-    "menuEdgeFarOpacityLight": 0.286,
+    "menuEdgeFarOpacityLight": 0.04,
     "menuEdgeFarOpacityDark": 0.04,
     "simulationAtmosphere": {
       "enabled": true,
@@ -69,8 +69,8 @@
       "smallSpread": 0.02,
       "memoryMs": 575,
       "light": {
-        "intensity": 0.32,
-        "colourStrength": 1.6
+        "intensity": 0.468,
+        "colourStrength": 1.24
       },
       "dark": {
         "intensity": 0.36,
@@ -81,14 +81,14 @@
       "enabled": true,
       "cacheDetailPx": 24,
       "light": {
-        "keyLevel": 0,
-        "keyReach": 0.5,
-        "ambientLevel": 0.57,
+        "keyLevel": 0.34,
+        "keyReach": 1.03,
+        "ambientLevel": 0,
         "ambientReach": 0.5,
         "rimBounceLevel": 0,
-        "rimBounceReach": 0.94,
-        "shadowDepth": 0.51,
-        "shadowArea": 0.85
+        "rimBounceReach": 0.5,
+        "shadowDepth": 0.49,
+        "shadowArea": 1.5
       },
       "dark": {
         "keyLevel": 0.34,
@@ -106,33 +106,33 @@
     "frameEdgeBlendStrength": 1,
     "lighting": {
       "light": {
-        "intensity": 0.9,
+        "intensity": 1,
         "direction": -1,
         "softness": 1.9,
         "thickness": 0.5,
         "materials": {
           "window": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1
+            "thickness": 1.85,
+            "softness": 0.55,
+            "highlight": 1.7
           },
           "navigation": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1,
-            "shadow": 1
+            "thickness": 2.95,
+            "softness": 0.4,
+            "highlight": 1.15,
+            "shadow": 1.8
           },
           "balls": {
-            "thickness": 1,
+            "thickness": 1.35,
             "softness": 1,
             "highlight": 1,
             "shadow": 1
           },
           "buttons": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1,
-            "shadow": 1
+            "thickness": 1.95,
+            "softness": 3,
+            "highlight": 1.35,
+            "shadow": 0
           },
           "cards": {
             "thickness": 1,
