@@ -65,12 +65,12 @@
       "enabled": true,
       "lowQualityMode": "canvas",
       "fieldMode": "broad",
-      "largeSpread": 0.08,
+      "largeSpread": 0.11,
       "smallSpread": 0.02,
-      "memoryMs": 400,
+      "memoryMs": 575,
       "light": {
-        "intensity": 0.34,
-        "colourStrength": 0.96
+        "intensity": 0.32,
+        "colourStrength": 1.6
       },
       "dark": {
         "intensity": 0.36,
@@ -143,33 +143,33 @@
         }
       },
       "dark": {
-        "intensity": 0.9,
+        "intensity": 0.4,
         "direction": -1,
         "softness": 1.9,
         "thickness": 0.5,
         "materials": {
           "window": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1
+            "thickness": 1.95,
+            "softness": 0.45,
+            "highlight": 1.7
           },
           "navigation": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1,
-            "shadow": 1
+            "thickness": 2.95,
+            "softness": 0.4,
+            "highlight": 1.15,
+            "shadow": 1.8
           },
           "balls": {
-            "thickness": 1,
+            "thickness": 1.35,
             "softness": 1,
             "highlight": 1,
             "shadow": 1
           },
           "buttons": {
-            "thickness": 1,
-            "softness": 1,
-            "highlight": 1,
-            "shadow": 1
+            "thickness": 1.95,
+            "softness": 3,
+            "highlight": 1.35,
+            "shadow": 0
           },
           "cards": {
             "thickness": 1,

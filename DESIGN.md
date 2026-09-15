@@ -232,6 +232,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - The footer is quiet edge metadata: social links, studio statement, and London time.
 - On mobile, equal footer side tracks place the edge caption on the page centreline between the social controls and London time.
 - Desktop keeps all three footer groups on one shared vertical centre line; individual groups do not use corrective vertical offsets.
+- The studio statement is centered within its grid column, capped at 40rem on desktop and fitted to the caption column on mobile. Home uses a 2rem bottom inset, increasing only when the safe-area/content inset requires it.
 - It remains subordinate to route content and must stay readable without becoming a second navigation bar.
 - Work suppresses the Home-only edge caption.
 
@@ -240,6 +241,7 @@ The shell is one stable instrument: exposed band, wall/frame geometry, studio-wi
 - Every semantic production ball that belongs to the shared sphere family uses its approved circle or pebble geometry with the cached matte material from the active time-of-day palette. Flat fill remains the guarded missing-material fallback.
 - Route coverage is explicit: Home simulation bodies and the quote puck plus Contact ripple balls use the cached sphere finish. About's Blender surfels use the same resolved palette and broad physical atmosphere but retain their instanced point-cloud material so silhouettes, density, fog, and deep spatial layering remain legible. Work's depth dots and DOM work cards are not semantic balls.
 - The cached sphere sticker/atlas finish is enabled in the canonical surface config. Renderers prewarm the active palette and reuse shared cached material; they do not build gradients, parse colours, or calculate lighting per body during a frame.
+- Surface Finish owns a global light and independent light/dark profiles, with distinct responses for the window/Utility Rail, navigation, semantic balls/puck, in-window actions and cards/sheets. Thickness and softness change material shading, not layout or collision geometry. The rail consumes the window's computed reflection layers. Focus indicators and legibility masks remain independent of scene lighting.
 - Bodies must be large enough to read as material and separated enough to preserve silhouette.
 - Express force through motion, displacement, density, collision, and broad tonal fields.
 - Do not use overlapping transparent circles, weather overlays, long decorative trails, thin vector fields, or generic particles as the main idea.

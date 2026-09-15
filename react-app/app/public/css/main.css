@@ -312,8 +312,7 @@ body.body.dark-mode {
 .edge-caption {
   position: relative;
   grid-column: 2;
-  justify-self: stretch;
-  transform: translateY(-18px);
+  justify-self: center;
   z-index: 3; /* Within .fade-content stacking context */
   pointer-events: none;
   display: inline-flex;
@@ -326,7 +325,7 @@ body.body.dark-mode {
   border-radius: 0;
   background: transparent;
   width: 100%;
-  max-width: 800px;
+  max-width: 40rem;
   font-size: min(calc(var(--text-xs) * 0.95), 8px);
   opacity: 0.38;
 }
@@ -353,7 +352,6 @@ body.body.dark-mode {
     display: inline-flex;
     grid-area: caption;
     justify-self: center;
-    transform: none;
     width: 100%;
     min-width: 0;
     max-width: 100%;
@@ -512,8 +510,11 @@ html.fonts-loading .project-detail {
 }
 
 /* The footer belongs to Home; keep its control row slightly closer to the window edge. */
-html[data-shell-route='home'] .page-content {
-  padding-bottom: max(calc(var(--abs-safe-bottom) + 8px), min(var(--content-padding-y-bottom), 1.5dvh));
+html[data-shell-route='home'] #simulations > .page-content {
+  padding-bottom: max(
+    2rem,
+    calc(max(var(--abs-safe-bottom), var(--content-padding-y-bottom)) - var(--safari-tint-inset-y, var(--safari-tint-inset)))
+  );
 }
 
 .shell-wall-slot {

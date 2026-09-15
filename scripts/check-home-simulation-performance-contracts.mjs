@@ -69,11 +69,11 @@ test('canonical Home atmosphere keeps the broad field and disables the tight fie
   const authored = designSystem.shell.surface.simulationAtmosphere;
   const normalized = normalizeSimulationAtmosphereConfig(authored);
   const profile = resolveSimulationAtmosphereRenderProfile(authored, 'light');
-  assert.equal(authored.largeSpread, 0.08);
+  assert.equal(authored.largeSpread, 0.11);
   assert.equal(authored.fieldMode, 'broad');
   assert.equal(normalized.fieldMode, 'broad');
   assert.equal(profile.fieldMode, 'broad');
-  assert.equal(profile.largeSpread, 0.08);
+  assert.equal(profile.largeSpread, 0.11);
 });
 
 test('legacy atmosphere configs remain combined unless they explicitly choose a field', () => {

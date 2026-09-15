@@ -534,10 +534,13 @@ async function readContinuousResizeMetrics(page) {
         switcherCenterX: switcher ? switcher.left + (switcher.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
         switcherCenterY: switcher ? switcher.top + (switcher.height * 0.5) : Number.POSITIVE_INFINITY,
         socialLeft: social?.left ?? Number.POSITIVE_INFINITY,
+        socialCenterY: social ? social.top + (social.height * 0.5) : Number.POSITIVE_INFINITY,
         socialBottom: social ? innerHeight - social.bottom : Number.POSITIVE_INFINITY,
         yearRight: year ? innerWidth - year.right : Number.POSITIVE_INFINITY,
+        yearCenterY: year ? year.top + (year.height * 0.5) : Number.POSITIVE_INFINITY,
         yearBottom: year ? innerHeight - year.bottom : Number.POSITIVE_INFINITY,
         captionCenterX: caption ? caption.left + (caption.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
+        captionCenterY: caption ? caption.top + (caption.height * 0.5) : Number.POSITIVE_INFINITY,
         captionBottom: caption ? innerHeight - caption.bottom : Number.POSITIVE_INFINITY,
         buttonBarCenterX: buttonBar ? buttonBar.left + (buttonBar.width * 0.5) - (innerWidth * 0.5) : Number.POSITIVE_INFINITY,
         buttonBarBottom: buttonBar ? innerHeight - buttonBar.bottom : Number.POSITIVE_INFINITY,
@@ -561,6 +564,20 @@ function assertContinuousResizeSample(sample, previous, axis, label) {
   assert(sample.title.backingWidthDelta <= 1 && sample.title.backingHeightDelta <= 1, `${label}: title backing store is stale`, sample.title);
   assert(sample.material.present, `${label}: simulation material canvas is missing`, sample.material);
   assert(sample.material.backingWidthDelta <= 1 && sample.material.backingHeightDelta <= 1, `${label}: simulation material backing store is stale`, sample.material);
+  if (sample.viewport.width > 600) {
+    const captionDelta = Math.abs(sample.anchors.captionCenterY - sample.anchors.yearCenterY);
+    const socialDelta = Math.abs(sample.anchors.socialCenterY - sample.anchors.yearCenterY);
+    assert(captionDelta <= 0.5, `${label}: desktop caption and London clock do not share one centre line`, {
+      captionCenterY: sample.anchors.captionCenterY,
+      yearCenterY: sample.anchors.yearCenterY,
+      delta: captionDelta,
+    });
+    assert(socialDelta <= 0.5, `${label}: desktop social controls and London clock do not share one centre line`, {
+      socialCenterY: sample.anchors.socialCenterY,
+      yearCenterY: sample.anchors.yearCenterY,
+      delta: socialDelta,
+    });
+  }
   if (!previous) return;
 
   const horizontalAnchors = [
