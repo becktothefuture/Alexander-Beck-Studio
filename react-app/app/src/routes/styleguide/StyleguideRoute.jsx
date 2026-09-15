@@ -66,7 +66,7 @@ export function getStyleguideRouteView() {
           <section className="styleguide-section" aria-labelledby="sg-button-bar">
             <h2 id="sg-button-bar">Button Bar navigation</h2>
             <p className="styleguide-section__hint">
-              The production component keeps five icon-and-label routes in one group. One shared active key moves between them; theme and sound live in the separate global Utility Rail.
+              Four stationary icon-and-label pills sit below the window. Pressure changes their inward shading; theme and sound remain in the separate Utility Rail.
             </p>
             {renderButtonBarSpecimen()}
           </section>

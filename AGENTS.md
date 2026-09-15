@@ -112,7 +112,7 @@ Read the focused reference under `docs/reference/` for the affected contract: `S
 ## Locked visual contracts
 
 - The physical window, outer frame, Button Bar, and outside-window shell do not enter/exit with route content.
-- Work project sheets cover route content to the studio-window boundary behind the overlapping Button Bar; the bar remains above them and receives input. See `docs/reference/LAYER-STACKING.md`.
+- Work project sheets cover route content to the studio-window boundary; the separate Button Bar remains below and outside the window and receives input. See `docs/reference/LAYER-STACKING.md`.
 - Portfolio detail handoff animates the selected media geometry into the drawer hero; preserve reversal and reduced-motion behavior.
 - The home canvas owns balls plus the visual title path; semantic DOM copy remains for accessibility.
 - Instrument Serif is reserved for route-entry headlines through the headline tokens. Keep navigation, descriptions, Portfolio cards, and project-detail titles in Geist; do not spread the serif through inheritance or use it as a general heading font.

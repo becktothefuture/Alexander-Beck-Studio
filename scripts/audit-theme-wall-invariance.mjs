@@ -369,9 +369,8 @@ async function readInvariantState(page) {
           return contentRect.width > 0 && contentRect.height > 0;
         })
       : null;
-    const buttonBar = activePrimaryTab?.closest('.button-bar');
-    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
-    const activePrimaryTabRect = activePrimaryTab?.getBoundingClientRect();
+    const activePrimaryPill = activePrimaryTab?.querySelector('.tactile-nav__active');
+    const activePrimaryTabRect = activePrimaryTab?.querySelector('.tactile-nav__face')?.getBoundingClientRect();
     const activePrimaryContentRect = activePrimaryVisibleContent?.getBoundingClientRect();
     const activePrimaryPillRect = activePrimaryPill?.getBoundingClientRect();
     const activePrimaryTabStyle = activePrimaryTab ? getComputedStyle(activePrimaryTab) : null;
@@ -419,10 +418,7 @@ async function readInvariantState(page) {
         return [tab.dataset.routeTab, style.color, style.backgroundColor, style.borderColor].join('|');
       }).join(';'),
       activePrimaryPillBackground: activePrimaryPill ? getComputedStyle(activePrimaryPill).backgroundColor : '',
-      activePrimaryPillInset: Number.parseFloat(
-        rootStyle.getPropertyValue('--button-bar-effective-active-inset')
-        || rootStyle.getPropertyValue('--button-bar-active-inset'),
-      ),
+      activePrimaryPillInset: 0,
       activePrimaryInk: activePrimaryContent ? getComputedStyle(activePrimaryContent).color : '',
       activePrimaryRouteId: activePrimaryTab?.dataset.routeTab || '',
       activePrimaryTabX: activePrimaryTabRect ? roundGeometry(activePrimaryTabRect.x) : '',
@@ -753,12 +749,11 @@ function diffInvariantState(before, after, { includePhysicalBoundary = false } =
 }
 
 function assertActivePrimaryTabThemeContract(state, theme, route, viewport) {
-  if (!normalize(state.activePrimaryPillBackground).startsWith('rgba(255, 255, 255,')) {
-    throw new Error(`${route} ${viewport.name} ${theme} active key lost its neutral surface: ${state.activePrimaryPillBackground}`);
+  if (!state.activePrimaryPillBackground || state.activePrimaryPillBackground === 'rgba(0, 0, 0, 0)') {
+    throw new Error(`${route} ${viewport.name} ${theme} active face has no palette surface`);
   }
-  const expectedInk = 'rgb(255, 255, 255)';
-  if (normalize(state.activePrimaryInk) !== expectedInk) {
-    throw new Error(`${route} ${viewport.name} ${theme} active primary ink expected ${expectedInk}, got ${state.activePrimaryInk}`);
+  if (!['rgb(255, 255, 255)', 'rgb(0, 0, 0)'].includes(normalize(state.activePrimaryInk))) {
+    throw new Error(`${route} ${viewport.name} ${theme} active icon needs contrasting neutral ink`);
   }
 }
 
@@ -799,32 +794,15 @@ function assertActivePrimaryPillGeometryContract(state, route, viewport) {
 
 async function waitForActivePrimaryTabThemeContract(page) {
   await page.waitForFunction(() => {
-    const activePrimaryTab = document.querySelector('[data-route-tab][aria-current="page"]');
-    const activePrimaryContent = activePrimaryTab?.querySelector('.shell-tab__label, .shell-tab__icon');
-    const buttonBar = activePrimaryTab?.closest('.button-bar');
-    const activePrimaryPill = buttonBar?.querySelector('.button-bar__active-pill');
-    if (!activePrimaryContent || !activePrimaryPill) return false;
-
-    const activePrimaryTabRect = activePrimaryTab.getBoundingClientRect();
-    const activePrimaryPillRect = activePrimaryPill.getBoundingClientRect();
-    const rootStyle = getComputedStyle(document.documentElement);
-    const activePrimaryPillInset = Number.parseFloat(
-      rootStyle.getPropertyValue('--button-bar-effective-active-inset')
-      || rootStyle.getPropertyValue('--button-bar-active-inset'),
-    );
-    const expectedPillWidth = activePrimaryTabRect.width - (2 * activePrimaryPillInset);
-    const expectedPillHeight = activePrimaryTabRect.height - (2 * activePrimaryPillInset);
-    const activeTabCenter = activePrimaryTabRect.left + (activePrimaryTabRect.width / 2);
-    const activePillCenter = activePrimaryPillRect.left + (activePrimaryPillRect.width / 2);
-    const geometryTolerance = 0.5;
-
-    return buttonBar.querySelector('[data-button-bar-nav]')?.dataset.activePillReady === 'true'
-      && getComputedStyle(activePrimaryPill).backgroundColor.startsWith('rgba(255, 255, 255,')
-      && getComputedStyle(activePrimaryContent).color === 'rgb(255, 255, 255)'
-      && Math.abs(activePrimaryPillRect.width - expectedPillWidth) <= geometryTolerance
-      && Math.abs(activePrimaryPillRect.height - expectedPillHeight) <= geometryTolerance
-      && Math.abs(activePillCenter - activeTabCenter) <= geometryTolerance;
-  }, null, { timeout: 5000 });
+    const tab = document.querySelector('[data-route-tab][aria-current="page"]');
+    const face = tab?.querySelector('.tactile-nav__face');
+    const layer = tab?.querySelector('.tactile-nav__active');
+    if (!face || !layer) return false;
+    const a = face.getBoundingClientRect();
+    const b = layer.getBoundingClientRect();
+    return getComputedStyle(layer).opacity === '1'
+      && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5;
+  }, null, { timeout: 5000, polling: 50 });
 }
 
 async function auditRoute(browser, route, viewport) {

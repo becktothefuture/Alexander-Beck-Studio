@@ -1690,6 +1690,11 @@ body:not(.dark-mode) .panel-section--action {
   --dock-panel-height: min(92vh, var(--dock-panel-max-height));
 }
 
+/* Keep the launcher reachable when the dock covers the lower-right corner. */
+.panel-toggle-btn {
+  z-index: 2147483001;
+}
+
 
 .panel-dock > * {
   pointer-events: auto;

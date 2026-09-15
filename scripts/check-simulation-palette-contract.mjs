@@ -161,6 +161,15 @@ for (const startHour of [0, 3, 6, 9, 12, 15, 18, 21]) {
   unsubscribe();
 }
 
+// Editor palette previews reuse the scheduled owner without resetting route state.
+const editorController = createSimulationPaletteController({
+  now: () => new Date(2026, 6, 18, 16, 0, 0), project: () => {},
+});
+assert.equal(editorController.configure({ paletteId: 'bowWornSignal' }).paletteId, 'bowWornSignal');
+const editorGeneration = editorController.getSnapshot().generation;
+assert.equal(editorController.configure({ paletteId: 'bowWornSignal' }).generation, editorGeneration);
+assert.equal(editorController.configure({ paletteId: null }).paletteId, 'silvertownCobaltVoltage');
+
 let delayedClock = new Date(2026, 6, 18, 22, 15, 0, 0);
 const delayedController = createSimulationPaletteController({
   now: () => new Date(delayedClock.getTime()),
@@ -500,7 +509,8 @@ const controlRegistrySource = readFileSync(resolve(
   'react-app/app/src/legacy/modules/ui/control-registry.js',
 ), 'utf8');
 assert.match(controlRegistrySource, /configureSimulationPalette/);
-assert.match(controlRegistrySource, /id="scheduledPaletteSelect"[^>]*disabled/);
+assert.match(controlRegistrySource, /id="scheduledPaletteSelect" aria-label="Preview ball palette"/);
+assert.match(controlRegistrySource, /configureSimulationPalette\(\{ paletteId: paletteSelect.value \}\)/);
 assert.doesNotMatch(
   controlRegistrySource,
   /id:\s*['"]linkHoverColor['"]|stateKey:\s*['"]linkHoverColor['"]/,

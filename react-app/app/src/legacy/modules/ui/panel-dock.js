@@ -8,6 +8,7 @@ import { setupIndexControls, setupMasterControls } from './controls.js';
 import { setupBuildControls } from './build-controls.js';
 import {
   generateMasterSectionsHTML,
+  generateScheduledPaletteSectionHTML,
   generateModeSwitcherHTML,
   generateModeSpecificSectionsHTML,
   getPuckColorControlsHTML,
@@ -28,7 +29,8 @@ import {
   SOUND_STATE_EVENT,
   playTestSound,
   unlockAudio,
-  toggleSound
+  toggleSound,
+  setSoundEnabled
 } from '../audio/sound-engine.js';
 import {
   bindSoundControls,
@@ -302,12 +304,13 @@ function getMasterPanelContent({
 
   const masterGroupsHTML = generateMasterSectionsHTML({
     prepend: {
-      structure: generateStudioShellControlsHTML({ sectionKeys: ['frame', 'wallEdge', 'outerWallGlow'] }),
+      finish: generateStudioShellControlsHTML({ sectionKeys: ['surfaceFinish', 'edgeBlend', 'wallEdge', 'outerWallGlow'] }),
+      layout: generateStudioShellControlsHTML({ sectionKeys: ['frame'] }),
       simulations: simulationsPrepend,
       simulationModes: ballsPrepend,
     },
     append: {
-      menu: generateStudioShellControlsHTML({ sectionKeys: ['menuEdge'] }),
+      palette: generateScheduledPaletteSectionHTML(),
       layout: generateStudioShellControlsHTML({ sectionKeys: ['quoteSystem'] }),
       motion: generateStudioShellControlsHTML({ sectionKeys: ['routeEntrance', 'themeTransition'] }),
       puck: generateStudioShellControlsHTML({
@@ -316,7 +319,8 @@ function getMasterPanelContent({
       }),
       audio: soundControlsHTML,
     },
-    groupIds: masterGroupIds,
+    // Window finish is shared, including routes with a reduced control panel.
+    groupIds: masterGroupIds?.length ? ['finish', ...masterGroupIds] : masterGroupIds,
     includeRegisteredSections: true,
   });
 
@@ -949,12 +953,9 @@ export function collapsePanel() {
 export function toggleDock() {
   // Dev-only safety: if the dock hasn't been created yet (or got removed),
   // create it on-demand so `/` always works.
-  if (!dockElement) {
-    try {
-      createPanelDock();
-    } catch (e) {
-      return;
-    }
+  if (!getDock()) {
+    createPanelDock({ initiallyVisible: true });
+    return;
   }
 
   const isHidden = dockElement.classList.toggle('hidden');
@@ -973,7 +974,7 @@ export function toggleDock() {
 }
 
 export function hideDock() {
-  if (!dockElement) return;
+  if (!getDock()) return;
   dockElement.classList.add('hidden');
   saveDockHiddenState(true);
 }
@@ -1043,12 +1044,12 @@ function setupSoundControls(panel) {
   const syncSoundSectionUI = (state, { openIfEnabled = false } = {}) => {
     if (!enableBtn) return;
     const s = state || getSoundState();
-    const enabled = !!(s.isUnlocked && s.isEnabled);
+    const enabled = !!s.isEnabled;
     const unlocked = !!s.isUnlocked;
 
     // Icon-only (no text). Use aria-label/title for accessibility.
-    enableBtn.innerHTML = (unlocked && enabled) ? ICON_SOUND_ON : ICON_SOUND_OFF;
-    enableBtn.setAttribute('aria-label', unlocked ? (enabled ? 'Sound on' : 'Sound off') : 'Enable sound');
+    enableBtn.innerHTML = enabled ? ICON_SOUND_ON : ICON_SOUND_OFF;
+    enableBtn.setAttribute('aria-label', enabled ? 'Sound on' : (unlocked ? 'Sound off' : 'Enable sound'));
 
     enableBtn.classList.toggle('enabled', enabled);
 
@@ -1111,7 +1112,9 @@ function setupSoundControls(panel) {
     enableBtn.addEventListener('click', async () => {
       const state = getSoundState();
       
-      if (!state.isUnlocked) {
+      if (!state.isUnlocked && state.isEnabled) {
+        setSoundEnabled(false);
+      } else if (!state.isUnlocked) {
         const success = await unlockAudio();
         if (success) {
           syncSoundSectionUI(null, { openIfEnabled: true });
@@ -1204,6 +1207,12 @@ function setupLayoutControls(panel) {
 // EXPORTS
 // ════════════════════════════════════════════════════════════════════════════════
 
-export function getDock() { return dockElement; }
+export function getDock() {
+  // Route replacement and Vite updates can leave an older module holding a
+  // detached dock. Resolve the live host before any visibility change.
+  dockElement = document.getElementById('panelDock');
+  masterPanelElement = dockElement?.querySelector('#masterPanel') || null;
+  return dockElement;
+}
 export function getControlPanel() { return masterPanelElement; }
 export function getSoundPanel() { return masterPanelElement; }

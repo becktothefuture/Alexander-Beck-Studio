@@ -9,6 +9,7 @@ import {
   toggleDock,
 } from './panel-dock.js';
 import { unregisterPanelUiDocument } from './panel-ui-context.js';
+import { addStableEventListener } from '../../../lib/legacy-runtime-scope.js';
 
 const POPUP_NAME = 'AlexanderBeckConfigPanel';
 const POPUP_URL = '/panel-host.html';
@@ -88,7 +89,7 @@ function ensureLauncherButton() {
     button.dataset.soundAction = 'none';
     button.dataset.soundSource = 'development-design-panel';
     button.dataset.panelDetachSupported = 'true';
-    button.addEventListener('click', (event) => {
+    addStableEventListener(button, 'click', (event) => {
       if (event.shiftKey) {
         openDetachedPanelWindow();
         return;
@@ -165,8 +166,8 @@ function bindPopupCloseListener() {
 function bindPopupSyncListeners() {
   if (syncListenersBound) return;
   syncListenersBound = true;
-  window.addEventListener('abs:theme-changed', syncPopupHostAppearance);
-  window.addEventListener('bb:paletteChanged', syncPopupHostAppearance);
+  addStableEventListener(window, 'abs:theme-changed', syncPopupHostAppearance);
+  addStableEventListener(window, 'bb:paletteChanged', syncPopupHostAppearance);
 }
 
 function bindPopupReadyHandler() {

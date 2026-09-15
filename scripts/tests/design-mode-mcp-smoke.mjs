@@ -51,9 +51,9 @@ try {
   ws = new WebSocket(`ws://127.0.0.1:${port}/?token=${encodeURIComponent(health.webSocketToken)}`);
   await once(ws, 'open');
   const snapshot = await readSnapshot(fixture, adapter);
-  const oldValue = snapshot[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const tokenChanges = [{ cssVar: '--button-bar-mobile-height', scopeSelector: ':root',
-    oldValue: `${oldValue}px`, newValue: '66px', cssRule: ':root { --button-bar-mobile-height: 66px; }' }];
+  const oldValue = snapshot[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const tokenChanges = [{ cssVar: '--tactile-nav-face-height', scopeSelector: ':root',
+    oldValue: `${oldValue}px`, newValue: '34px', cssRule: ':root { --tactile-nav-face-height: 34px; }' }];
   const session = { pageUrl: 'http://localhost:8012/', pageTitle: 'Protocol fixture',
     styleChanges: [], textChanges: [], domChanges: [], tokenChanges,
     tokenGuidance: 'Edit the canonical token source, preserving its scope.',
@@ -72,7 +72,7 @@ try {
   const plan = await createTokenPlan(fixture, adapter, handoff);
   assert.equal(plan.ready, true);
   await applyTokenPlan(fixture, adapter, plan);
-  assert.equal((await readSnapshot(fixture, adapter))[adapter.canonical].document.runtime.buttonBarMobileHeightPx, 66);
+  assert.equal((await readSnapshot(fixture, adapter))[adapter.canonical].document.runtime.tactileNavFaceHeightPx, 34);
   console.log('PASS: 8 MCP tools, offline/connected handshake, token metadata, canonical write and generated reload. Browser messages were simulated; no real extension UI was driven.');
 } catch (error) {
   if (!stderr.includes('MCP READY')) console.error('Companion did not reach ready state; run npm run design:setup and npm run design:doctor.');

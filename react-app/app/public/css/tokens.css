@@ -101,6 +101,11 @@
   --abs-soft-control-fill-hover: rgba(252, 253, 249, 0.8);
   --abs-soft-control-ink: rgba(14, 19, 13, 0.8);
   --abs-soft-control-ink-strong: #0b100b;
+  --abs-soft-control-shine-rest: 0.64;
+  --abs-soft-control-shine-hover: 0.82;
+  --abs-soft-control-shade-rest: 0.09;
+  --abs-soft-control-shade-hover: 0.12;
+  --abs-soft-control-shade-rgb: 11, 18, 10;
   --abs-soft-control-shadow-rest:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.64),
     inset -1px -1px 2px rgba(11, 18, 10, 0.09);
@@ -304,9 +309,7 @@
   --content-padding-y-bottom: calc(var(--abs-content-padding) * var(--abs-content-pad-mul-bottom));
   --button-bar-height: 68px;
   --button-bar-bottom-inset: 10.5px;
-  --button-bar-window-overlap: 32px;
   --button-bar-mobile-height: 62px;
-  --button-bar-mobile-window-overlap: 30px;
   --button-bar-mobile-radius: 20px;
   --button-bar-mobile-icon-cell: 62px;
   --button-bar-mobile-icon-size: 21px;
@@ -320,12 +323,11 @@
   --button-bar-active-inset: 7px;
   --button-bar-active-radius: 15px;
   --button-bar-effective-height: var(--button-bar-height);
-  --button-bar-effective-window-overlap: var(--button-bar-window-overlap);
   --button-bar-effective-radius: var(--button-bar-button-radius);
   --button-bar-effective-font-size: var(--button-bar-font-size);
   --button-bar-effective-active-inset: var(--button-bar-active-inset, 1px);
-  --button-bar-frame-reserve: calc(var(--button-bar-effective-height) - var(--button-bar-effective-window-overlap) + var(--button-bar-bottom-inset));
-  --button-bar-content-clearance: calc(var(--button-bar-effective-window-overlap) + 8px);
+  --button-bar-frame-reserve: calc(var(--tactile-nav-target-height, 66px) + var(--tactile-nav-row-padding-top, 8px) + var(--tactile-nav-row-padding-bottom, 4px));
+  --button-bar-content-clearance: 8px;
   --button-bar-responsive-height: var(--button-bar-frame-reserve);
   --button-bar-button-height: 68px;
   --button-bar-button-padding-x: 8px;
@@ -604,6 +606,20 @@
   --outer-wall-top-bevel-opacity: 0.25;       /* Outer wall bevel opacity (light mode) */
   --outer-wall-top-bevel-opacity-dark: 0.35;  /* Outer wall bevel opacity (dark mode) */
   
+  /* Soft light bridge between the window and its exterior reflection. */
+  --surface-edge-softness: 1;
+  --surface-edge-depth: 1;
+  --surface-light-intensity: 1;
+  --surface-light-spread: var(--surface-edge-softness);
+  --surface-light-direction: -1;
+  --surface-light-x: 0;
+  --surface-light-y: 0;
+  --surface-key-x: 0;
+  --surface-key-y: 1;
+  --frame-edge-blend-size: 1px;
+  --frame-edge-blend-blur: 3px;
+  --frame-edge-blend-strength: 1;
+
   /* Inner wall soft rim - static light reflected from the studio window */
   --inner-wall-gradient-edge-width: 0px;
   --inner-wall-rim-size: 25px;
@@ -900,7 +916,6 @@
 @media (max-width: 767px) {
   :root {
     --button-bar-effective-height: var(--button-bar-mobile-height);
-    --button-bar-effective-window-overlap: var(--button-bar-mobile-window-overlap);
     --button-bar-effective-radius: var(--button-bar-mobile-radius);
     --button-bar-effective-font-size: var(--button-bar-mobile-font-size);
     --button-bar-effective-active-inset: var(--button-bar-mobile-active-inset);
@@ -923,6 +938,11 @@ body[data-abs-theme='dark'] {
   --abs-soft-control-fill-hover: rgba(18, 23, 17, 0.68);
   --abs-soft-control-ink: rgba(var(--abs-rgb-white), 0.92);
   --abs-soft-control-ink-strong: rgb(var(--abs-rgb-white));
+  --abs-soft-control-shine-rest: 0.176;
+  --abs-soft-control-shine-hover: 0.256;
+  --abs-soft-control-shade-rest: 0.15;
+  --abs-soft-control-shade-hover: 0.18;
+  --abs-soft-control-shade-rgb: 0, 0, 0;
   --abs-soft-control-shadow-rest:
     inset 0.5px 0.5px 0.5px rgba(var(--abs-rgb-white), 0.176),
     inset -1px -1px 2px rgba(var(--abs-rgb-black), 0.15);

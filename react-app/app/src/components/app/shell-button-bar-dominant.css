@@ -1,509 +1,170 @@
-/* Figma capsule material shared by the production shell and Button Bar labs. */
-
-.button-bar[data-button-bar-material='dominant-tab'] {
-  --button-bar-capsule-height: var(--button-bar-effective-height, var(--button-bar-height, 68px));
-  --button-bar-capsule-radius: var(--button-bar-effective-radius, var(--button-bar-button-radius, 22px));
-  --button-bar-key-inset: var(--button-bar-effective-active-inset, var(--button-bar-active-inset, 7px));
-  --button-bar-base-font-size: var(--button-bar-effective-font-size, var(--button-bar-font-size, 0.75rem));
-  --button-bar-desktop-font-size: calc(
-    var(--button-bar-base-font-size) * var(--button-bar-desktop-font-scale, 1)
-  );
-  --button-bar-route-font-size: var(--button-bar-desktop-font-size);
-  --button-bar-route-gap: var(--button-bar-desktop-label-gap, 6px);
-  --button-bar-idle-ink: #767881;
-  --button-bar-utility-ink: #72747d;
-  --button-bar-bright-ink: #ffffff;
-  --button-bar-label-transition: 160ms;
-  --button-bar-pill-ease: var(--ease-safari-safe, cubic-bezier(0.2, 0, 0, 1));
-  position: relative;
-  isolation: isolate;
+/* Fixed silicone faces. Pressure and release change only inward shadow strength. */
+:root {
+  --tactile-nav-face-height: 33px;
+  --tactile-nav-icon-size: 16px;
+  --tactile-nav-row-padding-top: 8px;
+  --tactile-nav-row-padding-bottom: 4px;
+  --tactile-nav-row-padding-inline: 46px;
+  --tactile-nav-mobile-row-padding-inline: 28px;
+  --tactile-nav-button-gap: 7px;
+  --tactile-nav-mobile-button-gap: 6px;
+  --tactile-nav-label-gap: 7px;
+  --tactile-nav-label-size: 11.5px;
+  --tactile-nav-mobile-label-size: 11px;
+  --tactile-nav-press-duration: 60ms;
+  --tactile-nav-release-duration: 185ms;
+  --tactile-nav-pressed-depth: 1.5;
+  --tactile-nav-pop-strength: 0.05;
+  --tactile-nav-sound-volume: 0.15;
+  --tactile-nav-padding: var(--tactile-nav-row-padding-inline);
+  --tactile-nav-viewport-width-adjustment: clamp(-8px, calc(2.5vw - 25.6px), 16px);
+  --tactile-nav-gap: var(--tactile-nav-button-gap);
+  --tactile-nav-type: var(--tactile-nav-label-size);
+  --tactile-nav-target-height: max(66px, calc(var(--tactile-nav-face-height) + var(--tactile-nav-label-gap) + var(--tactile-nav-type) + 14px));
+  --button-bar-frame-reserve: calc(var(--tactile-nav-target-height) + var(--tactile-nav-row-padding-top) + var(--tactile-nav-row-padding-bottom));
+  --shell-bottom-band-height: var(--button-bar-frame-reserve);
+  --button-bar-responsive-height: var(--button-bar-frame-reserve);
+  --button-bar-content-clearance: 8px;
+}
+@media (max-width: 767px) {
+  :root {
+    --tactile-nav-padding: var(--tactile-nav-mobile-row-padding-inline);
+    --tactile-nav-viewport-width-adjustment: clamp(-4px, calc(5vw - 19.5px), 8px);
+    --tactile-nav-gap: var(--tactile-nav-mobile-button-gap);
+    --tactile-nav-type: var(--tactile-nav-mobile-label-size);
+  }
+}
+.button-bar[data-button-bar-material='tactile'] {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0;
-  block-size: var(--button-bar-capsule-height);
-  min-block-size: var(--button-bar-capsule-height);
-  box-sizing: border-box;
-  padding: 0 var(--button-bar-shell-padding-x, 0px);
-  color: var(--button-bar-idle-ink);
-  border-radius: var(--button-bar-capsule-radius);
-  background: linear-gradient(180deg, #141414 0%, #000000 100%);
-  box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.04),
-    inset 0 1px 1px rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-
-.button-bar.shell-bottom-band[data-button-bar-material='dominant-tab'] {
-  position: fixed;
-  inset-inline-start: 50%;
-  inset-inline-end: auto;
-  inset-block-end: calc(var(--button-bar-bottom-inset, 10.5px) + var(--abs-safe-bottom));
-  inline-size: max-content;
-  max-inline-size: calc(
-    100%
-    - (2 * var(--safari-tint-inset-x, var(--safari-tint-inset)))
-  );
-  min-block-size: var(--button-bar-capsule-height);
-  padding: 0 var(--button-bar-shell-padding-x, 0px);
-  z-index: 400;
-  box-shadow:
-    inset 0 calc(var(--menu-edge-near-blur, 14px) + var(--menu-edge-near-size, 0px) + var(--menu-edge-near-shift, 0px))
-      var(--menu-edge-near-blur, 14px)
-      calc(0px - var(--menu-edge-near-blur, 14px) - var(--menu-edge-near-size, 0px) - var(--menu-edge-near-shift, 0px))
-      rgba(var(--inner-wall-top-light-rgb), var(--menu-edge-near-opacity, 0.18)),
-    inset 0 calc(var(--menu-edge-far-blur, 48px) + var(--menu-edge-far-size, 8px) + var(--menu-edge-far-shift, 0px))
-      var(--menu-edge-far-blur, 48px)
-      calc(0px - var(--menu-edge-far-blur, 48px) - var(--menu-edge-far-size, 8px) - var(--menu-edge-far-shift, 0px))
-      rgba(var(--inner-wall-top-light-rgb), var(--menu-edge-far-opacity, 0.055));
-  transform: translateX(-50%);
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons.shell-tab-nav {
-  --button-bar-active-pill-x: 0px;
-  --button-bar-active-pill-width: 0px;
-  position: relative;
+  align-items: flex-start;
+  width: auto;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: #a1a1a1;
   isolation: isolate;
+}
+.button-bar.shell-bottom-band[data-button-bar-material='tactile'] {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  bottom: calc(var(--tactile-nav-row-padding-bottom) + var(--abs-safe-bottom));
+  height: var(--tactile-nav-target-height);
+  transform: none;
+  z-index: 400;
+}
+.button-bar[data-button-bar-material='tactile'] .button-bar__primary-buttons {
   display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 0;
-  inline-size: max-content;
-  min-inline-size: 0;
-  min-block-size: var(--button-bar-capsule-height);
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-inline: contain;
-  scrollbar-width: none;
-  touch-action: pan-x;
-  -webkit-overflow-scrolling: touch;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
 }
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons.shell-tab-nav::-webkit-scrollbar {
-  display: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__route-cluster {
+.button-bar[data-button-bar-material='tactile'] .button-bar__route-cluster {
   display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 0;
-  min-block-size: var(--button-bar-capsule-height);
+  min-width: 0;
+  gap: var(--tactile-nav-gap);
+  /* Extra width belongs to the faces; keep room for four targets on narrow screens. */
+  padding-inline: min(var(--tactile-nav-padding), 40px);
 }
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill {
-  position: absolute;
-  inset-block-start: var(--button-bar-key-inset);
-  inset-inline-start: var(--button-bar-key-inset);
-  z-index: 0;
-  display: block;
-  inline-size: calc(var(--button-bar-active-pill-width) - (2 * var(--button-bar-key-inset)));
-  block-size: calc(var(--button-bar-capsule-height) - (2 * var(--button-bar-key-inset)));
-  border-radius: var(--button-bar-active-radius, 15px);
-  background-color: rgb(255 255 255 / var(--button-bar-active-surface-opacity, 0.09));
-  box-shadow:
-    0 var(--button-bar-active-depth, 3px)
-      var(--button-bar-active-depth-blur, 8px)
-      rgb(0 0 0 / var(--button-bar-active-shadow-opacity, 0.55)),
-    inset 0 1px 0 rgb(255 255 255 / var(--button-bar-active-highlight-opacity, 0.12)),
-    inset 0 -1px 0 rgb(0 0 0 / 0.34);
-  opacity: 0;
-  pointer-events: none;
-  transform: translate3d(var(--button-bar-active-pill-x), 0, 0);
-  transition:
-    transform var(--button-bar-transition-ms, 360ms) var(--button-bar-pill-ease),
-    inline-size var(--button-bar-transition-ms, 360ms) var(--button-bar-pill-ease),
-    opacity 80ms linear;
-  will-change: transform, inline-size;
-  contain: style;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons[data-active-pill-ready='true']
-  .button-bar__active-pill {
-  opacity: 1;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons:not([data-active-route])
-  .button-bar__active-pill {
-  display: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons .shell-tab {
-  --shell-tab-motion-y: 0px;
-  --shell-tab-motion-scale: 1;
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  flex: 0 0 auto;
+/* Override the legacy unselected press fill on the rectangular hit area. */
+.button-bar[data-button-bar-material='tactile'] .shell-tab,
+.button-bar[data-button-bar-material='tactile'] .shell-tab:is(:hover, :active:not([aria-current='page']), :focus-visible, [aria-current='page']) {
+  display: flex;
+  flex: 0 1 auto;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--button-bar-route-gap);
-  block-size: var(--button-bar-capsule-height);
-  min-block-size: var(--button-bar-capsule-height);
-  padding: 0;
-  color: var(--button-bar-idle-ink);
+  justify-content: flex-start;
+  gap: var(--tactile-nav-label-gap);
+  min-width: 44px;
+  width: calc(var(--tactile-nav-icon-size) + 2 * var(--tactile-nav-padding) + var(--tactile-nav-viewport-width-adjustment));
+  height: var(--tactile-nav-target-height);
+  min-height: var(--tactile-nav-target-height);
+  padding: 4px 0 0;
+  box-sizing: border-box;
   border: 0;
   border-radius: 0;
+  color: #a1a1a1;
   background: none;
   box-shadow: none;
+  text-decoration: none;
   transform: none;
-  /* This material does not scale tabs; keep the icon-font layer unpromoted and sharp. */
-  will-change: auto;
+  translate: none;
+  scale: none;
+  rotate: none;
+  transition: none;
+  touch-action: manipulation;
 }
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab__label {
-  color: currentColor;
-  font-family: var(--abs-font-sans);
-  font-size: var(--button-bar-route-font-size);
-  font-weight: 700;
+.tactile-nav__face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 var(--tactile-nav-face-height);
+  width: 100%;
+  height: var(--tactile-nav-face-height);
+  border-radius: var(--abs-radius-pill, 999px);
+  background: linear-gradient(var(--material-navigation-angle, 180deg), color-mix(in srgb, #171717, white calc(2.16% * clamp(0, var(--material-navigation-highlight, 1), 3))), #171717);
+  --tactile-light-x: calc(var(--material-navigation-key-x, 0) * -1.25px * var(--material-navigation-thickness, 1));
+  --tactile-light-y: calc(var(--material-navigation-key-y, 1) * 1.25px * var(--material-navigation-thickness, 1));
+  box-shadow: inset var(--tactile-light-x) var(--tactile-light-y) calc(var(--tactile-nav-rest-light-softness, 4px) * max(0.25, var(--material-navigation-softness, 1))) rgb(255 255 255 / calc(var(--tactile-nav-rest-light-strength, 0.16) * var(--material-navigation-highlight, 1))), inset calc(-1 * var(--tactile-light-x)) calc(-1 * var(--tactile-light-y)) calc(var(--tactile-nav-rest-shadow-softness, 4.5px) * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(var(--tactile-nav-rest-shadow-strength, 0.42) * var(--material-navigation-shadow, 1))), calc(var(--material-navigation-key-x, 0) * -2px * var(--material-navigation-thickness, 1)) calc(var(--material-navigation-key-y, 1) * 2px * var(--material-navigation-thickness, 1)) calc(3px * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(0.4 * var(--material-navigation-shadow, 1)));
+}
+.tactile-nav__active {
+  /* A fixed, diffused light source inside coloured silicone; no external bloom. */
+  --tactile-nav-surface: color-mix(in srgb, var(--tactile-nav-accent) 82%, var(--ball-1));
+  --tactile-nav-lit: color-mix(in srgb, var(--tactile-nav-surface), white calc(var(--tactile-nav-internal-light, 0.08) * var(--material-navigation-highlight, 1) * 100%));
+  --tactile-nav-edge: color-mix(in srgb, var(--tactile-nav-surface), black calc(clamp(0, var(--tactile-nav-colour-falloff, 0.22) * var(--material-navigation-shadow, 1), 1) * 100%));
+  --tactile-nav-inner-edge: var(--tactile-light-x) var(--tactile-light-y) calc(var(--tactile-nav-inset-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1)));
+  --tactile-nav-inner-catch: inset calc(-0.4 * var(--tactile-light-x)) calc(-0.4 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-light-softness, 4px) * max(0.25, var(--material-navigation-softness, 1))) rgb(255 255 255 / calc(var(--tactile-nav-lower-light-strength, 0) * var(--material-navigation-highlight, 1))), inset calc(-1 * var(--tactile-light-x)) calc(-1 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(var(--tactile-nav-lower-shadow-strength, 0.18) * var(--material-navigation-shadow, 1)));
+  --tactile-nav-rest-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.30 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
+  --tactile-nav-held-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.43 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
+  --tactile-nav-rebound-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc((0.30 * var(--tactile-nav-pressed-depth) - var(--tactile-nav-pop-strength)) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--tactile-nav-surface);
+  background-image: radial-gradient(ellipse 80% 140% at calc(50% + var(--material-navigation-key-x, 0) * 10%) calc(50% - var(--material-navigation-key-y, 1) * 10%), var(--tactile-nav-lit) 0%, var(--tactile-nav-surface) 48%, var(--tactile-nav-edge) 100%);
+  box-shadow: var(--tactile-nav-rest-shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--tactile-nav-press-duration) linear, box-shadow var(--tactile-nav-release-duration) ease-out;
+}
+.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure]) .tactile-nav__active { opacity: 1; }
+.button-bar[data-button-bar-material='tactile'] .shell-tab[data-pressure] .tactile-nav__active {
+  box-shadow: var(--tactile-nav-held-shadow);
+  transition-duration: var(--tactile-nav-press-duration);
+}
+.button-bar[data-button-bar-material='tactile'] .shell-tab .button-bar__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tactile-nav-icon-size);
+  height: var(--tactile-nav-icon-size);
+  font-size: var(--tactile-nav-icon-size);
   line-height: 1;
-  letter-spacing: -0.02em;
-  text-transform: none;
+  color: #b5b5b5;
   transform: none;
-  transition: color var(--button-bar-label-transition) var(--shell-tab-motion-ease);
+  transition: none;
 }
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__icon {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 16px;
-  block-size: 16px;
-  color: currentColor;
-  font-size: 16px;
-  line-height: 16px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is([aria-current='page'], [data-visual-active='true']),
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:is([aria-current='page'], [data-visual-active='true']):is(:hover, :focus-visible, :active) {
-  color: var(--button-bar-bright-ink);
-  border: 0;
-  background: none;
-  box-shadow: none;
+.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure]) .button-bar__icon { color: var(--tactile-nav-ink); }
+.button-bar[data-button-bar-material='tactile'] .shell-tab .shell-tab__label {
+  display: block;
+  font-family: var(--abs-font-sans);
+  font-size: var(--tactile-nav-type);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #a1a1a1;
   transform: none;
-  cursor: none;
+  transition: none;
 }
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):hover,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):focus-visible {
-  color: color-mix(in srgb, var(--button-bar-bright-ink) 76%, var(--button-bar-idle-ink));
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:not(:is([aria-current='page'], [data-visual-active='true'])):active {
-  color: var(--button-bar-bright-ink);
-  border: 0;
-  background: none;
-  box-shadow: none;
-  transform: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:focus-visible {
-  outline: 0;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__primary-buttons
-  .shell-tab:focus-visible
-  .shell-tab__label {
-  box-shadow: inset 0 -2px 0 currentColor;
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 2px;
-  text-decoration-skip-ink: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
-  display: flex;
-  flex: 0 0 59px;
-  align-items: center;
-  justify-content: stretch;
-  gap: 0;
-  inline-size: 59px;
-  min-inline-size: 59px;
-  block-size: var(--button-bar-capsule-height);
-  min-block-size: var(--button-bar-capsule-height);
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-button.shell-tab,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab:is(:hover, :focus-visible, :active) {
-  --shell-tab-motion-y: 0px;
-  --shell-tab-motion-scale: 1;
-  position: relative;
-  display: inline-flex;
-  flex: 1 1 50%;
-  align-items: center;
-  justify-content: center;
-  inline-size: auto;
-  min-inline-size: 0;
-  block-size: var(--button-bar-capsule-height);
-  min-block-size: var(--button-bar-capsule-height);
-  aspect-ratio: auto;
-  padding: 0;
-  color: var(--button-bar-utility-ink);
-  border: 0;
-  border-radius: 7px;
-  background: none;
-  box-shadow: none;
-  transform: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab:hover,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab:focus-visible,
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab[data-enabled='true'] {
-  color: var(--button-bar-bright-ink);
-  background: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab:active {
-  color: var(--button-bar-bright-ink);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-buttons
-  .button-bar__sound-toggle.shell-tab[data-state='idle']:not(:hover):not(:focus-visible):not(:active) {
-  color: var(--button-bar-utility-ink);
-  background: none;
-  box-shadow: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__secondary-button.shell-tab:focus-visible {
-  z-index: 1;
-  outline: 2px solid rgba(255, 255, 255, 0.78);
-  outline-offset: -4px;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
-  position: static;
-  display: inline-grid;
-  place-items: center;
-  inline-size: 16px;
-  block-size: 16px;
-  color: currentColor;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  transform: none;
-  transition: color var(--button-bar-label-transition) var(--shell-tab-motion-ease);
-}
-
-.button-bar[data-button-bar-material='dominant-tab']
-  .button-bar__theme-toggle[data-state='dark']
-  .button-bar__theme-thumb {
-  inset-inline-start: auto;
-  color: currentColor;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
-  position: relative;
-  z-index: 1;
-  display: inline-grid;
-  place-items: center;
-  inline-size: 16px;
-  block-size: 16px;
-  color: currentColor;
-  font-size: 16px;
-  line-height: 16px;
-  background: none;
-  filter: none;
-  text-shadow: none;
-  transform: none;
-}
-
-.button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg {
-  inline-size: 16px;
-  block-size: 16px;
-}
-
-/* Keep the configured odd icon frames for layout, but rasterize glyphs at even pixel sizes. */
-@media (max-width: 767px) {
-  .button-bar[data-button-bar-material='dominant-tab'] {
-    --button-bar-mobile-utility-cell: 44px;
-    --button-bar-route-font-size: var(--button-bar-base-font-size);
-    --button-bar-route-gap: 5px;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
-    flex-basis: var(--button-bar-mobile-utility-cell);
-    inline-size: var(--button-bar-mobile-utility-cell);
-    min-inline-size: var(--button-bar-mobile-utility-cell);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon {
-    inline-size: var(--button-bar-mobile-icon-cell, 62px);
-    min-inline-size: var(--button-bar-mobile-icon-cell, 62px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon
-    .button-bar__icon {
-    inline-size: var(--button-bar-mobile-icon-size, 21px);
-    block-size: var(--button-bar-mobile-icon-size, 21px);
-    font-size: calc(var(--button-bar-mobile-icon-size, 21px) - 1px);
-    line-height: calc(var(--button-bar-mobile-icon-size, 21px) - 1px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon
-    .shell-tab__label {
-    display: block;
-    min-inline-size: 0;
-    font-size: var(--button-bar-mobile-font-size, 10px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon:focus-visible {
-    outline: 2px solid rgb(255 255 255 / 0.78);
-    outline-offset: calc(0px - var(--button-bar-key-inset));
-    border-radius: var(--button-bar-active-radius, 15px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon:focus-visible
-    .shell-tab__label {
-    box-shadow: none;
-    text-decoration: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__theme-toggle.shell-tab,
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__theme-toggle.shell-tab:is(:hover, :focus-visible, :active) {
-    display: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__sound-toggle.shell-tab,
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__sound-toggle.shell-tab:is(:hover, :focus-visible, :active) {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 40px;
-    inline-size: 40px;
-    min-inline-size: 40px;
-    block-size: 40px;
-    min-block-size: 40px;
-    margin-inline: 2px;
-    border-radius: 14px;
-    background: rgb(255 255 255 / 0.045);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.08),
-      0 3px 10px rgb(0 0 0 / 0.24);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__sound-toggle.shell-tab[data-enabled='true'] {
-    background: rgb(255 255 255 / 0.075);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__sound-toggle.shell-tab::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    background: rgb(255 255 255 / 0.055);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.08),
-      0 3px 10px rgb(0 0 0 / 0.24);
-    pointer-events: none;
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__secondary-buttons
-    .button-bar__sound-toggle.shell-tab[data-enabled='true']::before {
-    background: rgb(255 255 255 / 0.085);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
-    inline-size: var(--button-bar-mobile-icon-size, 21px);
-    block-size: var(--button-bar-mobile-icon-size, 21px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
-    font-size: var(--button-bar-mobile-icon-size, 21px);
-    line-height: var(--button-bar-mobile-icon-size, 21px);
-  }
-}
-
-@media (min-width: 768px) {
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon {
-    inline-size: var(--button-bar-desktop-route-cell, 85px);
-    min-inline-size: var(--button-bar-desktop-route-cell, 85px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab']
-    .button-bar__primary-buttons
-    .shell-tab--route-icon
-    .button-bar__icon {
-    inline-size: var(--button-bar-desktop-icon-size, 25px);
-    block-size: var(--button-bar-desktop-icon-size, 25px);
-    font-size: calc(var(--button-bar-desktop-icon-size, 25px) - 1px);
-    line-height: calc(var(--button-bar-desktop-icon-size, 25px) - 1px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-buttons {
-    flex-basis: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
-    inline-size: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
-    min-inline-size: calc(2 * var(--button-bar-desktop-utility-cell, 50px));
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-svg,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
-    inline-size: var(--button-bar-desktop-icon-size, 25px);
-    block-size: var(--button-bar-desktop-icon-size, 25px);
-  }
-
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__secondary-icon {
-    font-size: var(--button-bar-desktop-icon-size, 25px);
-    line-height: var(--button-bar-desktop-icon-size, 25px);
-  }
-}
-
+.button-bar[data-button-bar-material='tactile'] .shell-tab[data-visual-active='true'] .shell-tab__label { color: #eeeeee; }
+.button-bar[data-button-bar-material='tactile'] .shell-tab:focus-visible { outline: none; }
+.button-bar[data-button-bar-material='tactile'] .shell-tab:focus-visible .tactile-nav__face { outline: 2px solid #eeeeee; outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) {
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__active-pill,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__primary-buttons .shell-tab__label,
-  .button-bar[data-button-bar-material='dominant-tab'] .button-bar__theme-thumb {
-    transition: none;
-  }
+  .tactile-nav__active { transition: none; }
 }

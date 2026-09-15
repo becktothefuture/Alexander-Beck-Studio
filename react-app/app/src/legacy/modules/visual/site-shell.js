@@ -10,6 +10,8 @@ import {
   getGlobals,
 } from '../core/state.js';
 import { isDarkThemeDocument } from '../../../lib/theme-state.js';
+import { sceneLightingCssVars, normalizeSceneLighting } from '../../../lib/scene-lighting.js';
+import { scheduleSimulationBodyLighting } from '../rendering/materials/simulation-body-material.js';
 import {
   buildResponsiveFrameRadiusCss,
   resolveFrameRadiusEndpoints,
@@ -70,6 +72,9 @@ const DEFAULT_SHELL_CONFIG = {
     glowOpacityDark: 0.18,
     shadowBlur: '18px',
     shadowOffsetY: '6px',
+    frameEdgeBlendSize: '1px',
+    frameEdgeBlendBlur: '3px',
+    frameEdgeBlendStrength: 1,
     innerWallRimSize: '8px',
     innerWallRimBlur: '18px',
     innerWallRimOpacityLight: 0.16,
@@ -654,6 +659,11 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
   root.style.setProperty('--abs-surface-glow-opacity', String(glowOpacity));
   root.style.setProperty('--abs-surface-shadow-blur', surface.shadowBlur);
   root.style.setProperty('--abs-surface-shadow-offset-y', surface.shadowOffsetY);
+  root.style.setProperty('--frame-edge-blend-size', surface.frameEdgeBlendSize || DEFAULT_SHELL_CONFIG.surface.frameEdgeBlendSize);
+  root.style.setProperty('--frame-edge-blend-blur', surface.frameEdgeBlendBlur || DEFAULT_SHELL_CONFIG.surface.frameEdgeBlendBlur);
+  root.style.setProperty('--frame-edge-blend-strength', String(numberInRange(
+    surface.frameEdgeBlendStrength, 0, 2, DEFAULT_SHELL_CONFIG.surface.frameEdgeBlendStrength
+  )));
   root.style.setProperty(
     '--inner-wall-rim-size',
     surface.innerWallRimSize || DEFAULT_SHELL_CONFIG.surface.innerWallRimSize
@@ -693,6 +703,8 @@ function applyShellSurfaceVars(config = currentShellConfig, isDark = isDarkTheme
     '--outer-wall-glow-near-shift',
     surface.outerWallGlowNearShift || DEFAULT_SHELL_CONFIG.surface.outerWallGlowNearShift
   );
+  for (const [name, value] of Object.entries(sceneLightingCssVars(surface, isDark ? 'dark' : 'light'))) root.style.setProperty(name, value);
+  scheduleSimulationBodyLighting(normalizeSceneLighting(surface.lighting, surface));
   root.style.setProperty('--outer-wall-glow-near-opacity', String(outerWallGlowNearOpacity));
   root.style.setProperty(
     '--outer-wall-glow-near-opacity-light',

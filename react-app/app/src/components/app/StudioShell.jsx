@@ -265,16 +265,6 @@ export function StudioShell({
           <ShellWindowOverlay>
             {windowOverlayContent}
           </ShellWindowOverlay>
-          <ShellButtonBar
-            activeRouteId={activeRouteId || routeRenderKey}
-            pendingRouteId={pendingRouteId}
-            materialVariant="dominant-tab"
-            onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}
-            onRouteIntent={(routeId, tab, reason) => onRoutePrewarm?.(routeId, {
-              href: tab.href,
-              reason,
-            })}
-          />
           <ShellUtilityRail />
           {/* Portfolio drawer: keep its route content and scroll cue above the window UI but below the Button Bar. */}
           <div
@@ -290,6 +280,15 @@ export function StudioShell({
           />
         </div>
       </RouteSceneMount>
+      <ShellButtonBar
+        activeRouteId={activeRouteId || routeRenderKey}
+        pendingRouteId={pendingRouteId}
+        onRouteNavigate={(href, tab, options) => trySpaNavigate(href, options)}
+        onRouteIntent={(routeId, tab, reason) => onRoutePrewarm?.(routeId, {
+          href: tab.href,
+          reason,
+        })}
+      />
 
       <div
         id="shell-persistent-route-ui-host"

@@ -100,6 +100,85 @@
         "shadowDepth": 0.49,
         "shadowArea": 1.5
       }
+    },
+    "frameEdgeBlendSize": "3.6px",
+    "frameEdgeBlendBlur": "8.6px",
+    "frameEdgeBlendStrength": 1,
+    "lighting": {
+      "light": {
+        "intensity": 0.9,
+        "direction": -1,
+        "softness": 1.9,
+        "thickness": 0.5,
+        "materials": {
+          "window": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1
+          },
+          "navigation": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "balls": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "buttons": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "cards": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          }
+        }
+      },
+      "dark": {
+        "intensity": 0.9,
+        "direction": -1,
+        "softness": 1.9,
+        "thickness": 0.5,
+        "materials": {
+          "window": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1
+          },
+          "navigation": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "balls": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "buttons": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          },
+          "cards": {
+            "thickness": 1,
+            "softness": 1,
+            "highlight": 1,
+            "shadow": 1
+          }
+        }
+      }
     }
   },
   "motion": {

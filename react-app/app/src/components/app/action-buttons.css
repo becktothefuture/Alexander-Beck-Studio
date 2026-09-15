@@ -5,6 +5,17 @@
  * language. Route/component selectors below own anatomy and placement only.
  */
 :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn) {
+  /* Material response is local so both root and body theme tokens resolve here. */
+  --action-light-x: calc(var(--material-buttons-key-x, -1) * -0.5px * var(--material-buttons-thickness, 1));
+  --action-light-y: calc(var(--material-buttons-key-y, 1) * 0.5px * var(--material-buttons-thickness, 1));
+  --action-edge-light: inset var(--action-light-x) var(--action-light-y) calc(0.5px * max(0.25, var(--material-buttons-softness, 1)));
+  --action-edge-shade: inset calc(-2 * var(--action-light-x)) calc(-2 * var(--action-light-y)) calc(2px * max(0.25, var(--material-buttons-softness, 1)));
+  --abs-soft-control-shadow-rest:
+    var(--action-edge-light) rgba(var(--abs-rgb-white), calc(var(--abs-soft-control-shine-rest) * var(--material-buttons-highlight, 1))),
+    var(--action-edge-shade) rgba(var(--abs-soft-control-shade-rgb), calc(var(--abs-soft-control-shade-rest) * var(--material-buttons-shadow, 1)));
+  --abs-soft-control-shadow-hover:
+    var(--action-edge-light) rgba(var(--abs-rgb-white), calc(var(--abs-soft-control-shine-hover) * var(--material-buttons-highlight, 1))),
+    var(--action-edge-shade) rgba(var(--abs-soft-control-shade-rgb), calc(var(--abs-soft-control-shade-hover) * var(--material-buttons-shadow, 1)));
   --abs-action-ink-rest: var(--abs-soft-control-ink);
   --abs-action-ink-hover: var(--abs-soft-control-ink-strong);
   --abs-action-ink-pressed: var(--abs-soft-control-ink-strong);

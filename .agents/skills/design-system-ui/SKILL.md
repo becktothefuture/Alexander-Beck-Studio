@@ -23,7 +23,7 @@ Paths below are relative to the repository root.
 | Authored design values | `react-app/app/public/config/design-system.json`; generated outputs are described in [GENERATED-CONFIG.md](../../../docs/reference/GENERATED-CONFIG.md). |
 | Semantic CSS and shared route type/layout | `react-app/app/public/css/tokens.css` and `react-app/app/public/css/main.css`. |
 | Persistent shell and navigation | `react-app/app/src/components/app/StudioShell.jsx`, `ShellButtonBar.jsx`, and `shell-button-bar-dominant.css` in the same directory. |
-| Configurable Button Bar geometry | `react-app/app/src/lib/buttonBarControls.js`; read authored `runtime.buttonBar*` values before interpreting compatibility defaults. |
+| Configurable Button Bar geometry | `react-app/app/src/lib/buttonBarControls.js`; read authored `runtime.tactileNav*` values before interpreting compatibility defaults. |
 | Route identity and labels | `react-app/app/src/lib/route-manifest.js` and `react-app/app/src/lib/routes.js`. |
 | Work field and presentation | `react-app/app/src/routes/playground/`, `react-app/app/src/routes/portfolio/work/`, and the existing drawer/handoff in `react-app/app/src/legacy/modules/portfolio/`; see [PORTFOLIO.md](../../../docs/reference/PORTFOLIO.md) and [PLAYGROUND.md](../../../docs/reference/PLAYGROUND.md). |
 | Home and Contact | `react-app/app/src/routes/home/HomeRoute.jsx`, the active `react-app/app/src/legacy/` Canvas runtime, and `react-app/app/src/routes/contact/`. |

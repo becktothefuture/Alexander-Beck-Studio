@@ -2,6 +2,8 @@
 
 import { withBasePath } from '../../../lib/base-path.js';
 import { normalizeThemeTransition } from '../../../lib/theme-transition.js';
+import { normalizeSceneLighting } from '../../../lib/scene-lighting.js';
+import { SURFACE_FINISH_CONTROLS } from '../../../lib/surface-finish.js';
 import {
   normalizeSimulationAtmosphereConfig,
 } from '../rendering/atmosphere/simulation-atmosphere-config.js';
@@ -447,6 +449,9 @@ function pruneShellConfig(shell = {}) {
     }
   }
   if (isPlainObject(nextShell.surface)) {
+    nextShell.surface.lighting = normalizeSceneLighting(nextShell.surface.lighting, nextShell.surface);
+    for (const { id } of SURFACE_FINISH_CONTROLS) delete nextShell.surface[id];
+    delete nextShell.surface.surfaceLightSpread;
     for (const key of RETIRED_SHELL_SURFACE_KEYS) {
       delete nextShell.surface[key];
     }

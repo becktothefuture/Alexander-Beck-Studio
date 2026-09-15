@@ -90,6 +90,8 @@ Production semantic simulation bodies reuse cached matte sphere stickers or atla
 
 This is a performance contract as well as a visual choice. Renderers prewarm the active palette and retain the resulting sprites or atlas; they do not construct gradients, parse colours, or calculate lighting per body during a frame. Physics state, forces, collision envelopes, body counts, opacity lifecycles, perspective, and route behavior remain under their existing owners.
 
+The central scene lighting rig (`shell.surface.lighting`) resolves a Balls material for each theme. `lightSphereProfile()` combines that response with the existing sphere calibration only at sprite-bake time. Light direction rotates the key, reflection field, upper light and lower shading together. Lighting edits coalesce through the existing 36ms cache cadence; only changes to the resolved ball response invalidate sprites/atlases and notify prewarm subscribers. Other material edits and unchanged theme profiles do not rebake spheres.
+
 The sphere-material cache is bounded shared production infrastructure. A new renderer may opt into it only after an explicit visual decision and measured frame-time evidence across the route matrix. The shared atmosphere compositor below remains separate and may sample any completed eligible route material.
 
 ## Production Simulation Atmosphere

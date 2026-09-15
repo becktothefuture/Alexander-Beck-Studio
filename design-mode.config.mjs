@@ -11,33 +11,7 @@ const projected = {
   portfolio: `${directory}/portfolio-config.json`, cv: `${directory}/cv-config.json`,
 };
 // Explicit ownership: a runtime projection is not a new stylesheet source.
-const buttonBarTokens = [
-  ['buttonBarHeightPx', '--button-bar-height'],
-  ['buttonBarBottomInsetPx', '--button-bar-bottom-inset'],
-  ['buttonBarWindowOverlapPx', '--button-bar-window-overlap'],
-  ['buttonBarMobileHeightPx', '--button-bar-mobile-height'],
-  ['buttonBarMobileWindowOverlapPx', '--button-bar-mobile-window-overlap'],
-  ['buttonBarMobileRadiusPx', '--button-bar-mobile-radius'],
-  ['buttonBarMobileIconCellPx', '--button-bar-mobile-icon-cell'],
-  ['buttonBarMobileIconSizePx', '--button-bar-mobile-icon-size'],
-  ['buttonBarMobileFontSizeRem', '--button-bar-mobile-font-size'],
-  ['buttonBarMobileActiveInsetPx', '--button-bar-mobile-active-inset'],
-  ['buttonBarDesktopRouteCellPx', '--button-bar-desktop-route-cell'],
-  ['buttonBarDesktopIconSizePx', '--button-bar-desktop-icon-size'],
-  ['buttonBarDesktopLabelGapPx', '--button-bar-desktop-label-gap'],
-  ['buttonBarShellPaddingXPx', '--button-bar-shell-padding-x'],
-  ['buttonBarButtonHeightPx', '--button-bar-button-height'],
-  ['buttonBarButtonRadiusPx', '--button-bar-button-radius'],
-  ['buttonBarFontSizeRem', '--button-bar-font-size'],
-  ['buttonBarDesktopFontScale', '--button-bar-desktop-font-scale'],
-  ['buttonBarActiveInsetPx', '--button-bar-active-inset'],
-  ['buttonBarActiveRadiusPx', '--button-bar-active-radius'],
-  ['buttonBarActiveDepthPx', '--button-bar-active-depth'],
-  ['buttonBarActiveSurfaceOpacity', '--button-bar-active-surface-opacity'],
-  ['buttonBarActiveHighlightOpacity', '--button-bar-active-highlight-opacity'],
-  ['buttonBarActiveShadowOpacity', '--button-bar-active-shadow-opacity'],
-  ['buttonBarTransitionMs', '--button-bar-transition-ms'],
-];
+const buttonBarTokens = BUTTON_BAR_CONTROLS.map(control => [control.id, control.cssVar]);
 
 export default {
   id: 'beck.fyi', version: 1,

@@ -302,7 +302,10 @@ let saturator = null;
 let highShelf = null;
 let wheelBus = null;
 
+const SOUND_PREFERENCE_KEY = 'abs-sound-enabled';
 let isEnabled = false;
+let unlockPromise = null;
+let soundPreferenceRevision = 0;
 let isUnlocked = false;
 const contactMotifVoices = new Set();
 const CONTACT_RIPPLE_MOTIF_VARIATIONS = Object.freeze([
@@ -317,6 +320,7 @@ let contactMotifVariationIndex = 0;
 // Broadcast state changes so UI stays in sync
 export const SOUND_STATE_EVENT = 'simulations:sound-state';
 function emitSoundStateChange() {
+  try { localStorage.setItem(SOUND_PREFERENCE_KEY, String(isEnabled)); } catch { /* Storage is optional. */ }
   try {
     if (typeof window !== 'undefined' && window.dispatchEvent) {
       window.dispatchEvent(new CustomEvent(SOUND_STATE_EVENT, { detail: getSoundState() }));
@@ -391,6 +395,7 @@ let isSoundEngineInitialized = false;
 export function initSoundEngine() {
   if (isSoundEngineInitialized) return;
   isSoundEngineInitialized = true;
+  try { isEnabled = localStorage.getItem(SOUND_PREFERENCE_KEY) === 'true'; } catch { /* Storage is optional. */ }
 
   if (typeof window !== 'undefined' && window.matchMedia) {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -440,7 +445,18 @@ export function applySoundConfigFromRuntimeConfig(runtimeConfig) {
  * Creates AudioContext and builds the audio graph
  */
 export async function unlockAudio() {
-  if (isUnlocked) return true;
+  if (isUnlocked) {
+    try {
+      if (audioContext?.state === 'suspended') await audioContext.resume();
+      return audioContext?.state === 'running';
+    } catch { return false; }
+  }
+  if (!unlockPromise) unlockPromise = createAudio().finally(() => { unlockPromise = null; });
+  return unlockPromise;
+}
+
+async function createAudio() {
+  const preferenceRevision = soundPreferenceRevision;
   
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -461,7 +477,7 @@ export async function unlockAudio() {
     buildAudioGraph();
     
     isUnlocked = true;
-    isEnabled = true;
+    if (preferenceRevision === soundPreferenceRevision) isEnabled = true;
     emitSoundStateChange();
     
     const latencyMs = (audioContext.baseLatency || 0) * 1000;
@@ -795,6 +811,35 @@ export function playInteractionSound(kind, {
     });
   }
   return true;
+}
+
+// Dry silicone feedback shares the existing context, limiter and master gain.
+// Only explicit activation calls this; reduced motion does not imply mute.
+export async function playNavigationSound({ release = false, volume = 0.15 } = {}) {
+  initSoundEngine();
+  if (!isEnabled || volume <= 0 || !await unlockAudio() || !isEnabled) return false;
+  try {
+    const pop = (lighter, delay) => {
+      const time = audioContext.currentTime + delay;
+      const duration = lighter ? 0.025 : 0.038;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(lighter ? 260 : 210, time);
+      osc.frequency.exponentialRampToValueAtTime(lighter ? 125 : 90, time + duration);
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(clamp(volume, 0, 0.3) * (lighter ? 0.12 : 0.22), time + 0.0015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      osc.connect(gain).connect(limiter);
+      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+      osc.start(time);
+      osc.stop(time + duration + 0.005);
+    };
+    if (release) pop(true, 0);
+    pop(false, release ? 0.004 : 0);
+    recordSoundDebugEvent('navigation', 'navigation:activation', { release, volume });
+    return true;
+  } catch { return false; }
 }
 
 export function playDetentClick({ gain = 0.05, filterHz = 3200 } = {}) {
@@ -1736,6 +1781,7 @@ function radiusToFrequency(radius) {
 export function toggleSound() {
   if (!isUnlocked) return false;
   isEnabled = !isEnabled;
+  soundPreferenceRevision += 1;
   if (!isEnabled) {
     stopWheelLoops();
     stopContactRippleMotif();
@@ -1746,7 +1792,7 @@ export function toggleSound() {
 
 /** Set sound enabled state */
 export function setSoundEnabled(enabled) {
-  if (!isUnlocked) return;
+  soundPreferenceRevision += 1;
   isEnabled = !!enabled;
   if (!isEnabled) {
     stopWheelLoops();

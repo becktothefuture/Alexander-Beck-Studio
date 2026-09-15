@@ -2,6 +2,19 @@ import { useId, useLayoutEffect, useRef } from 'react';
 import { ShellUtilityControls } from './ShellUtilityControls.jsx';
 import './shell-utility-rail.css';
 
+// Use the window's resolved shadow values, including theme interpolation and
+// fine tuning, so the curved segment cannot develop a separate material.
+function readShadows(value) {
+  return value.split(/,(?![^()]*\))/).flatMap(shadow => {
+    const dimensions = shadow.match(/(-?[\d.]+)px\s+(-?[\d.]+)px\s+([\d.]+)px\s+(-?[\d.]+)px/);
+    return dimensions ? [{
+      x: Number(dimensions[1]), y: Number(dimensions[2]),
+      blur: Number(dimensions[3]) / 2, spread: Math.max(0, Number(dimensions[4])),
+      color: shadow.replace(dimensions[0], '').replace('inset', '').trim(),
+    }] : [];
+  });
+}
+
 export function ShellUtilityRail() {
   const railRef = useRef(null);
   const contourRef = useRef(null);
@@ -14,9 +27,26 @@ export function ShellUtilityRail() {
     let frame = 0;
     let previousPath = '';
     let railShift = 0;
+    const contour = contourRef.current;
+    const filters = [...contour.querySelectorAll('filter')];
+
+    const updateFinish = () => {
+      const shadows = readShadows(getComputedStyle(scene, '::before').boxShadow);
+      filters.forEach((filter, index) => {
+        const shadow = shadows[index];
+        if (!shadow) return;
+        filter.querySelector('feMorphology').setAttribute('radius', shadow.spread);
+        filter.querySelector('feGaussianBlur').setAttribute('stdDeviation', shadow.blur);
+        filter.querySelector('feOffset').setAttribute('dx', shadow.x);
+        filter.querySelector('feOffset').setAttribute('dy', shadow.y);
+        filter.querySelector('feFlood').setAttribute('flood-color', shadow.color);
+      });
+      return shadows;
+    };
 
     const updateContour = () => {
       frame = 0;
+      const shadows = updateFinish();
       const windowRect = surface.getBoundingClientRect();
       const railRect = rail.getBoundingClientRect();
       const { width, height } = windowRect;
@@ -31,9 +61,6 @@ export function ShellUtilityRail() {
       const requestedTop = railRect.top - windowRect.top - railShift;
       const railStyle = getComputedStyle(rail);
       const cornerRadius = Math.max(0, parseFloat(railStyle.getPropertyValue('--utility-rail-effective-corner-radius')) || 0);
-      const softness = parseFloat(railStyle.getPropertyValue('--surface-edge-softness'));
-      contourRef.current.querySelector('feGaussianBlur').setAttribute('stdDeviation',
-        2 * (Number.isFinite(softness) ? Math.max(0, softness) : 1));
       const clearance = Math.min(radius + cornerRadius, Math.max(0, (height - railRect.height) / 2));
       const top = Math.max(clearance, Math.min(requestedTop, height - clearance - railRect.height));
       railShift = top - requestedTop;
@@ -42,6 +69,17 @@ export function ShellUtilityRail() {
       const shoulder = Math.max(0, Math.min(cornerRadius, railRect.height / 2, top, height - bottom));
       const start = top - shoulder;
       const end = bottom + shoulder;
+      const fadeStart = Math.max(0, start - 32);
+      const fadeEnd = Math.min(height, end + 32);
+      filters.forEach((filter, index) => {
+        const shadow = shadows[index];
+        if (!shadow) return;
+        const reach = shadow.spread + shadow.blur * 3 + Math.max(Math.abs(shadow.x), Math.abs(shadow.y));
+        filter.setAttribute('x', left - reach);
+        filter.setAttribute('y', fadeStart - reach);
+        filter.setAttribute('width', depth + reach * 2);
+        filter.setAttribute('height', fadeEnd - fadeStart + reach * 2);
+      });
       const curve = `C ${width} ${start + shoulder * 0.8} ${middle + depth * 0.3} ${top} ${middle} ${top}
         C ${middle - depth * 0.3} ${top} ${left} ${top + shoulder * 0.2} ${left} ${top + shoulder}
         V ${bottom - shoulder}
@@ -50,16 +88,16 @@ export function ShellUtilityRail() {
       const path = `M 0 0 H ${width} V ${start} ${curve} V ${height} H 0 Z`;
       if (path !== previousPath) {
         scene.style.setProperty('--utility-window-clip', `path('${path.replace(/\s+/g, ' ')}')`);
-        const contour = contourRef.current;
-        const fadeStart = Math.max(0, start - 32);
-        const fadeEnd = Math.min(height, end + 32);
         const outerRight = width + windowRect.left;
         contour.setAttribute('viewBox', `0 0 ${outerRight} ${height}`);
         contour.style.cssText = `left:${windowRect.left}px;top:${windowRect.top}px;width:${outerRight}px;height:${height}px;--contour-fade-start:${fadeStart}px;--contour-start:${start}px;--contour-end:${end}px;--contour-fade-end:${fadeEnd}px`;
         contour.querySelector('.shell-window-contour__surface').setAttribute('d',
           `M ${width} ${fadeStart} V ${start} ${curve} V ${fadeEnd} H ${outerRight} V ${fadeStart} Z`);
-        contour.querySelector('.shell-window-contour__light').setAttribute('d',
-          `M ${width} ${fadeStart} V ${start} ${curve} V ${fadeEnd}`);
+        // A filled half-plane produces the same soft falloff as a box shadow;
+        // blurring a thin stroke instead creates an unrelated bright seam.
+        contour.querySelectorAll('.shell-window-contour__light').forEach(light => {
+          light.setAttribute('d', `M -1024 -1024 H ${width} V ${start} ${curve} V ${height + 1024} H -1024 Z`);
+        });
         previousPath = path;
       }
       scene.dataset.utilityContour = 'ready';
@@ -90,12 +128,18 @@ export function ShellUtilityRail() {
     <>
       <svg ref={contourRef} className="shell-window-contour" aria-hidden="true" focusable="false">
         <defs>
-          <filter id={lightFilterId} x="-50%" y="-20%" width="200%" height="140%" colorInterpolationFilters="sRGB">
-            <feGaussianBlur stdDeviation="2" />
-          </filter>
+          {[0, 1, 2].map(index => (
+            <filter key={index} id={`${lightFilterId}-${index}`} filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+              <feMorphology in="SourceAlpha" operator="dilate" radius="0" />
+              <feGaussianBlur stdDeviation="0" />
+              <feOffset result="shadow" />
+              <feFlood />
+              <feComposite in2="shadow" operator="in" />
+            </filter>
+          ))}
         </defs>
         <path className="shell-window-contour__surface" />
-        <path className="shell-window-contour__light" filter={`url(#${lightFilterId})`} />
+        {[2, 1, 0].map(index => <path key={index} className="shell-window-contour__light" filter={`url(#${lightFilterId}-${index})`} />)}
       </svg>
       <div
         ref={railRef}

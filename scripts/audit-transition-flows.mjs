@@ -609,7 +609,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       const routeTabs = document.querySelector('[data-route-tabs]');
       const currentTab = document.querySelector('[data-route-tab][aria-current="page"]');
       const buttonBar = document.querySelector('[data-button-bar]');
-      const activeIndicator = buttonBar?.querySelector('.button-bar__active-pill');
+      const activeIndicator = buttonBar?.querySelector('[data-visual-active="true"] .tactile-nav__active');
       const visualTab = routeTabs?.querySelector(`[data-route-tab="${routeTabs?.dataset.activeRoute || ''}"]`);
       const activeIndicatorRect = activeIndicator?.getBoundingClientRect();
       const visualTabRect = visualTab?.getBoundingClientRect();
@@ -687,7 +687,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           hitTests: (() => {
             const rect = buttonBar.getBoundingClientRect();
             const points = [
-              ['overlap-band', rect.left + (rect.width / 2), rect.top + 4],
+              ['upper-band', rect.left + (rect.width / 2), rect.top + 4],
               ['center', rect.left + (rect.width / 2), rect.top + (rect.height / 2)],
               ['lower-band', rect.left + (rect.width / 2), rect.bottom - 4],
               ...[...buttonBar.querySelectorAll('[data-route-tab]')].map((tab) => {
@@ -711,9 +711,6 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
           })(),
           zIndex: getComputedStyle(buttonBar).zIndex,
         } : null,
-        buttonBarWindowOverlapPx: Number.parseFloat(
-          getComputedStyle(root).getPropertyValue('--button-bar-effective-window-overlap')
-        ),
         buttonBarIndicator: activeIndicator ? {
           ...readEffective(activeIndicator),
           transform: activeIndicatorStyle?.transform || '',
@@ -808,7 +805,7 @@ async function startRafRecorder(page, { fromRouteId, toRouteId, label }) {
       elapsedMs: round(performance.now() - state.startedAt, 2),
       detail: event?.detail ? { ...event.detail } : null,
     });
-    const activeIndicator = document.querySelector('.button-bar__active-pill');
+    const activeIndicator = document.querySelector('[data-visual-active="true"] .tactile-nav__active');
     const onIndicatorTransition = (event) => {
       if (event.target !== activeIndicator || event.propertyName !== 'transform') return;
       state.indicatorTransitions.push({
@@ -947,9 +944,10 @@ function assertTransitionTrace(trace, {
       traceExcerpt(trace, index),
     );
     assert(
-      sample.buttonBarIndicator?.effectiveOpacity >= FULL_COVER_OPACITY
+      sample.buttonBarIndicator?.effectiveOpacity >= 0
+        && (sample.phase !== 'idle' || sample.elapsedMs < 185 || sample.buttonBarIndicator.effectiveOpacity >= FULL_COVER_OPACITY)
         && sample.buttonBarIndicator?.pointerEvents === 'none',
-      `${trace.label}: Button Bar active pill became hidden or interactive`,
+      `${trace.label}: Button Bar selected surface was absent, interactive or hidden after settling`,
       traceExcerpt(trace, index),
     );
     if (!initialButtonBarRect || !sample.buttonBar?.rect) return;
@@ -961,12 +959,8 @@ function assertTransitionTrace(trace, {
       );
     }
     assert(
-      Number.isFinite(sample.buttonBarWindowOverlapPx)
-        && Math.abs(
-          (sample.studioWindow?.rect?.bottom - sample.buttonBar.rect.top)
-          - sample.buttonBarWindowOverlapPx
-        ) <= GEOMETRY_TOLERANCE_PX,
-      `${trace.label}: Button Bar lost its configured studio-window overlap`,
+      sample.buttonBar?.rect?.top >= sample.studioWindow?.rect?.bottom - GEOMETRY_TOLERANCE_PX,
+      `${trace.label}: Button Bar overlapped the studio window`,
       traceExcerpt(trace, index),
     );
   });
@@ -1047,12 +1041,8 @@ function assertTransitionTrace(trace, {
       sample,
     );
     assert(
-      Number.isFinite(sample.buttonBarWindowOverlapPx)
-        && Math.abs(
-          (sample.studioWindow?.rect?.bottom - sample.buttonBar?.rect?.top)
-          - sample.buttonBarWindowOverlapPx
-        ) <= GEOMETRY_TOLERANCE_PX,
-      `${trace.label}: Button Bar lost its configured studio-window overlap`,
+      sample.buttonBar?.rect?.top >= sample.studioWindow?.rect?.bottom - GEOMETRY_TOLERANCE_PX,
+      `${trace.label}: Button Bar overlapped the studio window`,
       sample,
     );
     assert(

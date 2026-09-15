@@ -9,6 +9,7 @@ import {
   playInteractionSound,
   playSoundEnabledMotif,
   toggleSound,
+  setSoundEnabled,
   unlockAudio,
 } from '../../legacy/modules/audio/sound-engine.js';
 import { setTheme } from '../../legacy/modules/visual/dark-mode-v2.js';
@@ -18,7 +19,7 @@ function readSoundButtonState() {
     const soundState = getSoundState();
     return {
       isUnlocked: Boolean(soundState?.isUnlocked),
-      isEnabled: Boolean(soundState?.isUnlocked && soundState?.isEnabled),
+      isEnabled: Boolean(soundState?.isEnabled),
     };
   } catch {
     return {
@@ -133,7 +134,7 @@ function ThemeToggle({ decoration, previewTheme, onPreviewThemeChange, inButtonB
 
 function SoundToggle({ decoration, inButtonBar }) {
   const [soundState, setSoundState] = useState(readSoundButtonState);
-  const isEnabled = soundState.isUnlocked && soundState.isEnabled;
+  const isEnabled = soundState.isEnabled;
   const SoundIcon = isEnabled ? Volume2 : VolumeX;
 
   useEffect(() => {
@@ -143,7 +144,7 @@ function SoundToggle({ decoration, inButtonBar }) {
       if (event?.detail) {
         setSoundState({
           isUnlocked: Boolean(event.detail.isUnlocked),
-          isEnabled: Boolean(event.detail.isUnlocked && event.detail.isEnabled),
+          isEnabled: Boolean(event.detail.isEnabled),
         });
         return;
       }
@@ -160,6 +161,10 @@ function SoundToggle({ decoration, inButtonBar }) {
   const handleClick = async () => {
     const currentState = readSoundButtonState();
 
+    if (!currentState.isUnlocked && currentState.isEnabled) {
+      setSoundEnabled(false);
+      return;
+    }
     if (!currentState.isUnlocked) {
       const didUnlock = await unlockAudio();
       setSoundState(readSoundButtonState());

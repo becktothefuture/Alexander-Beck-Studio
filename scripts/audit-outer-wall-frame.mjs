@@ -245,10 +245,10 @@ async function readFrameState(page) {
     const rootStyle = getComputedStyle(root);
     const bodyStyle = getComputedStyle(document.body);
     const activeTab = document.querySelector('[data-route-tab][aria-current="page"]');
-    const activeContent = activeTab?.querySelector('.shell-tab__label, .shell-tab__icon');
+    const activeContent = activeTab?.querySelector('.shell-tab__label');
     const inactiveTab = document.querySelector('[data-route-tab]:not([aria-current="page"])');
     const buttonBar = inactiveTab?.closest('.button-bar');
-    const activePill = buttonBar?.querySelector('.button-bar__active-pill');
+    const activePill = activeTab?.querySelector('.tactile-nav__active');
     const soundToggle = document.querySelector('[data-shell-utility-rail] .button-bar__sound-toggle');
     const themeToggle = document.querySelector('[data-shell-utility-rail] .button-bar__theme-toggle');
     const themeThumb = themeToggle?.querySelector('.button-bar__theme-thumb, .shell-utility-control__icon');
@@ -306,7 +306,9 @@ async function readFrameState(page) {
 
   const png = PNG.sync.read(await page.screenshot({ fullPage: false }));
   const x = 0;
-  const y = Math.min(100, png.height - 1);
+  // Sample the exposed lower frame, beyond the window's approved reflection.
+  // A pixel beside the window includes its halo and cannot measure frame paint.
+  const y = png.height - 1;
   const offset = (y * png.width + x) * 4;
   return {
     ...vars,
@@ -351,7 +353,7 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     throw new Error(`${siteTheme}/${browserScheme}/${phase} theme-color expected ${expectedHex}, got ${actual.themeColor}`);
   }
 
-  const capsuleMidpointRgb = [10, 10, 10];
+  const capsuleMidpointRgb = [0, 0, 0];
   const inactiveBackground = cssColorToRgba(actual.inactiveTabBackground);
   const activeBackground = cssColorToRgba(actual.activeTabBackground);
   const activeForeground = cssColorToRgba(actual.activeTabColor);
@@ -365,28 +367,22 @@ function assertFrameState(siteTheme, browserScheme, phase, actual, expectedHex, 
     })}`);
   }
 
-  if (!actual.buttonBarBackgroundImage.includes('rgb(20, 20, 20)')
-    || !actual.buttonBarBackgroundImage.includes('rgb(0, 0, 0)')) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar lost the #141414 to #000000 gradient: ${actual.buttonBarBackgroundImage}`);
+  if (actual.buttonBarBackgroundImage !== 'none' || actual.buttonBarShadow !== 'none') {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} navigation introduced a backing plate`);
   }
-  if (!actual.buttonBarShadow.includes('0px 2px 3px') || !actual.buttonBarShadow.includes('0px 1px 1px')) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar lost its paired inset highlights: ${actual.buttonBarShadow}`);
-  }
-  const expectedButtonBarHeight = isMobile ? 62 : 68;
-  const expectedButtonBarRadius = isMobile ? '20px' : '22px';
-  if (actual.buttonBarRadius !== expectedButtonBarRadius || Math.abs(actual.buttonBarHeight - expectedButtonBarHeight) > 0.25) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} Button Bar geometry expected ${expectedButtonBarHeight}px/${expectedButtonBarRadius}, got ${actual.buttonBarHeight}px/${actual.buttonBarRadius}`);
+  if (actual.buttonBarHeight < 66) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} navigation touch targets are too short`);
   }
   if (activeBackground[3] > 0.01 || inactiveBackground[3] > 0.01) {
     throw new Error(`${siteTheme}/${browserScheme}/${phase} route tabs introduced a background: active=${actual.activeTabBackground} inactive=${actual.inactiveTabBackground}`);
   }
   const activePillSurface = cssColorToRgba(actual.activePillBackground);
   if (!activePillSurface || activePillSurface[3] <= 0.01 || Number(actual.activePillOpacity) < 0.99) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} shared active key is unavailable: surface=${actual.activePillBackground} opacity=${actual.activePillOpacity}`);
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active face is unavailable: surface=${actual.activePillBackground} opacity=${actual.activePillOpacity}`);
   }
   const activeInk = compositeRgba(activeForeground, [...capsuleMidpointRgb, 1]);
-  if (activeForeground[3] < 0.99 || pixelDistance(activeInk, [255, 255, 255]) > 2) {
-    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar ink must remain opaque white, got ${actual.activeTabColor}`);
+  if (activeForeground[3] < 0.99 || pixelDistance(activeInk, [238, 238, 238]) > 2) {
+    throw new Error(`${siteTheme}/${browserScheme}/${phase} active Button Bar labels must remain opaque light neutral, got ${actual.activeTabColor}`);
   }
   const activeContrast = contrastRatio(activeInk, capsuleMidpointRgb);
   if (activeContrast < 4.5) {
@@ -477,13 +473,21 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
       && document.documentElement.dataset.absSimulationFocusTransition !== 'hold'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'in'
       && !document.querySelector('#modal-blur-layer.active')
-    ), expectations.routeBacked.id, { timeout: 15000 });
+    ), expectations.routeBacked.id, { timeout: 15000, polling: 50 });
     await page.waitForTimeout(1200);
 
     const routeBacked = await readFrameState(page);
     assertFrameState(siteTheme, browserScheme, `route-backed-${expectations.routeBacked.id}`, routeBacked, expectedFrame, expectedWindow, expectations.wall, expectations.frame, !isMobile, { isMobile });
 
     log(`engine=${browserName} profile=${profile.name} site=${siteTheme} browser=${browserScheme}: ${expectations.homeMode.id} -> ${expectations.routeBacked.id} frame=${expectedFrame} active-contrast=${routeBacked.activeTabContrast}:1`);
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      boot: document.documentElement.dataset.absBootState,
+      transition: document.documentElement.dataset.absSimulationFocusTransition,
+      simulation: document.querySelector('.simulation-focus-switcher')?.dataset.simulationId,
+      label: document.querySelector('.simulation-focus-pill__label')?.textContent,
+    }));
+    throw new Error(`${profile.name}/${siteTheme}/${browserScheme}: ${error.message}; ${JSON.stringify(state)}`, { cause: error });
   } finally {
     await context.close();
   }

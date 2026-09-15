@@ -546,7 +546,7 @@ html[data-shell-route='home'] .page-content {
   font: 500 0.78rem/1.2 var(--abs-font-sans);
   border-radius: var(--abs-radius-pill);
   background: color-mix(in srgb, var(--studio-window-bg) 88%, transparent);
-  box-shadow: 0 8px 24px -18px rgba(var(--abs-rgb-black), 0.42);
+  box-shadow: calc(var(--material-cards-key-x, 0) * -8px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 8px * var(--material-cards-thickness, 1)) calc(24px * max(0.1, var(--material-cards-softness, 1))) -18px rgba(var(--abs-rgb-black), calc(0.42 * var(--material-cards-shadow, 1)));
   transform: translate(-50%, -50%);
   pointer-events: auto;
 }
@@ -2958,10 +2958,10 @@ button.abs-meta-btn,
   z-index: 0;
   background: var(--cursor-color);
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2)),
-    0 10px 24px rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2)),
-    inset 0 var(--puck-edge-width, 1px) 0 rgba(var(--abs-rgb-white), var(--puck-edge-light-opacity, 0.3)),
-    inset 0 calc(-1 * var(--puck-edge-width, 1px)) 0 rgba(var(--abs-rgb-black), var(--puck-edge-shadow-opacity, 0.15));
+    calc(var(--material-balls-key-x, 0) * -3px * var(--material-balls-thickness, 1)) calc(var(--material-balls-key-y, 1) * 3px * var(--material-balls-thickness, 1)) calc(10px * max(0.1, var(--material-balls-softness, 1))) rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2 * var(--material-balls-shadow, 1))),
+    calc(var(--material-balls-key-x, 0) * -10px * var(--material-balls-thickness, 1)) calc(var(--material-balls-key-y, 1) * 10px * var(--material-balls-thickness, 1)) calc(24px * max(0.1, var(--material-balls-softness, 1))) rgba(0, 0, 0, calc(var(--quote-button-outer-shadow, 0.14) * 2.2 * var(--material-balls-shadow, 1))),
+    inset calc(var(--material-balls-key-x, 0) * -1 * var(--puck-edge-width, 1px) * var(--material-balls-thickness, 1)) calc(var(--material-balls-key-y, 1) * var(--puck-edge-width, 1px) * var(--material-balls-thickness, 1)) calc(max(0, var(--material-balls-softness, 1) - 1) * 2px) rgba(var(--abs-rgb-white), calc(var(--puck-edge-light-opacity, 0.3) * var(--material-balls-highlight, 1))),
+    inset calc(var(--material-balls-key-x, 0) * var(--puck-edge-width, 1px) * var(--material-balls-thickness, 1)) calc(var(--material-balls-key-y, 1) * -1 * var(--puck-edge-width, 1px) * var(--material-balls-thickness, 1)) calc(max(0, var(--material-balls-softness, 1) - 1) * 2px) rgba(var(--abs-rgb-black), calc(var(--puck-edge-shadow-opacity, 0.15) * var(--material-balls-shadow, 1)));
 }
 
 .quote-display__disk::after {
@@ -3743,18 +3743,25 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   background: var(--frame-inner-surface);
   /* Blend the clipped surface into its halo across the contact pixels. The
      existing near/far reflections keep their authored strength and reach. */
-  --frame-edge-blend-shadow: 0 0 calc(var(--abs-size-1px) * 3) var(--abs-size-1px)
-    rgba(var(--inner-wall-top-light-rgb), var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)));
+  --frame-edge-blend-shadow: 0 0
+    max(1px, calc(var(--frame-edge-blend-blur, 3px) * var(--surface-edge-softness, 1)))
+    calc(var(--frame-edge-blend-size, 1px) * var(--surface-edge-depth, 1))
+    rgba(var(--inner-wall-top-light-rgb), calc(var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)) * var(--frame-edge-blend-strength, 1) * var(--surface-light-intensity, 1)));
+  --finish-far-blur: var(--outer-wall-glow-far-blur, 48px);
+  --finish-far-size: var(--outer-wall-glow-far-size, 8px);
+  /* The outer reflection moves toward the light; inset offsets move inward. */
+  --finish-light-x: calc(var(--surface-light-x, 0) * 6px * var(--surface-edge-depth, 1));
+  --finish-light-y: calc(var(--surface-light-y, 0) * -6px * var(--surface-edge-depth, 1));
   box-shadow:
     var(--frame-edge-blend-shadow),
-    0 calc(var(--outer-wall-glow-near-shift, 0px))
-      var(--outer-wall-glow-near-blur, 14px)
-      var(--outer-wall-glow-near-size, 0px)
-      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
-    0 calc(var(--outer-wall-glow-far-shift, 0px))
-      var(--outer-wall-glow-far-blur, 48px)
-      var(--outer-wall-glow-far-size, 8px)
-      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
+    var(--finish-light-x) calc(var(--outer-wall-glow-near-shift, 0px) + var(--finish-light-y))
+      max(1px, calc(var(--outer-wall-glow-near-size, 0px) * var(--surface-edge-depth, 1) * 0.75), calc(var(--outer-wall-glow-near-blur, 14px) * var(--surface-edge-softness, 1)))
+      calc(var(--outer-wall-glow-near-size, 0px) * var(--surface-edge-depth, 1))
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-near-opacity, 0.18) * var(--surface-light-intensity, 1))),
+    var(--finish-light-x) calc(var(--outer-wall-glow-far-shift, 0px) + var(--finish-light-y))
+      max(2px, calc(var(--finish-far-size) * var(--surface-edge-depth, 1) * 0.75), calc(var(--finish-far-blur) * var(--surface-edge-softness, 1)))
+      calc(var(--finish-far-size) * var(--surface-edge-depth, 1))
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-far-opacity, 0.055) * var(--surface-light-intensity, 1)));
   pointer-events: none;
   z-index: 99;
 }
@@ -3764,16 +3771,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
 @media (max-width: 600px) {
   #abs-scene::before,
   .app-scene::before {
-  box-shadow:
-    var(--frame-edge-blend-shadow),
-    0 calc(var(--outer-wall-glow-near-shift, 0px))
-      var(--outer-wall-glow-near-blur, 14px)
-      var(--outer-wall-glow-near-size, 0px)
-      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-near-opacity, 0.18)),
-    0 calc(var(--outer-wall-glow-far-shift, 0px))
-      var(--outer-wall-glow-far-blur-mobile, 10px)
-      var(--outer-wall-glow-far-size-mobile, 4px)
-      rgba(var(--inner-wall-top-light-rgb), var(--outer-wall-glow-far-opacity, 0.055));
+    --finish-far-blur: var(--outer-wall-glow-far-blur-mobile, 10px);
+    --finish-far-size: var(--outer-wall-glow-far-size-mobile, 4px);
   }
 }
 
@@ -4764,8 +4763,12 @@ html[data-abs-instrument-wake] #simulations::after {
    ───────────────────────────────────────────────────────────────────────────── */
 .inner-wall-gradient-edge {
   background: none;
-  box-shadow: inset 0 0 var(--inner-wall-rim-blur, 160px) var(--inner-wall-rim-size, 25px)
-    rgba(var(--inner-wall-top-light-rgb), var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)));
+  box-shadow: inset
+    calc(var(--surface-light-x, 0) * -24px * var(--surface-edge-depth, 1))
+    calc(var(--surface-light-y, 0) * 24px * var(--surface-edge-depth, 1))
+    max(2px, calc(var(--inner-wall-rim-size, 25px) * var(--surface-edge-depth, 1) * 0.75), calc(var(--inner-wall-rim-blur, 160px) * var(--surface-edge-softness, 1)))
+    calc(var(--inner-wall-rim-size, 25px) * var(--surface-edge-depth, 1))
+    rgba(var(--inner-wall-top-light-rgb), calc(var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)) * var(--surface-light-intensity, 1)));
 }
 
 .inner-wall-gradient-edge {
@@ -8463,4 +8466,12 @@ body.cv-page .cv-section--signals {
     height: var(--home-footer-social-touch-size);
     min-height: var(--home-footer-social-touch-size);
   }
+}
+
+/* Shared scene material for editorial cards. Route styles continue to own geometry. */
+.app-scene .about-narrative-media-deck__card {
+  box-shadow: calc(var(--material-cards-key-x, 0) * -0.6rem * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 0.6rem * var(--material-cards-thickness, 1)) calc(1.5rem * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.08 * var(--material-cards-shadow, 1)));
+}
+.app-scene .about-interactive-stack__card {
+  box-shadow: calc(var(--material-cards-key-x, 0) * -0.55rem * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 0.55rem * var(--material-cards-thickness, 1)) calc(1.25rem * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.14 * var(--material-cards-shadow, 1)));
 }

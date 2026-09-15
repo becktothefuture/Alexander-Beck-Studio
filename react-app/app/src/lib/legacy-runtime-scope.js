@@ -2,6 +2,15 @@ const NATIVE_SET_TIMEOUT_KEY = '__ABS_NATIVE_SET_TIMEOUT__';
 const NATIVE_CLEAR_TIMEOUT_KEY = '__ABS_NATIVE_CLEAR_TIMEOUT__';
 const NATIVE_REQUEST_ANIMATION_FRAME_KEY = '__ABS_NATIVE_REQUEST_ANIMATION_FRAME__';
 const NATIVE_CANCEL_ANIMATION_FRAME_KEY = '__ABS_NATIVE_CANCEL_ANIMATION_FRAME__';
+const nativeAddEventListener = EventTarget.prototype.addEventListener;
+const nativeRemoveEventListener = EventTarget.prototype.removeEventListener;
+
+// Persistent shell controls are owned by the page, not a simulation bootstrap.
+// Return a disposer so their owner can still clean up explicitly.
+export function addStableEventListener(target, type, listener, options) {
+  nativeAddEventListener.call(target, type, listener, options);
+  return () => nativeRemoveEventListener.call(target, type, listener, options);
+}
 
 function ensureNativeTimerRefs() {
   if (typeof window === 'undefined') {

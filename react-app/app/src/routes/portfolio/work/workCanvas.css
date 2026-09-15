@@ -3,14 +3,14 @@
   --work-case-study-radius: var(--work-media-radius);
   --work-case-study-caption-gap: clamp(8px, 0.9vw, 14px);
   --work-media-shadow-rest:
-    0 2px 8px rgb(0 0 0 / 0.08),
-    0 10px 24px rgb(0 0 0 / 0.1);
+    calc(var(--material-cards-key-x, 0) * -2px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 2px * var(--material-cards-thickness, 1)) calc(8px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.08 * var(--material-cards-shadow, 1))),
+    calc(var(--material-cards-key-x, 0) * -10px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 10px * var(--material-cards-thickness, 1)) calc(24px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.1 * var(--material-cards-shadow, 1)));
   --work-media-shadow-hover:
-    0 2px 10px rgb(0 0 0 / 0.1),
-    0 12px 28px rgb(0 0 0 / 0.12);
+    calc(var(--material-cards-key-x, 0) * -2px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 2px * var(--material-cards-thickness, 1)) calc(10px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.1 * var(--material-cards-shadow, 1))),
+    calc(var(--material-cards-key-x, 0) * -12px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 12px * var(--material-cards-thickness, 1)) calc(28px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.12 * var(--material-cards-shadow, 1)));
   --work-media-shadow-press:
-    0 2px 7px rgb(0 0 0 / 0.1),
-    0 8px 18px rgb(0 0 0 / 0.12);
+    calc(var(--material-cards-key-x, 0) * -2px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 2px * var(--material-cards-thickness, 1)) calc(7px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.1 * var(--material-cards-shadow, 1))),
+    calc(var(--material-cards-key-x, 0) * -8px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 8px * var(--material-cards-thickness, 1)) calc(18px * max(0.1, var(--material-cards-softness, 1))) rgb(0 0 0 / calc(0.12 * var(--material-cards-shadow, 1)));
 }
 
 .work-canvas-route .playground-item--case-study {
@@ -127,9 +127,9 @@
   inset: 0;
   z-index: 5;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px color-mix(
+  box-shadow: inset calc(var(--material-cards-x, 0) * -1px * var(--material-cards-thickness, 1)) calc(var(--material-cards-y, 0) * 1px * var(--material-cards-thickness, 1)) calc(max(0, var(--material-cards-softness, 1) - 1) * 1px) calc(1px * var(--material-cards-thickness, 1)) color-mix(
     in srgb,
-    var(--text-primary) var(--work-media-edge-opacity),
+    var(--text-primary) clamp(0%, calc(var(--work-media-edge-opacity) * var(--material-cards-highlight, 1)), 100%),
     transparent
   );
   pointer-events: none;

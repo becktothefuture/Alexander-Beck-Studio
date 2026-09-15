@@ -1,3 +1,5 @@
+import { getSoundState, setSoundEnabled, unlockAudio, SOUND_STATE_EVENT } from '../audio/sound-engine.js';
+import { configureSimulationPalette } from '../../../palette/simulationPaletteController.js';
 // ╔══════════════════════════════════════════════════════════════════════════════╗
 // ║                     CENTRALIZED CONTROL REGISTRY                             ║
 // ║        Single source of truth for all panel controls                         ║
@@ -792,7 +794,7 @@ function applyMasterWindowColor(cssVariable, value) {
 
 function createButtonBarControls() {
   return BUTTON_BAR_CONTROL_GROUPS.flatMap((group) => [
-    { type: 'divider', label: group.title },
+    { type: 'divider', label: group.title, collapsed: !group.initiallyOpen },
     ...group.controls.map((control) => ({
       id: control.id,
       label: control.label,
@@ -1561,13 +1563,22 @@ export const CONTROL_SECTIONS = {
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BUTTON BAR - Persistent primary navigation and its moving active key
+  // BUTTON BAR - Stationary tactile primary navigation
   // ═══════════════════════════════════════════════════════════════════════════
   buttonBar: {
-    title: 'Button Bar',
+    title: 'Tactile navigation',
     icon: '▰',
     defaultOpen: true,
-    controls: createButtonBarControls()
+    controls: [{
+      id: 'navigationSoundEnabled', label: 'Site sound', type: 'checkbox',
+      get default() { return getSoundState().isEnabled; },
+      parse: Boolean, format: value => value ? 'On' : 'Off',
+      hint: 'Uses the same saved preference as the sound button. New visits are muted.',
+      onChange: (_g, enabled) => {
+        setSoundEnabled(enabled);
+        if (enabled) void unlockAudio();
+      },
+    }, ...createButtonBarControls()]
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -4679,6 +4690,7 @@ function generateSectionHTML(key, section) {
   // Group controls by 'group' property
   let currentGroup = null;
   let html = '';
+  let subsectionOpen = false;
   
   for (const control of visibleControls) {
     // Insert group header if new group
@@ -4692,8 +4704,13 @@ function generateSectionHTML(key, section) {
       currentGroup = null;
     }
     
-    html += generateControlHTML(control);
+    if (key === 'buttonBar' && control.type === 'divider' && control.collapsed) {
+      if (subsectionOpen) html += '</details>';
+      html += `<details class="panel-section-accordion"><summary class="panel-section-header">${control.label}</summary>`;
+      subsectionOpen = true;
+    } else html += generateControlHTML(control);
   }
+  if (subsectionOpen) html += '</details>';
   
   // Close any open group
   if (currentGroup !== null) html += '</div>';
@@ -4920,10 +4937,10 @@ export function generateScheduledPaletteSectionHTML({ open = false } = {}) {
       <div class="panel-section-content">
         <label class="control-row">
           <div class="control-row-header">
-            <span class="control-label">Scheduled Palette</span>
+            <span class="control-label">Preview ball palette</span>
             <span class="control-value"></span>
           </div>
-          <select id="scheduledPaletteSelect" aria-label="Current scheduled palette" disabled></select>
+          <select id="scheduledPaletteSelect" aria-label="Preview ball palette"></select>
         </label>
       </div>
     </details>`;
@@ -5283,6 +5300,16 @@ export function generatePanelHTML() {
 // CONTROL BINDING (wire sliders to state)
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function syncNavigationSoundControl() {
+  forEachPanelUiDocument(uiDocument => {
+    const input = uiDocument.getElementById('navigationSoundEnabledSlider');
+    const value = uiDocument.getElementById('navigationSoundEnabledVal');
+    if (input) input.checked = getSoundState().isEnabled;
+    if (value) value.textContent = getSoundState().isEnabled ? 'On' : 'Off';
+  });
+}
+if (typeof window !== 'undefined') window.addEventListener?.(SOUND_STATE_EVENT, syncNavigationSoundControl);
+
 export function bindRegisteredControls(options = {}) {
   const g = getGlobals();
   const uiDocument = getUiDocument(options.uiDocument);
@@ -5290,6 +5317,8 @@ export function bindRegisteredControls(options = {}) {
   registerPanelUiDocument(uiDocument);
   hydrateSimulationAtmosphereControlState(g);
   hydrateSimulationBodyMaterialControlState(g);
+  const paletteSelect = uiDocument.getElementById('scheduledPaletteSelect');
+  if (paletteSelect) paletteSelect.onchange = () => configureSimulationPalette({ paletteId: paletteSelect.value });
 
   for (const section of Object.values(CONTROL_SECTIONS)) {
     for (const control of section.controls) {
@@ -5441,6 +5470,7 @@ export function bindRegisteredControls(options = {}) {
 
 export function syncSlidersToState(options = {}) {
   const g = getGlobals();
+  syncNavigationSoundControl();
   const runOnChange = options.runOnChange !== false;
 
   const syncIntoDocument = (uiDocument) => {

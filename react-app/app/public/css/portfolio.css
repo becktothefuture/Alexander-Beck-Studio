@@ -81,7 +81,7 @@ body.portfolio-page #simulations {
 }
 
 .portfolio-gate-scene {
-  --portfolio-gate-scene-shadow: rgb(0 0 0 / 0.24);
+  --portfolio-gate-scene-shadow: rgb(0 0 0 / calc(0.24 * var(--material-cards-shadow, 1)));
   --portfolio-gate-scene-card-width: min(304px, 23.7vw);
   --portfolio-gate-scene-card-height: min(444px, 58vh);
   --portfolio-gate-scene-side-x: min(334px, 27.5vw);
@@ -163,9 +163,10 @@ html:not([data-abs-boot-state='booting']) .portfolio-gate-scene__intercept {
   border-radius: 24px;
   background: #101010;
   box-shadow:
-    0 clamp(-24px, -1.55vw, -14px) clamp(28px, 2.8vw, 48px) -6px var(--portfolio-gate-scene-shadow),
-    0 clamp(4px, 0.45vw, 7px) clamp(10px, 1vw, 18px) -6px rgb(0 0 0 / 0.06),
-    var(--ui-chrome-button-edge);
+    calc(var(--material-cards-key-x, 0) * -16px * var(--material-cards-thickness, 1)) calc(var(--material-cards-lift-y, -1) * clamp(14px, 1.55vw, 24px) * var(--material-cards-thickness, 1)) calc(clamp(28px, 2.8vw, 48px) * max(0.1, var(--material-cards-softness, 1))) -6px var(--portfolio-gate-scene-shadow),
+    calc(var(--material-cards-key-x, 0) * -5px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * clamp(4px, 0.45vw, 7px) * var(--material-cards-thickness, 1)) calc(clamp(10px, 1vw, 18px) * max(0.1, var(--material-cards-softness, 1))) -6px rgb(0 0 0 / calc(0.06 * var(--material-cards-shadow, 1))),
+    inset calc(var(--material-cards-key-x, 0) * -1px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 1px * var(--material-cards-thickness, 1)) calc(max(0, var(--material-cards-softness, 1) - 1) * 2px) rgba(var(--abs-rgb-white), calc(var(--ui-chrome-rim-light-opacity) * var(--material-cards-highlight, 1))),
+    inset calc(var(--material-cards-key-x, 0) * 1px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * -1px * var(--material-cards-thickness, 1)) calc(max(0, var(--material-cards-softness, 1) - 1) * 2px) rgba(var(--abs-rgb-black), calc(var(--ui-chrome-rim-dark-opacity) * var(--material-cards-shadow, 1)));
   transform:
     translate3d(-50%, -50%, 0)
     translateX(var(--portfolio-gate-scene-card-x, 0px))
@@ -588,8 +589,8 @@ html.portfolio-access-gate-open .window-overlay-layer {
   border-radius: clamp(24px, 3.4vw, 42px);
   background: color-mix(in srgb, var(--studio-window-bg) 88%, transparent);
   box-shadow:
-    0 24px 70px rgba(var(--abs-rgb-black), 0.12),
-    inset 0 1px 0 rgba(var(--abs-rgb-white), 0.32);
+    calc(var(--material-cards-key-x, 0) * -24px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 24px * var(--material-cards-thickness, 1)) calc(70px * max(0.1, var(--material-cards-softness, 1))) rgba(var(--abs-rgb-black), calc(0.12 * var(--material-cards-shadow, 1))),
+    inset calc(var(--material-cards-key-x, 0) * -1px * var(--material-cards-thickness, 1)) calc(var(--material-cards-key-y, 1) * 1px * var(--material-cards-thickness, 1)) calc(max(0, var(--material-cards-softness, 1) - 1) * 2px) rgba(var(--abs-rgb-white), calc(0.32 * var(--material-cards-highlight, 1)));
   -webkit-backdrop-filter: blur(22px) saturate(112%);
   backdrop-filter: blur(22px) saturate(112%);
 }
@@ -1692,37 +1693,38 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   border-radius: inherit;
   pointer-events: none;
   z-index: 2;
+  filter: blur(calc(max(0, var(--material-cards-softness, 1) - 1) * 2px));
   background:
     radial-gradient(
       50% 100% at 50% 100%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-insert-contact-opacity)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.3)) 60%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1))) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1)) * 0.3)) 60%,
       transparent 100%
-    ) bottom center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    ) bottom center / 100% calc(var(--inner-wall-gradient-edge-width) * var(--material-cards-thickness, 1)) no-repeat,
     radial-gradient(
       100% 50% at 0% 50%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59 * 0.3)) 60%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1)) * 0.59)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1)) * 0.59 * 0.3)) 60%,
       transparent 100%
-    ) left center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    ) left center / calc(var(--inner-wall-gradient-edge-width) * var(--material-cards-thickness, 1)) 100% no-repeat,
     radial-gradient(
       100% 50% at 100% 50%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-contact-opacity) * 0.59 * 0.3)) 60%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1)) * 0.59)) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-contact-opacity) * var(--material-cards-shadow, 1)) * 0.59 * 0.3)) 60%,
       transparent 100%
-    ) right center / var(--inner-wall-gradient-edge-width) 100% no-repeat,
+    ) right center / calc(var(--inner-wall-gradient-edge-width) * var(--material-cards-thickness, 1)) 100% no-repeat,
     radial-gradient(
       50% 100% at 50% 0%,
-      rgba(var(--inner-wall-top-light-rgb), var(--portfolio-drawer-insert-top-light-opacity)) 0%,
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--portfolio-drawer-insert-top-light-opacity) * 0.3)) 60%,
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--portfolio-drawer-insert-top-light-opacity) * var(--material-cards-highlight, 1))) 0%,
+      rgba(var(--inner-wall-top-light-rgb), calc((var(--portfolio-drawer-insert-top-light-opacity) * var(--material-cards-highlight, 1)) * 0.3)) 60%,
       transparent 100%
-    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat,
+    ) top center / 100% calc(var(--inner-wall-gradient-edge-width) * var(--material-cards-thickness, 1)) no-repeat,
     radial-gradient(
       50% 100% at 50% 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-insert-lip-opacity)) 0%,
-      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-lip-opacity) * 0.3)) 60%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-insert-lip-opacity) * var(--material-cards-shadow, 1))) 0%,
+      rgba(var(--inner-wall-bottom-shadow-rgb), calc((var(--portfolio-drawer-insert-lip-opacity) * var(--material-cards-shadow, 1)) * 0.3)) 60%,
       transparent 100%
-    ) top center / 100% var(--inner-wall-gradient-edge-width) no-repeat;
+    ) top center / 100% calc(var(--inner-wall-gradient-edge-width) * var(--material-cards-thickness, 1)) no-repeat;
 }
 
 /* Inset ring on the insert face (avoids border sitting outside the rounded clip / wrong optical edge). */
@@ -1733,8 +1735,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   border-radius: inherit;
   pointer-events: none;
   z-index: 3;
-  box-shadow: inset 0 0 0 var(--portfolio-drawer-outline-width)
-    rgba(var(--inner-wall-bottom-shadow-rgb), var(--portfolio-drawer-outline-opacity));
+  box-shadow: inset calc(var(--material-cards-x, 0) * -1px) calc(var(--material-cards-y, 0) * 1px) calc(max(0, var(--material-cards-softness, 1) - 1) * 2px) calc(var(--portfolio-drawer-outline-width) * var(--material-cards-thickness, 1))
+    rgba(var(--inner-wall-bottom-shadow-rgb), calc(var(--portfolio-drawer-outline-opacity) * var(--material-cards-shadow, 1)));
 }
 
 .portfolio-project-view.is-open .portfolio-project-view__drawer {

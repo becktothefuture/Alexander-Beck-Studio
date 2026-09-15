@@ -6,14 +6,16 @@
 import { resetCurrentMode } from '../modes/mode-controller.js';
 import { getGlobals } from '../core/state.js';
 import { updateModeButtonsUI } from './mode-buttons.js';
+import { addStableEventListener } from '../../../lib/legacy-runtime-scope.js';
 
 let isKeyboardWired = false;
+let removeKeyboardListener = null;
 
 export function setupKeyboardShortcuts() {
   if (isKeyboardWired) return;
   isKeyboardWired = true;
 
-  window.addEventListener('keydown', (e) => {
+  removeKeyboardListener = addStableEventListener(window, 'keydown', (e) => {
     // Skip if typing in an input
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
     
@@ -47,4 +49,11 @@ export function setupKeyboardShortcuts() {
   });
 
   // Right-click navigation disabled in Daily Simulation mode
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    removeKeyboardListener?.();
+    isKeyboardWired = false;
+  });
 }

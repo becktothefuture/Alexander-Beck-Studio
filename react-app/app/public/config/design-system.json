@@ -47,42 +47,15 @@
     "footerNavBarGapVw": 2.5,
     "homeMainLinksBelowLogoPx": 81,
     "edgeLabelInsetAdjustPx": -62,
-    "buttonBarHeightPx": 69.5,
-    "buttonBarBottomInsetPx": 10.5,
-    "buttonBarWindowOverlapPx": 32,
-    "buttonBarShellPaddingXPx": 0,
-    "buttonBarButtonHeightPx": 68,
-    "buttonBarButtonPaddingXPx": 8,
-    "buttonBarDesktopPaddingScale": 2,
-    "buttonBarButtonRadiusPx": 22,
-    "buttonBarDesktopRouteCellPx": 85,
-    "buttonBarDesktopIconSizePx": 20.5,
-    "buttonBarDesktopLabelGapPx": 5.5,
-    "buttonBarMobileHeightPx": 62.5,
-    "buttonBarMobileWindowOverlapPx": 18,
-    "buttonBarMobileRadiusPx": 15.5,
-    "buttonBarMobileIconCellPx": 69.5,
-    "buttonBarMobileIconSizePx": 19.5,
-    "buttonBarMobileFontSizeRem": 0.6275,
-    "buttonBarMobileActiveInsetPx": 3.75,
-    "buttonBarFontSizeRem": 0.75,
-    "buttonBarDesktopFontScale": 1,
-    "buttonBarActiveInsetPx": 5,
-    "buttonBarActiveRadiusPx": 15,
-    "buttonBarActiveDepthPx": 3,
-    "buttonBarActiveSurfaceOpacity": 0.09,
-    "buttonBarActiveHighlightOpacity": 0.12,
-    "buttonBarActiveShadowOpacity": 0.55,
-    "buttonBarTransitionMs": 360,
-    "utilityRailButtonSizePx": 32,
-    "utilityRailHorizontalOffsetPx": -11,
-    "utilityRailPaddingPx": 6,
-    "utilityRailCornerRadiusPx": 33,
+    "utilityRailButtonSizePx": 33,
+    "utilityRailHorizontalOffsetPx": -60,
+    "utilityRailPaddingPx": 8,
+    "utilityRailCornerRadiusPx": 22.5,
     "utilityRailMobileButtonSizePx": 25,
-    "utilityRailMobileHorizontalOffsetPx": -11,
+    "utilityRailMobileHorizontalOffsetPx": -10,
     "utilityRailMobilePaddingPx": 5,
-    "utilityRailMobileCornerRadiusPx": 29.5,
-    "utilityRailMobileVerticalPositionVh": 76,
+    "utilityRailMobileCornerRadiusPx": 16,
+    "utilityRailMobileVerticalPositionVh": 69,
     "linkColorInfluence": 1,
     "linkImpactScale": 0.95,
     "linkImpactBlur": 0,
@@ -411,7 +384,34 @@
     "tensionLoomPulseStrength": 0.24,
     "tensionLoomPulseSpeed": 620,
     "tensionLoomPulseWidth": 58,
-    "tensionLoomWarmupFrames": 8
+    "tensionLoomWarmupFrames": 8,
+    "tactileNavFaceHeightPx": 31,
+    "tactileNavIconSizePx": 16,
+    "tactileNavRowPaddingTopPx": 8,
+    "tactileNavRowPaddingBottomPx": 4,
+    "tactileNavRowPaddingInlinePx": 62.5,
+    "tactileNavMobileRowPaddingInlinePx": 28,
+    "tactileNavButtonGapPx": 12,
+    "tactileNavMobileButtonGapPx": 7.5,
+    "tactileNavLabelGapPx": 5,
+    "tactileNavLabelSizePx": 11,
+    "tactileNavMobileLabelSizePx": 11,
+    "tactileNavPressedDepth": 1.3,
+    "tactileNavPopStrength": 0.06,
+    "tactileNavSoundVolume": 0.15,
+    "tactileNavRestLightStrength": 0.16,
+    "tactileNavRestLightSoftnessPx": 4,
+    "tactileNavRestShadowStrength": 0.42,
+    "tactileNavRestShadowSoftnessPx": 4.5,
+    "tactileNavInternalLight": 0.08,
+    "tactileNavColourFalloff": 0.22,
+    "tactileNavInsetShadowSoftnessPx": 6,
+    "tactileNavLowerLightStrength": 0,
+    "tactileNavLowerLightSoftnessPx": 4,
+    "tactileNavLowerShadowStrength": 0.18,
+    "tactileNavLowerShadowSoftnessPx": 6,
+    "tactileNavPressDurationMs": 60,
+    "tactileNavReleaseDurationMs": 185
   },
   "shell": {
     "theme": {
@@ -514,6 +514,85 @@
           "rimBounceReach": 0.5,
           "shadowDepth": 0.49,
           "shadowArea": 1.5
+        }
+      },
+      "frameEdgeBlendSize": "3.6px",
+      "frameEdgeBlendBlur": "8.6px",
+      "frameEdgeBlendStrength": 1,
+      "lighting": {
+        "light": {
+          "intensity": 0.9,
+          "direction": -1,
+          "softness": 1.9,
+          "thickness": 0.5,
+          "materials": {
+            "window": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1
+            },
+            "navigation": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "balls": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "buttons": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "cards": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            }
+          }
+        },
+        "dark": {
+          "intensity": 0.9,
+          "direction": -1,
+          "softness": 1.9,
+          "thickness": 0.5,
+          "materials": {
+            "window": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1
+            },
+            "navigation": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "balls": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "buttons": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            },
+            "cards": {
+              "thickness": 1,
+              "softness": 1,
+              "highlight": 1,
+              "shadow": 1
+            }
+          }
         }
       }
     },

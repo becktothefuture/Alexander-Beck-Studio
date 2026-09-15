@@ -1,3 +1,4 @@
+import { normalizeSceneLighting, resolveSceneMaterial, lightSphereProfile } from '../../../../lib/scene-lighting.js';
 import {
   DEFAULT_SIMULATION_BODY_MATERIAL_CONFIG,
   SIMULATION_BODY_MATERIAL_CACHE_DEBOUNCE_MS,
@@ -25,6 +26,9 @@ const TOOTH_TILE = (() => {
 let materialConfig = normalizeSimulationBodyMaterialConfig(
   DEFAULT_SIMULATION_BODY_MATERIAL_CONFIG,
 );
+let sceneLighting = normalizeSceneLighting();
+let pendingLighting = null;
+let pendingLightingTimer = 0;
 let materialRevision = 1;
 let pendingConfig = null;
 let pendingConfigTimer = 0;
@@ -177,14 +181,15 @@ function createLightingModel(profile) {
     const rawDiffuse = nx * lightX + ny * lightY + nz * lightZ;
     const wrappedDiffuse = clamp((rawDiffuse + wrap) / (1 + wrap), 0, 1);
     const diffuse = wrappedDiffuse ** matteExponent;
-    const upper = clamp((1 - ny) * 0.5, 0, 1);
-    const lower = clamp((ny + 0.08) / 1.08, 0, 1);
+    const lightAxis = nx * (profile.lightAxisX ?? 0) + ny * (profile.lightAxisY ?? 1);
+    const upper = clamp((1 - lightAxis) * 0.5, 0, 1);
+    const lower = clamp((lightAxis + 0.08) / 1.08, 0, 1);
     const edge = 1 - nz;
     const backFacing = smoothStep((0.28 - rawDiffuse) / 1.18);
     const rim = (edge ** rimExponent)
       * (0.28 + upper * 0.72)
       * (0.62 + (1 - diffuse) * 0.38);
-    const horizon = (edge ** 0.82) * ((1 - Math.abs(ny)) ** 2.1) * (0.7 + upper * 0.3);
+    const horizon = (edge ** 0.82) * ((1 - Math.min(1, Math.abs(lightAxis))) ** 2.1) * (0.7 + upper * 0.3);
     const skyField = lerp(upper ** (1.28 / profile.ambientReach), 1, profile.ambientCoverage);
     const skyFill = profile.skyFillStrength * upper * (0.34 + edge * 0.66);
     const ambient = profile.ambientStrength * skyField;
@@ -197,8 +202,10 @@ function createLightingModel(profile) {
       * Math.exp(-(terminatorDistance ** 2))
       * (0.38 + edge * 0.62)
       * (0.7 + lower * 0.3);
-    const reflectionX = (nx - reflectionCenterX) / (0.82 * profile.ambientReach);
-    const reflectionY = (ny - reflectionCenterY) / (0.34 * profile.ambientReach);
+    const reflectionDx = nx - reflectionCenterX;
+    const reflectionDy = ny - reflectionCenterY;
+    const reflectionX = (reflectionDx * (profile.lightAxisY ?? 1) - reflectionDy * (profile.lightAxisX ?? 0)) / (0.82 * profile.ambientReach);
+    const reflectionY = (reflectionDx * (profile.lightAxisX ?? 0) + reflectionDy * (profile.lightAxisY ?? 1)) / (0.34 * profile.ambientReach);
     const reflectionBand = profile.reflectionBandStrength
       * Math.exp(-(reflectionX ** 2 * 0.72 + reflectionY ** 2 * 1.66))
       * smoothStep((nz - 0.06) / 0.88)
@@ -294,7 +301,7 @@ function createLightingModel(profile) {
 
 function bakeSprite(rgbEntry, theme) {
   const startedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const profile = resolveSimulationBodyMaterialThemeProfile(materialConfig, theme);
+  const profile = lightSphereProfile(resolveSimulationBodyMaterialThemeProfile(materialConfig, theme), sceneLighting, theme);
   const detail = profile.cacheDetailPx;
   const canvas = createRasterCanvas(detail, detail);
   const context = canvas.getContext('2d', { alpha: true });
@@ -351,6 +358,11 @@ function commitConfig(input) {
   const next = normalizeSimulationBodyMaterialConfig(input);
   if (JSON.stringify(next) === JSON.stringify(materialConfig)) return materialConfig;
   materialConfig = next;
+  invalidateMaterials();
+  return materialConfig;
+}
+
+function invalidateMaterials() {
   materialRevision += 1;
   spriteCache = new Map();
   atlasCache = new Map();
@@ -360,7 +372,27 @@ function commitConfig(input) {
   stats.cacheMisses = 0;
   stats.atlasBuildCount = 0;
   for (const listener of listeners) listener(materialConfig, materialRevision);
-  return materialConfig;
+}
+
+// Lighting edits share the existing bounded sprite/atlas cache and prewarm subscribers.
+// Unchanged rigs (including theme toggles) and edits to other materials do not rebake.
+const sphereLightingKey = lighting => JSON.stringify(['light', 'dark'].map(theme => resolveSceneMaterial(lighting, theme, 'balls')));
+export function scheduleSimulationBodyLighting(input) {
+  const next = normalizeSceneLighting(input);
+  pendingLighting = next;
+  if (pendingLightingTimer) return;
+  if (sphereLightingKey(next) === sphereLightingKey(sceneLighting)) {
+    sceneLighting = next;
+    pendingLighting = null;
+    return;
+  }
+  pendingLightingTimer = setTimeout(() => {
+    pendingLightingTimer = 0;
+    const changed = sphereLightingKey(pendingLighting) !== sphereLightingKey(sceneLighting);
+    sceneLighting = pendingLighting;
+    pendingLighting = null;
+    if (changed) invalidateMaterials();
+  }, SIMULATION_BODY_MATERIAL_CACHE_DEBOUNCE_MS);
 }
 
 export function getSimulationBodyMaterialConfig() {

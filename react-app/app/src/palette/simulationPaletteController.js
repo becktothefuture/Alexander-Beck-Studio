@@ -1,4 +1,4 @@
-import { getLondonPalette } from './londonPalettes.js';
+import { getLondonPalette, resolveLondonPaletteId } from './londonPalettes.js';
 import {
   getNextTimeOfDayPaletteBoundary,
   getTimeOfDayPalettePeriod,
@@ -78,18 +78,20 @@ export function createSimulationPaletteController({
 } = {}) {
   let distribution = resolveSimulationColorDistribution(DEFAULT_SIMULATION_COLOR_DISTRIBUTION);
   let generation = 0;
+  let editorPaletteId = null;
   let timerId = 0;
   let started = false;
   const listeners = new Set();
 
   function createSnapshot(date, nextGeneration) {
     const period = getTimeOfDayPalettePeriod(date);
-    const palette = getLondonPalette(period.paletteId);
+    const paletteId = editorPaletteId || period.paletteId;
+    const palette = getLondonPalette(paletteId);
     const colors = resolveSimulationPaletteColors(palette?.light);
     const effectiveDate = new Date(date.getTime());
     effectiveDate.setHours(period.startHour, 0, 0, 0);
     return freezeSnapshot({
-      paletteId: period.paletteId,
+      paletteId,
       periodId: period.id,
       generation: nextGeneration,
       effectiveAt: effectiveDate.getTime(),
@@ -143,9 +145,11 @@ export function createSimulationPaletteController({
     return snapshot;
   }
 
-  function configure({ colorDistribution } = {}) {
+  function configure({ colorDistribution = distribution, paletteId } = {}) {
     const nextDistribution = resolveSimulationColorDistribution(colorDistribution);
-    if (distributionsMatch(distribution, nextDistribution)) return snapshot;
+    const nextPaletteId = paletteId === undefined ? editorPaletteId : resolveLondonPaletteId(paletteId);
+    if (distributionsMatch(distribution, nextDistribution) && nextPaletteId === editorPaletteId) return snapshot;
+    editorPaletteId = nextPaletteId;
     distribution = nextDistribution;
     generation += 1;
     publish(createSnapshot(now(), generation));
@@ -204,6 +208,7 @@ export function createSimulationPaletteController({
   });
 }
 
+// Editor previews are document-local. Reload restores the native schedule.
 const simulationPaletteController = createSimulationPaletteController();
 
 export function getSimulationPaletteSnapshot() {

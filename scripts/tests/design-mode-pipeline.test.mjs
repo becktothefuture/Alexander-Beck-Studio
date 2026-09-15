@@ -24,25 +24,24 @@ const change = (cssVar, oldValue, newValue, extra = {}) => ({ cssVar, scopeSelec
 test('mobile token save, canonical reload, generated parity and responsive aliases', async (t) => {
   const root = await fixture(t);
   const before = await readSnapshot(root, adapter);
-  const old = before[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const plan = await createTokenPlan(root, adapter, report([change('--button-bar-mobile-height', `${old}px`, '66px')]));
+  const old = before[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const plan = await createTokenPlan(root, adapter, report([change('--tactile-nav-face-height', `${old}px`, '34px')]));
   assert.equal(plan.ready, true);
   const result = await applyTokenPlan(root, adapter, plan);
   assert.equal(result.applied, 1);
   const after = await readSnapshot(root, adapter);
   const expected = structuredClone(before[adapter.canonical].document);
-  expected.runtime.buttonBarMobileHeightPx = 66;
+  expected.runtime.tactileNavFaceHeightPx = 34;
   assert.deepEqual(after[adapter.canonical].document, expected);
-  assert.equal(after['react-app/app/public/config/default-config.json'].document.buttonBarMobileHeightPx, 66);
+  assert.equal(after['react-app/app/public/config/default-config.json'].document.tactileNavFaceHeightPx, 34);
   for (const file of adapter.files.filter((file) => /shell-config|portfolio-config|cv-config/u.test(file))) {
     assert.equal(after[file].text, before[file].text);
   }
   const variables = new Map();
   applyButtonBarCssVars(expected.runtime, { style: { setProperty: (key, value) => variables.set(key, value) } });
-  assert.equal(variables.get('--button-bar-mobile-height'), '66px');
-  assert.equal(variables.get('--button-bar-height'), `${expected.runtime.buttonBarHeightPx}px`);
-  assert.match(variables.get('--button-bar-frame-reserve'), /^calc\(var\(/u);
-  assert.equal(variables.get('--shell-tab-height'), 'var(--button-bar-button-height)');
+  assert.equal(variables.get('--tactile-nav-face-height'), '34px');
+  assert.equal(variables.get('--tactile-nav-icon-size'), `${expected.runtime.tactileNavIconSizePx}px`);
+  assert.equal(variables.has('--button-bar-window-overlap'), false);
 });
 
 test('every registered binding agrees with the actual runtime CSS projection', async (t) => {
@@ -55,34 +54,34 @@ test('every registered binding agrees with the actual runtime CSS projection', a
   }
 });
 
-test('pixel projection returns to the canonical rem value', async (t) => {
+test('pixel projection returns to the canonical label size', async (t) => {
   const root = await fixture(t);
   const snapshot = await readSnapshot(root, adapter);
-  const old = snapshot[adapter.canonical].document.runtime.buttonBarMobileFontSizeRem * 16;
-  const plan = await createTokenPlan(root, adapter, report([change('--button-bar-mobile-font-size', `${old}px`, '11px')]));
+  const old = snapshot[adapter.canonical].document.runtime.tactileNavMobileLabelSizePx;
+  const plan = await createTokenPlan(root, adapter, report([change('--tactile-nav-mobile-label-size', `${old}px`, '12px')]));
   await applyTokenPlan(root, adapter, plan);
-  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.buttonBarMobileFontSizeRem, 11 / 16);
+  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.tactileNavMobileLabelSizePx, 12);
 });
 
 test('stale source and tampered plans cannot overwrite files', async (t) => {
   const root = await fixture(t);
   const snapshot = await readSnapshot(root, adapter);
-  const old = snapshot[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const plan = await createTokenPlan(root, adapter, report([change('--button-bar-mobile-height', `${old}px`, '66px')]));
+  const old = snapshot[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const plan = await createTokenPlan(root, adapter, report([change('--tactile-nav-face-height', `${old}px`, '34px')]));
   const changed = structuredClone(plan);
   changed.operations[0].after = 70;
   await assert.rejects(applyTokenPlan(root, adapter, changed), /modified plan/u);
   const path = resolve(root, adapter.canonical);
   await writeFile(path, `${await readFile(path, 'utf8')}\n`);
   await assert.rejects(applyTokenPlan(root, adapter, plan), /Stale/u);
-  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.buttonBarMobileHeightPx, old);
+  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.tactileNavFaceHeightPx, old);
 });
 
 test('unsupported, ambiguous, mixed and stale-browser edits fail without writing', async (t) => {
   const root = await fixture(t);
   const snapshot = await readSnapshot(root, adapter);
-  const old = snapshot[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const valid = change('--button-bar-mobile-height', `${old}px`, '66px');
+  const old = snapshot[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const valid = change('--tactile-nav-face-height', `${old}px`, '34px');
   const cases = [
     report([change('--unknown', '1px', '2px')]),
     report([{ ...valid, scopeSelector: '.dark' }]),
@@ -114,7 +113,7 @@ test('pre-existing generated drift is not silently repaired by an unrelated edit
   const root = await fixture(t);
   const path = resolve(root, 'react-app/app/public/config/default-config.json');
   const document = JSON.parse(await readFile(path, 'utf8'));
-  document.buttonBarMobileHeightPx = 51;
+  document.tactileNavFaceHeightPx = 51;
   await writeFile(path, JSON.stringify(document));
   await assert.rejects(createTokenPlan(root, adapter, report([])), /already stale/u);
 });
@@ -134,11 +133,11 @@ test('a project root alias supports saves without allowing source symlinks', asy
   const alias = resolve(directory, 'project');
   await symlink(root, alias, 'dir');
   const snapshot = await readSnapshot(alias, adapter);
-  const old = snapshot[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const plan = await createTokenPlan(alias, adapter, report([change('--button-bar-mobile-height', `${old}px`, '66px')]));
+  const old = snapshot[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const plan = await createTokenPlan(alias, adapter, report([change('--tactile-nav-face-height', `${old}px`, '34px')]));
   const result = await applyTokenPlan(alias, adapter, plan);
   assert.ok(result.files.includes(adapter.canonical));
-  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.buttonBarMobileHeightPx, 66);
+  assert.equal((await readSnapshot(root, adapter))[adapter.canonical].document.runtime.tactileNavFaceHeightPx, 34);
   await symlink(resolve(root, 'react-app'), resolve(root, 'linked-source'), 'dir');
   await assert.rejects(readSnapshot(alias, { files: ['linked-source/app/public/config/design-system.json'] }), /non-symlink/u);
 });
@@ -163,8 +162,8 @@ test('a second project can preserve and mutate an alias using only an adapter', 
 test('transaction failure rolls back canonical and generated files', async (t) => {
   const root = await fixture(t);
   const snapshot = await readSnapshot(root, adapter);
-  const old = snapshot[adapter.canonical].document.runtime.buttonBarMobileHeightPx;
-  const plan = await createTokenPlan(root, adapter, report([change('--button-bar-mobile-height', `${old}px`, '66px')]));
+  const old = snapshot[adapter.canonical].document.runtime.tactileNavFaceHeightPx;
+  const plan = await createTokenPlan(root, adapter, report([change('--tactile-nav-face-height', `${old}px`, '34px')]));
   const { applyLocalFileTransaction, LOCAL_FILE_TRANSACTION_IO } = await import('../lib/local-file-transaction.mjs');
   let failed = false;
   const io = { ...LOCAL_FILE_TRANSACTION_IO, async rename(from, to) {

@@ -24,10 +24,10 @@ test('all website pages resolve real source owners and retain every mixed edit',
 });
 test('registered tokens can be planned from each route without dropping comments or writing', async () => {
   const source = await readFile(resolve(root, adapter.canonical), 'utf8');
-  const old = JSON.parse(source).runtime.buttonBarMobileHeightPx;
+  const old = JSON.parse(source).runtime.tactileNavFaceHeightPx;
   for (const path of ['/', '/portfolio.html', '/about.html', '/contact.html']) {
     const result = await reviewDesignModeHandoff(root, adapter, { pageUrl: `http://localhost:8012${path}`,
-      tokenChanges: [{ cssVar: '--button-bar-mobile-height', scopeSelector: ':root', oldValue: `${old}px`, newValue: `${old === 66 ? 65 : 66}px` }],
+      tokenChanges: [{ cssVar: '--tactile-nav-face-height', scopeSelector: ':root', oldValue: `${old}px`, newValue: `${old === 34 ? 35 : 34}px` }],
       comments: [{ id: 'keep', text: 'Inspect desktop too' }],
     });
     assert.equal(result.tokenPlan.ready, true);
