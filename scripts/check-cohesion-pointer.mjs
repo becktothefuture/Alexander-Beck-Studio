@@ -81,3 +81,33 @@ test('stationary velocity decays, fast swipes stay bounded, and forces cannot at
     assert.equal(still / dt, 420 * 2.1);
   }
 });
+
+test('aspect-ratio changes preserve the body shape and scale links with bead size', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL(
+    '../react-app/app/src/legacy/modules/modes/flubber-blob.js', import.meta.url,
+  ), 'utf8');
+  const resizeSource = source.slice(source.indexOf('function resizeBlobIfNeeded()'), source.indexOf('function handlePointer('));
+  const balls = [
+    { x: 90, y: 190, vx: 10, vy: 20 },
+    { x: 110, y: 210, vx: 10, vy: 20 },
+  ];
+  const g = { canvas: { width: 800, height: 400 }, R_MED: 20, balls };
+  const blob = { count: 2, bodyCount: 1, ballRadius: 10, spawnRadius: 40, lastW: 400, lastH: 800, linkCount: 1 };
+  const pointer = createCohesionPointer();
+  updateCohesionPointer(pointer, 'move', sample());
+  const spawnX = [-10, 10], spawnY = [-10, 10], rest = [20], baseRest = [20];
+  const runResize = new Function('getGlobals', 'blob', 'cohesionPointer', 'resetCohesionPointer',
+    'getBodyStats', 'bodyStarts', 'bodyCounts', 'spawnX', 'spawnY', 'gelLinkRest', 'gelLinkBaseRest',
+    `${resizeSource}\nresizeBlobIfNeeded();`);
+  runResize(() => g, blob, pointer, resetCohesionPointer, () => ({ x: 100, y: 200 }),
+    [0], [2], spawnX, spawnY, rest, baseRest);
+  assert.deepEqual(balls.map(({ x, y }) => [x, y]), [[180, 80], [220, 120]]);
+  assert.deepEqual(spawnX, [-20, 20]);
+  assert.deepEqual(spawnY, [-20, 20]);
+  assert.deepEqual(rest, [40]);
+  assert.deepEqual(baseRest, [40]);
+  assert.equal(blob.ballRadius, 20);
+  assert.equal(blob.spawnRadius, 80);
+  assert.equal(pointer.active, false);
+});

@@ -1098,17 +1098,20 @@ function resizeBlobIfNeeded() {
   if (!canvas || blob.count <= 0) return;
   const w = canvas.width;
   const h = canvas.height;
-  if (Math.abs(w - blob.lastW) < 1 && Math.abs(h - blob.lastH) < 1) return;
+  const nextBallRadius = Math.max(2, Number(g.R_MED) || blob.ballRadius);
+  if (Math.abs(w - blob.lastW) < 1 && Math.abs(h - blob.lastH) < 1
+    && Math.abs(nextBallRadius - blob.ballRadius) < 0.001) return;
 
   resetCohesionPointer(cohesionPointer);
   const oldW = Math.max(1, blob.lastW || w);
   const oldH = Math.max(1, blob.lastH || h);
   const sx = w / oldW;
   const sy = h / oldH;
-  const scale = Math.min(sx, sy);
-  const perBodyCount = Math.max(1, bodyCounts[0] || Math.ceil(blob.count / blob.bodyCount));
-  const nextSpawnRadius = computeSpawnRadius(perBodyCount, blob.ballRadius, w, h);
-  const restScale = nextSpawnRadius / Math.max(1, blob.spawnRadius);
+  // The window changes body placement, not material spacing. Scale shape memory
+  // and links only with bead size so an aspect-ratio change cannot stretch the gel.
+  const scale = nextBallRadius / Math.max(1, blob.ballRadius);
+  const nextSpawnRadius = blob.spawnRadius * scale;
+  const restScale = scale;
 
   for (let bodyIndex = 0; bodyIndex < blob.bodyCount; bodyIndex++) {
     const center = getBodyStats(bodyIndex);
@@ -1130,6 +1133,7 @@ function resizeBlobIfNeeded() {
     gelLinkBaseRest[link] *= restScale;
   }
 
+  blob.ballRadius = nextBallRadius;
   blob.spawnRadius = nextSpawnRadius;
   blob.lastW = w;
   blob.lastH = h;
