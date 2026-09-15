@@ -1,4 +1,5 @@
 import { getLondonPalette, resolveLondonPaletteId } from './londonPalettes.js';
+import { getSimulationPresentation } from '../legacy/modules/rendering/simulation-presentation.js';
 import {
   getNextTimeOfDayPaletteBoundary,
   getTimeOfDayPalettePeriod,
@@ -75,6 +76,7 @@ export function createSimulationPaletteController({
   setTimer = (callback, delay) => window.setTimeout(callback, delay),
   clearTimer = (timerId) => window.clearTimeout(timerId),
   project = projectSnapshotToDocument,
+  getPaletteOverride = () => null,
 } = {}) {
   let distribution = resolveSimulationColorDistribution(DEFAULT_SIMULATION_COLOR_DISTRIBUTION);
   let generation = 0;
@@ -85,7 +87,7 @@ export function createSimulationPaletteController({
 
   function createSnapshot(date, nextGeneration) {
     const period = getTimeOfDayPalettePeriod(date);
-    const paletteId = editorPaletteId || period.paletteId;
+    const paletteId = editorPaletteId || resolveLondonPaletteId(getPaletteOverride()) || period.paletteId;
     const palette = getLondonPalette(paletteId);
     const colors = resolveSimulationPaletteColors(palette?.light);
     const effectiveDate = new Date(date.getTime());
@@ -208,8 +210,11 @@ export function createSimulationPaletteController({
   });
 }
 
-// Editor previews are document-local. Reload restores the native schedule.
-const simulationPaletteController = createSimulationPaletteController();
+// Editor and installed presentation previews are document-local.
+// Ordinary visits keep the native schedule; no query or storage override exists.
+const simulationPaletteController = createSimulationPaletteController({
+  getPaletteOverride: () => getSimulationPresentation(true)?.paletteOverride,
+});
 
 export function getSimulationPaletteSnapshot() {
   return simulationPaletteController.getSnapshot();
@@ -229,6 +234,10 @@ export function stopSimulationPaletteController() {
 
 export function configureSimulationPalette(options) {
   return simulationPaletteController.configure(options);
+}
+
+export function refreshSimulationPalette() {
+  return simulationPaletteController.reconcile();
 }
 
 export { createSimulationMaterialSequence, selectSimulationMaterialRole };

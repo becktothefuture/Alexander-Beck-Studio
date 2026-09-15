@@ -1,3 +1,5 @@
+import { getSimulationPresentation } from '../legacy/modules/rendering/simulation-presentation.js';
+
 const SPA_NAVIGATE_KEY = '__ABS_SPA_NAVIGATE__';
 
 export function installSpaNavigationBridge(navigate) {
@@ -18,6 +20,6 @@ export function trySpaNavigate(href, options = {}) {
   const navigate = window[SPA_NAVIGATE_KEY];
   if (typeof navigate !== 'function') return false;
 
-  return navigate(href, options);
+  const presentation = getSimulationPresentation(true);
+  return navigate(presentation?.resolveNavigationHref?.(href) || href, options);
 }
-

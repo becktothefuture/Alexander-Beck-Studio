@@ -248,3 +248,33 @@ The 2026-07-30 note above is a historical snapshot. Current evidence changes the
 - The renderer uses an allocation-free cadence helper that accepts bounded jitter and carries genuinely late callbacks by modulo. This keeps frame accounting aligned with accepted render work.
 
 The sequencing decision was satisfied locally: M07 and `A11Y-006` passed before the M12 refresh, and M16 followed the accepted baseline. M16 moved only the approved Portfolio hero/title and locked-overlay ownership families. The computed signature stayed `7de7352b7ce1e3c7a7c0a6c9dc9a65eba19fbf1920c692e85c56f91172219d01`, and both approved residual-conflict counts are zero. `OPS-002` still blocks reproducible release review until an authorized commit boundary exists. The advisory workflow is now published and has one qualifying smoke run; five later runs fail at the published lint-ratchet baseline, and `main` remains unprotected. `TEST-001` therefore still needs four more qualifying runs, blocking promotion, and branch-protection evidence. No new refactor commit, cross-browser performance certification, or production decision is implied.
+
+## ADR-008 — Retain Fancy Mode in development only
+
+**Status:** Accepted by Alexander
+**Date:** 2026-09-13
+
+### Decision
+
+Keep Fancy Mode as a completed design experiment in the development state.
+It is not an approved style for the live website and must not be published.
+Preserve both studies (`/lab/fancy-mode.html` and `/lab/fancy-home.html`), their
+source, existing presets, four simple pattern variations and colour controls.
+Keep them accessible on localhost and the managed development mirror.
+
+### Implementation
+
+Vite includes the two HTML entries only in development or certification mode.
+The Home, Work and Contact entry modules use the same condition around
+the optional Fancy bootstrap. The About adapter remains with the separate About work. Production therefore emits neither the study
+pages nor its renderer, controls or styles. The canonical build runs
+`check:fancy-publication` and fails if those assets appear again.
+
+### Consequences
+
+The normal website remains the release presentation. Future refinement can
+continue in the development studies. Production adoption requires a new
+explicit decision from Alexander. This preservation work does not authorize
+a commit, push, deployment or shutdown of the managed development session.
+The source and setup are documented in [Fancy Mode](development/FANCY-MODE.md)
+and [Fancy Studio](development/FANCY-HOME.md).

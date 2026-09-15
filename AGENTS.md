@@ -68,6 +68,7 @@ This repository uses a single-context domain-documentation layout. See `docs/age
 - `studio:publish` never creates commits. Continue to commit only when explicitly asked, review the exact diff first, and never include unrelated changes.
 - After an authorized production push, report the workflow as triggered. Verify the GitHub Pages workflow and deployed site before claiming production is updated.
 - Durable rule: save to update development, commit to preserve work, publish to update production.
+- Fancy Mode is a retained development experiment. Keep `/lab/fancy-mode.html` and `/lab/fancy-home.html`, their settings and source available in development; exclude their pages, controls and renderer from production. Do not adopt or publish it without a new explicit decision. See `docs/development/FANCY-MODE.md` and ADR-008 in `docs/architecture-decisions.md`.
 
 ## Architecture and ownership
 

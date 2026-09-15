@@ -43,7 +43,7 @@ npm run check:site
 npm run preview
 ```
 
-The root build is canonical. It verifies shared production entry shells, flattens `design-system.json` into runtime configs, builds all Vite entries into `react-app/app/dist/`, and checks the About and Work publication boundaries. `npm run check:site` includes that build; `npm run studio:check` wraps the same gate. `npm run preview` serves the resulting production build on port 8013. A successful local build is not a deployment.
+The root build is canonical. It verifies shared production entry shells, flattens `design-system.json` into runtime configs, builds the production Vite entries into `react-app/app/dist/`, and checks the About, Work and Fancy Mode publication boundaries. `npm run check:site` includes that build; `npm run studio:check` wraps the same gate. `npm run preview` serves the resulting production build on port 8013. A successful local build is not a deployment.
 
 ## Current structure
 
@@ -75,6 +75,12 @@ The `legacy/` name does not mean unused: it contains the active simulation engin
 | Contact (`/contact.html`) | Contact invitation, email-copy feedback, and LinkedIn | Same visitor-facing route |
 
 These are the current source/build contracts, not a claim about the latest deployed site. Work and About remain held for separate launch decisions. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
+
+**Fancy Mode is a retained development experiment, not a live-site style.**
+Open `/lab/fancy-mode.html` or `/lab/fancy-home.html` on the development server
+or managed public mirror. Their pages, controls and renderer are excluded from
+production builds. The settings and source remain available for future study.
+See [the development record](docs/development/FANCY-MODE.md).
 
 ## Source of truth
 

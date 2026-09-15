@@ -1,3 +1,5 @@
+import { getSimulationPresentation } from '../../../legacy/modules/rendering/simulation-presentation.js';
+
 const DEFAULT_DPR_CAP = 2;
 const DEFAULT_MAX_VISIBLE_DOTS = 20000;
 const TWO_PI = Math.PI * 2;
@@ -129,6 +131,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     minimumRow,
     maximumRow,
     samplingStride,
+    presentation,
   ) {
     const visibleRadius = dotRadiusPx * worldScale * routeVisualScale;
     if (visibleRadius <= 0.01) return;
@@ -137,11 +140,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       const screenY = viewportCenterY + (((row * gridSpacingPx) - cameraY) * worldScale);
       for (let column = minimumColumn; column <= maximumColumn; column += samplingStride) {
         const screenX = viewportCenterX + (((column * gridSpacingPx) - cameraX) * worldScale);
-        context.moveTo(screenX + visibleRadius, screenY);
-        context.arc(screenX, screenY, visibleRadius, 0, TWO_PI);
+        if (presentation) presentation.particle(screenX, screenY, visibleRadius, neutralColor, dotOpacity);
+        else {
+          context.moveTo(screenX + visibleRadius, screenY);
+          context.arc(screenX, screenY, visibleRadius, 0, TWO_PI);
+        }
       }
     }
-    context.fill();
+    if (!presentation) context.fill();
   }
 
   function calculateDepthCandidateCount(stride = 1) {
@@ -159,7 +165,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     return candidateCount;
   }
 
-  function drawDepthDots(samplingStride) {
+  function drawDepthDots(samplingStride, presentation) {
     let drawnCount = 0;
     if (dotDensity === 0) return 0;
     const fieldCameraX = reducedMotion ? 0 : cameraX;
@@ -212,12 +218,17 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
             const pointRadius = radius * depth / layer.parallax;
             if (screenX < -pointRadius || screenX > width + pointRadius
               || screenY < -pointRadius || screenY > height + pointRadius) continue;
-            context.moveTo(screenX + pointRadius, screenY);
-            context.arc(screenX, screenY, pointRadius, 0, TWO_PI);
+            if (presentation) {
+              presentation.particle(screenX, screenY, pointRadius, colors[colorIndex],
+                dotOpacity * layer.opacityMultiplier);
+            } else {
+              context.moveTo(screenX + pointRadius, screenY);
+              context.arc(screenX, screenY, pointRadius, 0, TWO_PI);
+            }
             batchCount += 1;
           }
         }
-        if (batchCount > 0) context.fill();
+        if (batchCount > 0 && !presentation) context.fill();
         drawnCount += batchCount;
       }
     }
@@ -233,9 +244,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     frameId = 0;
     externalFrameRequested = false;
     if (!started || disposed || paused || hidden || !width || !height || !renderDirty) return;
+    clear();
+    const presentation = getSimulationPresentation();
+    if (presentation && (lastDrawnCameraX !== cameraX || lastDrawnCameraY !== cameraY)) {
+      presentation.layoutRevision = (presentation.layoutRevision || 0) + 1;
+    }
     lastDrawnCameraX = cameraX;
     lastDrawnCameraY = cameraY;
-    clear();
+    if (presentation) presentation.beginFrame(context, dpr, 1);
     if (dotOpacity <= 0 || dotRadiusPx <= 0 || routeVisualScale <= 0.001) {
       renderDirty = false;
       lastVisibleDotCount = 0;
@@ -278,7 +294,7 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
       ? Math.floor((rowCount - 1) / samplingStride) + 1
       : 0;
     if (depthMode) {
-      lastDrawnDotCount = drawDepthDots(samplingStride);
+      lastDrawnDotCount = drawDepthDots(samplingStride, presentation);
     } else {
       lastDrawnDotCount = sampledColumnCount * sampledRowCount;
       context.globalAlpha = dotOpacity;
@@ -289,11 +305,14 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
         minimumRow,
         maximumRow,
         samplingStride,
+        presentation,
       );
     }
     context.globalAlpha = 1;
-    renderDirty = false;
+    if (presentation) presentation.endFrame(context);
+    renderDirty = Boolean(presentation?.needsAnimation);
     completeDraw();
+    if (renderDirty) scheduleDraw();
   }
 
   function scheduleDraw() {
@@ -513,8 +532,15 @@ export function createPlaygroundDotFieldRenderer(canvas, options = {}) {
     resizeObserver?.disconnect();
     windowObject.removeEventListener?.('resize', handleWindowResize);
     documentObject?.removeEventListener?.('visibilitychange', handleVisibilityChange);
+    windowObject.removeEventListener?.('abs:simulation-presentation-changed', handlePresentationChange);
     clear();
   }
+
+  function handlePresentationChange() {
+    renderDirty = true;
+    scheduleDraw();
+  }
+  windowObject.addEventListener?.('abs:simulation-presentation-changed', handlePresentationChange);
 
   return Object.freeze({
     start,

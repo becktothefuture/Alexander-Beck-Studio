@@ -16,6 +16,7 @@ import { randomRadiusForKaleidoscopeVh } from '../utils/ball-sizing.js';
 import { drawPebbleBody } from '../visual/pebble-body.js';
 import { getSimulationBodyMaterialConfig } from '../rendering/materials/simulation-body-material.js';
 import { shouldBatchFlatCircleBodies } from '../rendering/simulation-render-strategy.js';
+import { getSimulationPresentation } from '../rendering/simulation-presentation.js';
 import { RENDER_REFERENCE_HZ, normalizePerStepMultiplier } from '../utils/time-normalization.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { FALLBACK_SIMULATION_PALETTE_COLORS } from '../../../palette/simulationPaletteContract.js';
@@ -617,6 +618,7 @@ export function applyKaleidoscopeRiftForces(ball, dt) {
 
 export function renderKaleidoscope(ctx) {
   const g = getGlobals();
+  const presentation = getSimulationPresentation();
   if (!isKaleidoscopeMode(g.currentMode)) return;
 
   const canvas = g.canvas;
@@ -849,7 +851,9 @@ export function renderKaleidoscope(ctx) {
       const y = cy + outSin * r;
       if (x < -cullMargin || x > w + cullMargin || y < -cullMargin || y > h + cullMargin) continue;
 
-      if (batchBall) {
+      if (presentation) {
+        presentation.particle(x, y, visualRadius, ball.color, alpha, ball.distributionIndex);
+      } else if (batchBall) {
         if (batchedReplicaCount === 0) {
           ctx.fillStyle = ball.color;
           ctx.beginPath();
@@ -871,6 +875,7 @@ export function renderKaleidoscope(ctx) {
 
 export function renderKaleidoscopeRift(ctx) {
   const g = getGlobals();
+  const presentation = getSimulationPresentation();
   if (!isKaleidoscopeRiftMode(g.currentMode)) return;
 
   const canvas = g.canvas;
@@ -927,7 +932,9 @@ export function renderKaleidoscopeRift(ctx) {
 
       if (x < -cullPad || x > w + cullPad || y < -cullPad || y > h + cullPad) continue;
 
-      if (batchBall) {
+      if (presentation) {
+        presentation.particle(x, y, drawRadius, ball.color, alpha, ball.distributionIndex);
+      } else if (batchBall) {
         if (batchedReplicaCount === 0) {
           ctx.fillStyle = ball.color;
           ctx.beginPath();

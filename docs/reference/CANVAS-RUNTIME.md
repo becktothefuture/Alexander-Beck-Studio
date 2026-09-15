@@ -147,6 +147,46 @@ Scheduling and performance are part of the contract:
 
 The lab reads the production field material and its bounded one-frame memory, but keeps cadence, level multiplier, enabled state, and quality as lab-owned controls. One visible output Canvas and one reusable source Canvas carry the effect. The clean current field swaps with one history buffer, so memory does not require an additional full-frame history copy or accumulate older frames. Geometry reads occur only when the source Canvas changes size. The lab does not alter production cadence, production configuration, or production host ownership. Reduced Motion resolves to one static broad field without temporal history.
 
+### Fancy Mode material study
+
+Retained in development only by Alexander's decision on 13 September 2026.
+Production omits both Fancy HTML entries and their dynamic bootstrap imports,
+so the mode, controls and rendering code cannot ship through the ordinary build.
+The canonical build runs `check:fancy-publication` to preserve that boundary.
+
+`/lab/fancy-mode.html` previews Pit, Kaleidoscope and Flock through a shared flat
+glyph grid with pointer-activated ripples. Six role-specific patterns correspond
+to the expertise legend; both use the same cached glyphs. The actual simulation
+runtimes and Home shell run in an isolated preview document. Normal mode restores the original
+body material without reseeding. The lab owns its graphic settings and black/white
+interior; production configuration and Daily Simulation rotation are unchanged.
+See [Fancy Mode](../development/FANCY-MODE.md) for the visual grammar, source
+boundaries, performance limits and browser checks.
+
+`/lab/fancy-home.html` is the separate Fancy Studio instance: all ten Home
+simulations plus Work, About and Contact, reached through the native Button Bar.
+Its selected preset is a 15 CSS px grid, full fill, 85% coverage, 100% alignment,
+pattern scale 2, richness 1.4, wake 0.3 and motion response 2. All input switches
+are enabled but ripple strength is zero, so no waves are allocated or drawn.
+Per-simulation profiles and palette-linked patterns are selected. The 24-control
+panel previews all four canonical palettes with their device-local time slots.
+Geometric, Rounded, Diagonal and Bold keep the same six simple expertise marks;
+only the split disc has a second pigment. Coloured roles have no added white
+decoration. A document-local selection feeds the native palette publisher only
+inside the private study; ordinary routes retain automatic colours.
+Work and Contact use the optional
+Canvas presentation hook. About samples role IDs through its existing WebGL
+renderer into bounded grid/history targets, then stamps the same glyph atlas;
+there is no CPU pixel readback or extra animation loop. Ordinary entries only
+activate the override inside the labelled, same-origin lab frame. Native view
+navigation, full reloads and share links retain the lab preset. Production
+palettes, physics, shell contracts and Work/About publication holds are intact.
+See [Fancy Studio](../development/FANCY-HOME.md) for the design decision and tuning.
+Home copy uses the existing soft CSS fields at no more than 80% opacity, with
+no solid mobile copy fill or duplicate particle clearing beneath them. Title
+and non-Home copy clearance is cached between layout/configuration changes;
+Work's moving title mask also follows camera changes.
+
 ## Future Direction
 
 A useful long-term direction is a named canvas runtime adapter around the existing engine, not a visual rewrite or directory rename for its own sake.

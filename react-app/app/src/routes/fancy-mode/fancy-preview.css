@@ -1,0 +1,93 @@
+/* Scope every visual exception to the isolated preview document. */
+@view-transition { navigation: none; }
+
+html.fancy-preview {
+  --fancy-ground: #000;
+}
+
+html.fancy-preview[data-fancy-ground='white'] {
+  --fancy-ground: #fff;
+}
+
+html.fancy-preview #simulations {
+  --studio-window-bg: var(--fancy-ground);
+  --frame-inner-surface: var(--fancy-ground);
+  background: var(--fancy-ground);
+}
+
+/* One translucent, feathered field per Home group. Never combine a solid
+   mobile copy plate with the shadow or clear its particles a second time. */
+html.fancy-preview[data-shell-route='home'] body:not(.detail-open) {
+  --home-text-hover-field-fill: var(--fancy-ground);
+}
+
+html.fancy-preview[data-shell-route='home'] body:not(.detail-open) :is(
+  #expertise-legend,
+  .ui-top-right .decorative-script,
+  #social-links,
+  #site-year,
+  #edge-caption
+) {
+  background: transparent;
+}
+
+html.fancy-preview[data-shell-route='home'] body:not(.detail-open) :is(
+  #expertise-legend,
+  .ui-top-right .decorative-script,
+  #social-links,
+  #site-year,
+  #edge-caption
+)::before {
+  opacity: min(0.8, var(--home-text-hover-field-opacity), var(--fancy-home-shadow-opacity, 0.8));
+}
+
+html.fancy-preview[data-fancy-finish='fancy'] .noise,
+html.fancy-preview[data-fancy-finish='fancy'] .wall-glass-overlay,
+html.fancy-preview .panel-dock,
+html.fancy-preview .panel-toggle-btn,
+html.fancy-preview .shell-utility-control--theme,
+html.fancy-preview .simulation-focus-switcher-slot {
+  display: none;
+}
+
+html.fancy-preview[data-fancy-artwork='true'] #simulations > #simulation-title-canvas,
+html.fancy-preview[data-fancy-artwork='true'] .ui-top,
+html.fancy-preview[data-fancy-artwork='true'] .ui-bottom,
+html.fancy-preview[data-fancy-artwork='true'] .ui-center {
+  visibility: hidden;
+}
+
+html.fancy-preview .fancy-legend-pattern {
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+
+html.fancy-preview[data-fancy-finish='fancy'] #expertise-legend .circle {
+  width: calc(var(--legend-circle-size) * 1.4);
+  height: calc(var(--legend-circle-size) * 1.4);
+  border-radius: 0;
+  background: transparent;
+}
+
+html.fancy-preview[data-fancy-finish='fancy'] .fancy-legend-pattern {
+  display: block;
+}
+
+@media (max-width: 600px) {
+  html.fancy-preview[data-fancy-finish='fancy'] #expertise-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.fancy-preview[data-fancy-finish='fancy'] #expertise-legend .legend__item {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  html.fancy-preview[data-fancy-finish='fancy'] #expertise-legend .legend__item span {
+    min-width: 0;
+    white-space: normal;
+    line-height: 1.2;
+  }
+}

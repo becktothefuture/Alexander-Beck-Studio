@@ -40,6 +40,7 @@ import {
 import { removeDepthTitleLayerClass } from '../rendering/depth-title-layer-state.js';
 import { getSimulationAtmosphereMaterialOpacity } from '../rendering/atmosphere/simulation-atmosphere.js';
 import { resolveFlatCircleBatchingStrategy } from '../rendering/simulation-render-strategy.js';
+import { getSimulationPresentation } from '../rendering/simulation-presentation.js';
 import { resolvePhysicsStepSeconds } from './mode-physics-policy.js';
 import { consumeWarmupFrameSlice } from './warmup-frame-scheduler.js';
 import { normalizePerStepMultiplier, resolveReferenceStepHz } from '../utils/time-normalization.js';
@@ -93,6 +94,7 @@ function canPrewarmSharedMaterial() {
 }
 
 function prewarmSharedMaterialPalette(theme = getSharedMaterialTheme()) {
+  if (getSimulationPresentation()) return;
   if (!sharedSimulationBodyMaterialEnabled || !canPrewarmSharedMaterial()) return;
   const colors = getSimulationPaletteSnapshot()?.colors;
   if (!Array.isArray(colors) || colors.length === 0) return;
@@ -100,6 +102,7 @@ function prewarmSharedMaterialPalette(theme = getSharedMaterialTheme()) {
 }
 
 function scheduleOppositeThemePrewarm() {
+  if (getSimulationPresentation()) return;
   if (oppositeThemePrewarmPending || !sharedSimulationBodyMaterialEnabled) return;
   oppositeThemePrewarmPending = true;
   const prewarm = () => {
@@ -979,9 +982,11 @@ export function render(frameBudget = null) {
   // Clear frame (ghost trails removed per performance optimization plan).
   // CSS on #simulations owns the only visual clip.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const presentation = getSimulationPresentation();
+  presentation?.beginFrame(ctx, dpr);
   
   // Draw water ripples (behind balls)
-  if (globals.currentMode === MODES.WATER) {
+  if (globals.currentMode === MODES.WATER && !presentation) {
     drawWaterRipples(ctx);
   }
   
@@ -1060,6 +1065,8 @@ export function render(frameBudget = null) {
     renderBallsColorBatched(ctx, balls, false, ballRenderOptions, atmosphereMaterialOpacity);
   }
 
+  presentation?.endFrame(ctx);
+
   if (modeRenderer && modeRenderer.postRender) {
     modeRenderer.postRender(ctx);
   }
@@ -1103,7 +1110,7 @@ function renderBallsColorBatched(
   const cullPad = pitLodEnabled ? Math.max(1, tinyRadiusPx) : 0;
   const simpleCircleBodies = Boolean(renderOptions?.simpleCircleBodies);
   const flatCircleBatching = Boolean(renderOptions?.flatCircleBatching);
-  const materialRenderer = simulationBodyMaterialRenderer;
+  const materialRenderer = simulationBodyMaterialRenderer || getSimulationPresentation()?.drawLegacyBody;
   const useSharedMaterial = !materialRenderer && sharedSimulationBodyMaterialEnabled;
 
   // A prototype renderer may still override the production material. Both paths

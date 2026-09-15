@@ -14,6 +14,7 @@ import {
   TRANSITION_PHASES,
 } from '../../lib/transition-phase.js';
 import { CONTACT_RIPPLE_PRESS_FEEDBACK_MS } from './contactRippleEvents.js';
+import { getSimulationPresentation } from '../../legacy/modules/rendering/simulation-presentation.js';
 import { createRouteMaterialEntranceController } from '../../lib/motion/route-material-entrance.js';
 import {
   getSimulationBodyMaterialConfig,
@@ -71,6 +72,7 @@ function getDiagnostics() {
 }
 
 function createBallSprite(color, materialTheme = 'light') {
+  if (getSimulationPresentation()) return null;
   const size = 64;
   const center = size * 0.5;
   const radius = 27;
@@ -137,7 +139,7 @@ function getThemeKey(theme, resolvedPalette = resolvePalette(theme)) {
   const distributionKey = distribution
     .map((role) => `${Number(role?.colorIndex) || 0}:${Number(role?.weight) || 0}`)
     .join(',');
-  return `${theme?.isDark ? 'dark' : 'light'}::${resolvedPalette.join('|')}::${distributionKey}`;
+  return `${getSimulationPresentation() ? 'fancy' : 'normal'}:${theme?.isDark ? 'dark' : 'light'}::${resolvedPalette.join('|')}::${distributionKey}`;
 }
 
 function getQuietZone(canvas, element) {
@@ -584,6 +586,7 @@ export function createContactRippleRenderer({
   }
 
   function drawField(now, reducedEmphasis = null) {
+    const presentation = getSimulationPresentation();
     const elapsed = now - startedAt;
     const isReduced = reducedEmphasis !== null;
     const ringRotation = updateRingRotation(now, isReduced);
@@ -623,7 +626,10 @@ export function createContactRippleRenderer({
       const directionY = burstField.directionY || sin;
       const x = baseX + (directionX * radialKick) - (directionY * tangentialKick);
       const y = baseY + (directionY * radialKick) + (directionX * tangentialKick);
-      drawBall(
+      if (presentation) presentation.particle(x, y,
+        (body.radius || metrics.bodyRadius) * body.routeEntranceScale,
+        spriteSet.palette[body.colorIndex], getRingAlpha(body.baseRadius, energy), body.distributionIndex);
+      else drawBall(
         x,
         y,
         (body.radius || metrics.bodyRadius) * body.routeEntranceScale,
@@ -661,6 +667,8 @@ export function createContactRippleRenderer({
     context.clearRect(0, 0, metrics.width, metrics.height);
     context.globalAlpha = 1;
 
+    const presentation = getSimulationPresentation();
+    if (presentation) presentation.beginFrame(context, canvas.width / metrics.width, 1);
     let animationActive = true;
     if (reducedMotion) {
       animationActive = drawReduced(now);
@@ -670,6 +678,7 @@ export function createContactRippleRenderer({
       setState(burstActive ? 'burst' : 'idle');
     }
 
+    if (presentation) presentation.endFrame(context);
     context.globalAlpha = 1;
     needsRender = bodies.length === 0;
     return animationActive;
@@ -748,6 +757,7 @@ export function createContactRippleRenderer({
   const quietZoneElement = getQuietZoneElement?.();
   if (quietZoneElement) resizeObserver?.observe(quietZoneElement);
   window.addEventListener('resize', handleResize, { passive: true });
+  window.addEventListener('abs:simulation-presentation-changed', handleResize);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   const transitionObserver = typeof MutationObserver === 'function'
     ? new MutationObserver(handleRouteTransitionChange)
@@ -838,6 +848,7 @@ export function createContactRippleRenderer({
       resizeObserver?.disconnect();
       transitionObserver?.disconnect();
       unsubscribeSimulationBodyMaterial();
+      window.removeEventListener('abs:simulation-presentation-changed', handleResize);
       if (
         burstColorHost?.style.getPropertyValue('--contact-ripple-burst-color') === publishedBurstColor
       ) {

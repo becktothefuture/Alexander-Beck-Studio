@@ -15,7 +15,7 @@ import {
   selectSimulationMaterialRole,
 } from '../react-app/app/src/palette/simulationPaletteContract.js';
 import { createSimulationPaletteController } from '../react-app/app/src/palette/simulationPaletteController.js';
-import { LONDON_PALETTES } from '../react-app/app/src/palette/londonPalettes.js';
+import { LONDON_PALETTES, getLondonPalette } from '../react-app/app/src/palette/londonPalettes.js';
 import { getNextTimeOfDayPaletteBoundary } from '../react-app/app/src/palette/timeOfDayPalette.js';
 
 const repoRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -169,6 +169,32 @@ assert.equal(editorController.configure({ paletteId: 'bowWornSignal' }).paletteI
 const editorGeneration = editorController.getSnapshot().generation;
 assert.equal(editorController.configure({ paletteId: 'bowWornSignal' }).generation, editorGeneration);
 assert.equal(editorController.configure({ paletteId: null }).paletteId, 'silvertownCobaltVoltage');
+
+// A document-local study may preview a palette through the same publication
+// path. It must not alter the clock or the default controller's schedule.
+let previewPaletteId = null;
+let previewClock = new Date(2026, 6, 18, 16, 0, 0, 0);
+const previewNotifications = [];
+const previewController = createSimulationPaletteController({
+  now: () => previewClock,
+  getPaletteOverride: () => previewPaletteId,
+  project: () => {},
+});
+previewController.subscribe((snapshot) => previewNotifications.push(snapshot));
+assert.equal(previewController.getSnapshot().paletteId, 'silvertownCobaltVoltage');
+previewPaletteId = 'bowWornSignal';
+const manualPreview = previewController.reconcile();
+assert.equal(manualPreview.paletteId, previewPaletteId);
+assert.deepEqual(manualPreview.colors, getLondonPalette(previewPaletteId).light);
+assert.equal(manualPreview.periodId, 'afternoon-rush');
+previewController.reconcile();
+assert.equal(previewNotifications.length, 2, 'Repeated application does not republish.');
+previewClock = new Date(2026, 6, 18, 19, 0, 0, 0);
+assert.equal(previewController.reconcile().paletteId, previewPaletteId, 'A manual preview stays pinned across time boundaries.');
+previewPaletteId = 'not-a-palette';
+assert.equal(previewController.reconcile().paletteId, 'ryeAfterClosing', 'An invalid preview falls back to the live schedule.');
+previewPaletteId = null;
+assert.equal(previewController.reconcile().paletteId, 'ryeAfterClosing');
 
 let delayedClock = new Date(2026, 6, 18, 22, 15, 0, 0);
 const delayedController = createSimulationPaletteController({

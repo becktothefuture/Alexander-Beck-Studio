@@ -15,6 +15,7 @@ import {
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
 import { selectSimulationMaterialRole } from '../../palette/simulationPaletteController.js';
+import { getSimulationPresentation } from '../../legacy/modules/rendering/simulation-presentation.js';
 import { syncCanvasDisplayMetrics } from '../../lib/canvas-display-metrics.js';
 import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
 import {
@@ -498,6 +499,21 @@ function drawState(
     ctx.fillRect(0, 0, metrics.cssWidth, metrics.cssHeight);
   }
 
+  const presentation = getSimulationPresentation();
+  if (presentation) {
+    presentation.beginFrame(ctx, metrics.dpr, 1);
+    for (let i = 0; i < state.count; i += 1) {
+      const radius = state.radius[i] * getVisualScaleAt(i);
+      if (radius <= 0.05) continue;
+      const role = state.materialRoleIndex[i];
+      const colorIndex = resolveSimulationMaterialColorIndex(role, theme?.paletteSnapshot || theme?.colorDistribution);
+      presentation.particle(state.x[i], state.y[i], radius, colors.body[colorIndex], 1, role);
+    }
+    presentation.endFrame(ctx);
+    markAuditFrame(ctx.canvas);
+    return;
+  }
+
   const materialTheme = theme?.isDark ? 'dark' : 'light';
   const useMaterial = colors.body.length > 0
     && getSimulationBodyMaterialSprite(colors.body[0], materialTheme) !== null;
@@ -668,10 +684,12 @@ export function createRepelRoomRenderer({
       colorThemeSource = theme;
       colorGeneration = nextColorGeneration;
       colorCache = createColorCache(theme);
-      prewarmSimulationBodyMaterial(
-        colorCache.body,
-        theme?.isDark ? 'dark' : 'light',
-      );
+      if (!getSimulationPresentation()) {
+        prewarmSimulationBodyMaterial(
+          colorCache.body,
+          theme?.isDark ? 'dark' : 'light',
+        );
+      }
     }
   }
 
@@ -757,6 +775,12 @@ export function createRepelRoomRenderer({
     pointer.inBounds = false;
   }
 
+  function handlePresentationChange() {
+    if (!state) return;
+    drawState(ctx, state, metrics, getTheme(), colorCache, transparentBackground, visualTransition.getScaleAt);
+  }
+
+  window.addEventListener('abs:simulation-presentation-changed', handlePresentationChange);
   window.addEventListener('pointermove', readPointer, { passive: true });
   window.addEventListener('pointerdown', handlePointerDown, { passive: true });
   window.addEventListener('pointerup', handlePointerUp, { passive: true });
@@ -770,6 +794,7 @@ export function createRepelRoomRenderer({
       unregisterVisualTransition?.();
       unregisterVisualTransition = null;
       visualTransition.destroy?.();
+      window.removeEventListener('abs:simulation-presentation-changed', handlePresentationChange);
       window.removeEventListener('pointermove', readPointer);
       window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('pointerup', handlePointerUp);

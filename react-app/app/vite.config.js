@@ -163,6 +163,13 @@ export default defineConfig(({ mode }) => {
         'lab/spatial-scan': resolve(__dirname, 'lab/spatial-scan.html'),
         'lab/loader-playground': resolve(__dirname, 'lab/loader-playground.html'),
         'lab/title-entrance': resolve(__dirname, 'lab/title-entrance.html'),
+        // Retained development experiment. Never emit Fancy pages in a release.
+        ...(mode === 'development' || mode === 'certification'
+          ? {
+            'lab/fancy-mode': resolve(__dirname, 'lab/fancy-mode.html'),
+            'lab/fancy-home': resolve(__dirname, 'lab/fancy-home.html'),
+          }
+          : {}),
         'lab/route-ball-transition': resolve(__dirname, 'lab/route-ball-transition.html'),
         'lab/simulation-switcher-motion': resolve(__dirname, 'lab/simulation-switcher-motion.html'),
         ...(mode === 'development'

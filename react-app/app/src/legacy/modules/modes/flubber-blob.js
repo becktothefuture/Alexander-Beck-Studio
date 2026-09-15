@@ -11,6 +11,7 @@ import { subscribeScenePointer } from '../input/scene-pointer.js';
 import { triggerPressure } from '../audio/simulation-audio-adapter.js';
 import { getSimulationCollisionInsetPx } from '../utils/frame-geometry.js';
 import { drawSimulationBodyMaterial } from '../rendering/materials/simulation-body-material.js';
+import { getSimulationPresentation } from '../rendering/simulation-presentation.js';
 import { shouldVisitForwardGridNeighbour } from '../physics/collision-policy.js';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -1548,6 +1549,7 @@ export function stepFlubberBlob(dtSeconds) {
 
 export function renderFlubberBlob(ctx) {
   const g = getGlobals();
+  const presentation = getSimulationPresentation();
   const balls = g.balls || [];
   if (!ctx || balls.length === 0) return;
 
@@ -1560,6 +1562,10 @@ export function renderFlubberBlob(ctx) {
     if (alpha <= 0) continue;
     const visualRadius = ball.r * Math.max(0, Math.min(1, ball.visualScale ?? 1));
     if (visualRadius <= 0.05) continue;
+    if (presentation) {
+      presentation.particle(ball.x, ball.y, visualRadius, ball.color, alpha, ball.distributionIndex);
+      continue;
+    }
     if (ball.color !== currentColor) {
       currentColor = ball.color;
       ctx.fillStyle = currentColor;

@@ -4,6 +4,7 @@ import {
 } from '../../lib/simulationVisualTransition.js';
 import { resolveMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { notifySimulationAtmosphereSourceFrame } from '../../legacy/modules/rendering/atmosphere/simulation-atmosphere.js';
+import { getSimulationPresentation } from '../../legacy/modules/rendering/simulation-presentation.js';
 import {
   DEFAULT_SIMULATION_COLOR_DISTRIBUTION,
   FALLBACK_SIMULATION_PALETTE_COLORS,
@@ -1214,10 +1215,9 @@ export function createFlockOfBirdsRenderer({
       birdColorTheme = theme;
       birdColorGeneration = nextColorGeneration;
       birdColorStrings = createBirdColorCache(theme);
-      prewarmSimulationBodyMaterial(
-        birdColorStrings,
-        theme?.isDark ? 'dark' : 'light',
-      );
+      if (!getSimulationPresentation()) {
+        prewarmSimulationBodyMaterial(birdColorStrings, theme?.isDark ? 'dark' : 'light');
+      }
       for (let roleIndex = 0; roleIndex < birdRoleColorIndices.length; roleIndex += 1) {
         birdRoleColorIndices[roleIndex] = resolveSimulationMaterialColorIndex(
           roleIndex,
@@ -1227,6 +1227,18 @@ export function createFlockOfBirdsRenderer({
     }
     const baseRadius = baseBirdRadius * mobileBodyScale;
     const depthSize = config.depthSize;
+
+    const presentation = getSimulationPresentation();
+    if (presentation) {
+      for (let i = 0; i < state.count; i += 1) {
+        const depth = clamp(state.depth[i], -1, 1);
+        const radius = Math.max(1, baseRadius * (1 + depth * depthSize)) * visualTransition.getScaleAt(i);
+        if (radius <= 0.05) continue;
+        const colorIndex = birdRoleColorIndices[state.materialRoleIndex[i]];
+        presentation.particle(state.x[i], state.y[i], radius, birdColorStrings[colorIndex], 1, state.materialRoleIndex[i]);
+      }
+      return;
+    }
 
     if (typeof renderBody === 'function') {
       for (let i = 0; i < state.count; i += 1) {
@@ -1318,7 +1330,10 @@ export function createFlockOfBirdsRenderer({
     } else {
       drawBackground(ctx, metrics, theme, config);
     }
+    const presentation = getSimulationPresentation();
+    presentation?.beginFrame(ctx, metrics.dpr, 1);
     drawBirds(config, theme);
+    presentation?.endFrame(ctx);
     markAuditFrame(canvas);
     notifySimulationAtmosphereSourceFrame('flock-of-birds');
   }
@@ -1419,10 +1434,15 @@ export function createFlockOfBirdsRenderer({
     }
   }
 
+  function handlePresentationChange() {
+    drawVisualFrame(true);
+  }
+
   canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
   canvas.addEventListener('pointerenter', handlePointerEnter, { passive: true });
   canvas.addEventListener('pointerleave', handlePointerLeave, { passive: true });
   document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('abs:simulation-presentation-changed', handlePresentationChange);
   const resizeObserver = typeof ResizeObserver === 'function'
     ? new ResizeObserver(() => {
       metricsDirty = true;
@@ -1455,6 +1475,7 @@ export function createFlockOfBirdsRenderer({
       canvas.removeEventListener('pointerenter', handlePointerEnter);
       canvas.removeEventListener('pointerleave', handlePointerLeave);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('abs:simulation-presentation-changed', handlePresentationChange);
       resizeObserver?.disconnect();
     },
   };
