@@ -264,7 +264,7 @@ async function readFrameState(page) {
       theme: root.dataset.absTheme || '',
       themeSource: root.dataset.absThemeSource || '',
       transition: root.dataset.absSimulationFocusTransition || '',
-      label: document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() || '',
+      label: document.querySelector('.simulation-focus-switcher .abs-action-label')?.textContent?.trim() || '',
       absBrowserChrome: rootStyle.getPropertyValue('--abs-browser-chrome').trim(),
       frameColor: rootStyle.getPropertyValue('--frame-color').trim(),
       wallColor: rootStyle.getPropertyValue('--wall-color').trim(),
@@ -468,7 +468,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     );
     await page.waitForFunction((simulationId) => (
       document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === simulationId
-      && document.querySelector('.simulation-focus-pill__label')?.textContent?.trim() === 'CHANGE EFFECT'
+      && document.querySelector('.simulation-focus-switcher .abs-action-label')?.textContent?.trim() === 'CHANGE EFFECT'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'out'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'hold'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'in'
@@ -485,7 +485,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
       boot: document.documentElement.dataset.absBootState,
       transition: document.documentElement.dataset.absSimulationFocusTransition,
       simulation: document.querySelector('.simulation-focus-switcher')?.dataset.simulationId,
-      label: document.querySelector('.simulation-focus-pill__label')?.textContent,
+      label: document.querySelector('.simulation-focus-switcher .abs-action-label')?.textContent,
     }));
     throw new Error(`${profile.name}/${siteTheme}/${browserScheme}: ${error.message}; ${JSON.stringify(state)}`, { cause: error });
   } finally {
