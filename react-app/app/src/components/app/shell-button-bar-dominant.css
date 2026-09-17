@@ -122,7 +122,6 @@
   --tactile-nav-inner-catch: inset calc(-0.4 * var(--tactile-light-x)) calc(-0.4 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-light-softness, 4px) * max(0.25, var(--material-navigation-softness, 1))) rgb(255 255 255 / calc(var(--tactile-nav-lower-light-strength, 0) * var(--material-navigation-highlight, 1))), inset calc(-1 * var(--tactile-light-x)) calc(-1 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(var(--tactile-nav-lower-shadow-strength, 0.18) * var(--material-navigation-shadow, 1)));
   --tactile-nav-rest-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.30 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
   --tactile-nav-held-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.43 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
-  --tactile-nav-rebound-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc((0.30 * var(--tactile-nav-pressed-depth) - var(--tactile-nav-pop-strength)) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -131,12 +130,16 @@
   box-shadow: var(--tactile-nav-rest-shadow);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--tactile-nav-press-duration) linear, box-shadow var(--tactile-nav-release-duration) ease-out;
+  /* One transition owns depth, including interrupted releases. Do not layer a
+     WAAPI rebound over it: cancelling that animation exposes a different shadow. */
+  transition: opacity var(--tactile-nav-press-duration) linear,
+    box-shadow var(--tactile-nav-release-duration) cubic-bezier(0.2, 0.8, 0.25, calc(1 + var(--tactile-nav-pop-strength) * 4));
 }
-.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure]) .tactile-nav__active { opacity: 1; }
+.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure], [data-release-pending]) .tactile-nav__active { opacity: 1; }
 .button-bar[data-button-bar-material='tactile'] .shell-tab[data-pressure] .tactile-nav__active {
   box-shadow: var(--tactile-nav-held-shadow);
   transition-duration: var(--tactile-nav-press-duration);
+  transition-timing-function: linear, cubic-bezier(0.2, 0.72, 0.28, 1);
 }
 .button-bar[data-button-bar-material='tactile'] .shell-tab .button-bar__icon {
   position: relative;
@@ -150,7 +153,7 @@
   transform: none;
   transition: none;
 }
-.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure]) .button-bar__icon { color: var(--tactile-nav-ink); }
+.button-bar[data-button-bar-material='tactile'] .shell-tab:is([data-visual-active='true'], [data-pressure], [data-release-pending]) .button-bar__icon { color: var(--tactile-nav-ink); }
 .button-bar[data-button-bar-material='tactile'] .shell-tab .shell-tab__label {
   display: block;
   font-family: var(--abs-font-sans);

@@ -106,10 +106,17 @@
     background-color 160ms var(--ease-safari-safe, cubic-bezier(0.2, 0, 0, 1));
 }
 
-.shell-utility-control:is(:hover, :focus-visible),
+.shell-utility-control:focus-visible,
 .shell-utility-control[data-enabled='true'] {
   color: #fff;
   background-color: rgb(255 255 255 / 0.065);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .shell-utility-control:hover {
+    color: #fff;
+    background-color: rgb(255 255 255 / 0.065);
+  }
 }
 
 .shell-utility-control:active {

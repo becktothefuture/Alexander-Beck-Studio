@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { playNavigationSound } from '../../legacy/modules/audio/sound-engine.js';
 import { hexToRgb } from '../../legacy/modules/visual/wall-shadow.js';
 import { getWrappedAdjacentItem, shouldIgnoreGlobalKeyboardShortcut } from '../../lib/global-keyboard-shortcuts.js';
@@ -18,49 +18,45 @@ const PALETTE_SLOTS = {
 const modified = event => event.metaKey || event.altKey || event.ctrlKey || event.shiftKey;
 const setting = (element, name) => Number.parseFloat(getComputedStyle(element).getPropertyValue(`--tactile-nav-${name}`)) || 0;
 
-function cancelSurfaceRelease(layer) {
-  layer?.getAnimations().forEach(animation => {
-    if (animation.id === 'tactile-nav-release') animation.cancel();
-  });
-}
-
-function settleSurface(button) {
-  const layer = button?.querySelector('.tactile-nav__active');
-  if (!layer) return;
-  const currentShadow = getComputedStyle(layer).boxShadow;
-  cancelSurfaceRelease(layer);
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const pop = setting(button, 'pop-strength');
-  const duration = setting(button, 'release-duration');
-  if (!pop || !duration) return;
-  const material = getComputedStyle(layer);
-  layer.animate([
-    { boxShadow: currentShadow, offset: 0 },
-    { boxShadow: material.getPropertyValue('--tactile-nav-rebound-shadow'), offset: 0.65 },
-    { boxShadow: material.getPropertyValue('--tactile-nav-rest-shadow'), offset: 1 },
-  ], { duration, easing: 'ease-out' }).id = 'tactile-nav-release';
-}
-
-function usePressure(navRef) {
+function usePressure(navRef, selected) {
   const gesture = useRef(null);
+  const pendingRelease = useRef(null);
+  const clearRelease = useCallback(() => {
+    const pending = pendingRelease.current;
+    if (!pending) return;
+    clearTimeout(pending.timeout);
+    pending.button.removeAttribute('data-release-pending');
+    pendingRelease.current = null;
+  }, []);
+  // React's selected state must own the colour before the release bridge clears.
+  useLayoutEffect(() => {
+    if (pendingRelease.current?.button.dataset.routeTab === selected) clearRelease();
+  }, [selected, clearRelease]);
   useEffect(() => {
     const nav = navRef.current;
-    const release = (cancel = false) => {
+    const release = (cancel = false, bridge = false) => {
       const press = gesture.current;
       if (!press) return;
       press.cancelled ||= cancel;
+      if (cancel) clearRelease();
       if (press.button.hasAttribute('data-pressure')) {
+        if (bridge && !press.cancelled) {
+          clearRelease();
+          press.button.setAttribute('data-release-pending', 'true');
+          // Native click normally follows pointerup. Bound cleanup if a browser
+          // suppresses the click after a long press or an interrupted gesture.
+          pendingRelease.current = { button: press.button, timeout: setTimeout(clearRelease, 500) };
+        }
         press.button.removeAttribute('data-pressure');
-        if (!cancel) settleSurface(press.button);
       }
     };
     const down = event => {
-      if (event.button !== 0 || !event.isPrimary || modified(event)) return;
+      if (!event.isPrimary) { release(true); return; }
+      if (event.button !== 0 || modified(event)) return;
       const button = event.target.closest('[data-route-tab]');
       if (!button || !nav.contains(button)) return;
       release(true);
       gesture.current = { button, id: event.pointerId, cancelled: false };
-      cancelSurfaceRelease(button.querySelector('.tactile-nav__active'));
       button.setAttribute('data-pressure', 'true');
     };
     const move = event => {
@@ -72,7 +68,7 @@ function usePressure(navRef) {
     const up = event => {
       if (gesture.current?.id !== event.pointerId) return;
       move(event);
-      release(event.type === 'pointercancel');
+      release(event.type === 'pointercancel' || modified(event), event.type === 'pointerup');
     };
     const keydown = event => {
       const button = event.target.closest('[data-route-tab]');
@@ -101,8 +97,8 @@ function usePressure(navRef) {
       window.removeEventListener('blur', cancel);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [navRef]);
-  return gesture;
+  }, [navRef, clearRelease]);
+  return { gesture, clearRelease };
 }
 
 export function ShellButtonBar({
@@ -112,8 +108,8 @@ export function ShellButtonBar({
   renderRouteButtonDecoration, renderSecondaryButtonDecoration,
 }) {
   const navRef = useRef(null);
-  const gesture = usePressure(navRef);
   const selected = pendingRouteId || activeRouteId;
+  const { gesture, clearRelease } = usePressure(navRef, selected);
   useEffect(() => subscribeSimulationPalette(snapshot => {
     const slots = PALETTE_SLOTS[snapshot.paletteId] || [3, 5, 6, 7];
     navRef.current?.querySelectorAll('[data-route-tab]').forEach((button, index) => {
@@ -154,8 +150,7 @@ export function ShellButtonBar({
     event.preventDefault();
     const volume = setting(event.currentTarget, 'sound-volume');
     playNavigationSound({ release: tab.routeId !== selected, volume });
-    if (event.detail === 0 && !event.currentTarget.hasAttribute('data-pressure')) settleSurface(event.currentTarget);
-    if (tab.routeId === selected) return;
+    if (tab.routeId === selected) { clearRelease(); return; }
     if (onRouteSelect) onRouteSelect(tab.routeId, tab);
     else if (!onRouteNavigate?.(tab.href, tab, { source: 'button-bar', activation: event.detail === 0 ? 'keyboard' : 'pointer', preemptTransition: true })) window.location.assign(tab.href);
   };

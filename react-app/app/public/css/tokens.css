@@ -118,7 +118,8 @@
   --abs-soft-control-material-duration: 180ms;
   --abs-soft-control-material-easing: cubic-bezier(0.2, 0.72, 0.25, 1);
   --abs-soft-control-lift-duration: 320ms;
-  --abs-soft-control-lift-easing: linear(0, 0.5 12%, 0.88 24%, 1.12 40%, 0.96 62%, 1.015 80%, 1);
+  /* Damped spring step response (zeta .56); dense samples avoid velocity kinks. */
+  --abs-soft-control-lift-easing: linear(0, 0.05344, 0.1845, 0.35487, 0.5347, 0.70289, 0.84634, 0.95869, 1.03874, 1.08895, 1.11395, 1.11942, 1.11113, 1.09438, 1.0736, 1.05217, 1.03246, 1.01588, 1.00309, 0.99413, 0.98867, 0.98612, 0.98578, 0.98699, 0.9891, 0.99163, 0.99417, 0.99648, 0.99839, 0.99984, 1.00084, 1.00143, 1.00168, 1.00169, 1.00152, 1.00126, 1.00095, 1.00065, 1.00038, 1.00016, 1);
   --abs-soft-control-press-duration: 80ms;
   --abs-soft-control-press-travel: 3px;
   --abs-soft-control-press-scale-x: 0.98;
