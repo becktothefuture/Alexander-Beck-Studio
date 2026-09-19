@@ -50,14 +50,23 @@ test('a stalled response body is bounded to three attempts', async () => {
   assert.ok(requests.every(signal => signal.aborted));
 });
 
-test('timeout can recover on a fresh attempt and choose sampling from loaded metadata', async () => {
+test('timeout can recover on a fresh attempt and choose sampling from loaded metadata', async (t) => {
+  // Advance only the intentionally stalled attempt. Real hashing/body reads on
+  // a shared CI runner must not race an artificial 20ms successful-load budget.
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   let reads = 0;
   let sampledSource;
-  const bundle = await loadRollercoasterBundle({
-    assetRoot: '/assets', retryDelayMs: 0, timeoutMs: 20,
+  const pending = loadRollercoasterBundle({
+    assetRoot: '/assets', retryDelayMs: 0, timeoutMs: 8000,
     fetchImpl: (...args) => ++reads === 1 ? new Promise(() => {}) : fixtureFetch(...args),
     samplingSettings: meta => { sampledSource = meta.source.sha256; return { spacing: 0.5 }; },
   });
+  await new Promise(setImmediate);
+  assert.equal(reads, 1);
+  t.mock.timers.tick(8000);
+  await new Promise(setImmediate);
+  t.mock.timers.tick(0);
+  const bundle = await pending;
   assert.equal(bundle.loadAttempts, 2);
   assert.equal(sampledSource, bundle.meta.source.sha256);
   assert.equal(bundle.field.spacing, 0.5);

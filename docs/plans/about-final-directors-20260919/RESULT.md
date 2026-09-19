@@ -44,3 +44,5 @@ The original authoring checkout has unrelated unfinished CSS edits; its all-site
 ## Release
 
 User authorized a scoped commit, fast-forward push to main and GitHub Pages deployment. The final deployment run and live URL must be verified after the push; local builds are not deployment evidence.
+
+The first Pages run exposed a test-only 20ms wall-clock race on its shared runner. The retry test now advances a controlled clock for the stalled attempt and lets the valid body/hash work complete without a hardware-speed assumption. All148About tests pass after the correction, and the loading tests also pass under the CI version, Node22.19.0. Production code and rendered assets are unchanged by this follow-up.
