@@ -96,6 +96,8 @@ body.about-narrative-page .route-simulation-layer {
   display: grid;
   place-items: center;
   pointer-events: none;
+  perspective: var(--about-title-perspective, 1600px);
+  perspective-origin: 50% 50%;
 }
 
 .rollercoaster-title {
@@ -118,7 +120,7 @@ body.about-narrative-page .route-simulation-layer {
   text-wrap: balance;
   overflow-wrap: normal;
   pointer-events: none;
-  transform: none;
+  transform: translate3d(0, 0, var(--title-depth, 0px));
 }
 
 .rollercoaster-title-field--bookend .rollercoaster-title {

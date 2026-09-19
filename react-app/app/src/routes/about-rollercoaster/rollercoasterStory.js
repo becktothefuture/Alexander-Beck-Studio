@@ -114,13 +114,13 @@ const smoothstep = value => {
 };
 
 export function rollercoasterTitleOpacity(localProgress, {
-  index = 0, count = 1, opening = false, ending = false,
+  index = 0, count = 1, ending = false,
 } = {}) {
   const local = (localProgress * count) - index;
-  if (local < 0 || local > 1) return 0;
-  const arrival = opening ? 1 : smoothstep(local / 0.18);
+  if (local < 0 || local > 1 || (local === 1 && !ending)) return 0;
+  // The shared Home glyph reveal owns arrival; scroll owns only departure.
   const departure = ending ? 1 : smoothstep((1 - local) / 0.18);
-  return Math.min(arrival, departure);
+  return departure;
 }
 
 // The actual heading remains semantic copy at every story position. Only

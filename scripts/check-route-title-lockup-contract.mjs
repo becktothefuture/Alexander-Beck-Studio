@@ -233,10 +233,10 @@ test('successive entrances and restored reload history cannot repeat the same le
   }
 });
 
-test('every flight title centres its glyph ink in the full viewport without moving during visibility', () => {
+test('every flight title keeps its optical centre while travelling only in depth', () => {
   assert.match(sources.aboutStyles, /\.rollercoaster-title-viewport \{[\s\S]*?position: sticky;[\s\S]*?top: 0;[\s\S]*?height: var\(--beat-viewport-height/);
   assert.match(sources.aboutStyles, /\.rollercoaster-title-anchor \{[\s\S]*?inset: 0;[\s\S]*?display: grid;[\s\S]*?place-items: center;/);
-  assert.match(sources.aboutStyles, /\.rollercoaster-title \{[\s\S]*?left: var\(--title-ink-x, 0px\);[\s\S]*?top: var\(--title-ink-y, 0px\);[\s\S]*?margin: 0;[\s\S]*?transform: none;/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title \{[\s\S]*?left: var\(--title-ink-x, 0px\);[\s\S]*?top: var\(--title-ink-y, 0px\);[\s\S]*?margin: 0;[\s\S]*?transform: translate3d\(0, 0, var\(--title-depth, 0px\)\);/);
   assert.match(sources.about, /centreTitleInk\(field\.querySelector\('\[data-title-ink\]'\), glyphContext\)/);
   assert.match(sources.about, /\(box\.width \/ 2\)[\s\S]*?\(\(minX \+ maxX\) \/ 2\)/);
   assert.match(sources.about, /\(box\.height \/ 2\)[\s\S]*?\(\(minY \+ maxY\) \/ 2\)/);

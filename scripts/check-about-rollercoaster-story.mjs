@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { createRollercoasterTitleAnimator, rollercoasterTitleDepth } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterTitles.js';
 import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
   ROLLERCOASTER_READING_BEATS, restoreRollercoasterScrollPosition,
@@ -19,6 +20,74 @@ const create = options => createRollercoasterStoryLayout(beats, { viewportHeight
 const close = (actual, expected, tolerance = 1e-9) => assert.ok(
   Math.abs(actual - expected) <= tolerance, `${actual} should equal ${expected}`,
 );
+
+test('title depth retraces the historical range and reduced motion stays on the reading plane', () => {
+  const options = { count: 1, index: 0 };
+  const depth = progress => rollercoasterTitleDepth(progress, options, 1000, false);
+  close(depth(0), -100);
+  close(depth(1), 70);
+  close(depth(0.5), -15);
+  close(rollercoasterTitleDepth(0.75, { count: 2, index: 1 }, 1000, false), depth(0.5));
+  for (const opening of [false, true]) for (const ending of [false, true]) {
+    const bookend = { ...options, opening, ending };
+    close(rollercoasterTitleDepth(0.3, bookend, 400, true), 0);
+    if (opening || ending) {
+      close(rollercoasterTitleDepth(0, bookend, 0, false), -100);
+      close(rollercoasterTitleDepth(0, bookend, 900, false), 0);
+    }
+  }
+});
+
+test('each title visit reveals once, survives reflow, and replays after return or copy replacement', async () => {
+  const sequences = [];
+  const animator = createRollercoasterTitleAnimator(options => {
+    let resolve;
+    const sequence = { options, totalMs: 500, staged: 0, cancelled: 0,
+      stage() { this.staged += 1; }, cancel() { this.cancelled += 1; },
+      play() { return new Promise(done => { resolve = done; }); },
+      finish() { resolve(); } };
+    sequences.push(sequence);
+    return sequence;
+  });
+  let draw = { dataset: {} };
+  const record = { node: { querySelector: () => draw } };
+  animator.update(record, false, 0);
+  animator.update(record, false, 300);
+  assert.equal(sequences.length, 1);
+  assert.equal(draw.dataset.titleReveal, 'playing');
+  animator.update(null, false, 350);
+  assert.equal(sequences[0].cancelled, 1);
+  animator.update(record, false, 400);
+  sequences[0].finish();
+  await Promise.resolve();
+  assert.equal(draw.dataset.titleReveal, 'playing', 'Old completions cannot settle a new visit.');
+  draw = { dataset: {} };
+  animator.update(record, false, 450);
+  assert.equal(sequences.length, 3);
+  assert.equal(sequences[1].cancelled, 1);
+  animator.update(record, true, 500);
+  assert.equal(sequences.length, 4);
+  assert.equal(draw.dataset.titleReveal, 'settled');
+  assert.equal(sequences[3].options.reducedMotion, true);
+  animator.dispose();
+  assert.equal(sequences[3].cancelled, 1);
+});
+
+test('a retired entrance callback cannot leave invisible letters behind', () => {
+  const draw = { dataset: {} };
+  let cancelled = 0;
+  const animator = createRollercoasterTitleAnimator(() => ({
+    totalMs: 500, stage() {}, play: () => new Promise(() => {}), cancel: () => { cancelled += 1; },
+  }));
+  const record = { node: { querySelector: () => draw } };
+  animator.update(record, false, 0);
+  animator.update(record, false, 661);
+  assert.equal(draw.dataset.titleReveal, 'settled');
+  assert.equal(cancelled, 1);
+  animator.update(record, false, 1000);
+  assert.equal(cancelled, 1);
+  animator.dispose();
+});
 
 test('every published copy field is retained by identity, including the full career and client list', async () => {
   const document = JSON.parse(await readFile(new URL('../react-app/app/public/config/contents-about.json', import.meta.url)));

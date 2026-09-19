@@ -10,6 +10,7 @@ import {
   requestStableAnimationFrame, setStableTimeout,
 } from '../../lib/legacy-runtime-scope.js';
 import { ROUTE_ENTRANCE_START_EVENT } from '../../lib/motion/route-entrance-events.js';
+import { createEntranceSequence, prepareBookendTitleGlyphs } from '../../lib/motion/entrance-sequence.js';
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
 import { resolveRouteFromPathname } from '../../lib/routes.js';
 import {
@@ -24,6 +25,7 @@ import {
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
 import { createRollercoasterScene } from './rollercoasterScene.js';
 import { stepRollercoasterCamera } from './rollercoasterCameraMotion.js';
+import { createRollercoasterTitleAnimator, rollercoasterTitleDepth } from './rollercoasterTitles.js';
 import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
   ROLLERCOASTER_READING_BEATS, restoreRollercoasterScrollPosition,
@@ -125,8 +127,9 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
           id={opening ? 'about-route-title' : field.id}
           className="rollercoaster-title route-centered-page__title"
           data-title-ink
+          aria-label={field.text}
         >
-          {field.text}
+          <span data-title-draw aria-hidden="true" key={field.text}>{field.text}</span>
         </Heading>
       </div>
       {field.description || ending ? (
@@ -160,43 +163,43 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
   );
 }
 
-// Range gives actual line wrapping; Canvas font metrics trim the surrounding
-// font box. This is a once-per-measurement optical alignment, never travel or
-// animation. Descriptions and controls do not take part in this calculation.
+// Layout offsets ignore both the live glyph reveal and the title's depth.
+// Measure once per reflow so optical centring never follows animated letters.
 function centreTitleInk(title, context) {
   title.style.setProperty('--title-ink-x', '0px');
   title.style.setProperty('--title-ink-y', '0px');
   const style = getComputedStyle(title);
   context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
   context.fontKerning = style.fontKerning;
-  const range = document.createRange();
-  const node = title.firstChild;
-  const text = node?.textContent || '';
-  const box = title.getBoundingClientRect();
+  const box = { width: title.offsetWidth, height: title.offsetHeight };
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  let offset = 0;
-  for (const glyph of text) {
-    range.setStart(node, offset);
-    range.setEnd(node, offset + glyph.length);
-    offset += glyph.length;
-    if (!glyph.trim()) continue;
-    const rect = range.getBoundingClientRect();
-    const metrics = context.measureText(glyph);
-    const fontHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-    const scale = fontHeight > 0 ? rect.height / fontHeight : 1;
-    const baseline = Number.isFinite(fontHeight)
-      ? rect.top + (metrics.fontBoundingBoxAscent * scale) : rect.bottom;
-    minX = Math.min(minX, rect.left - metrics.actualBoundingBoxLeft);
-    maxX = Math.max(maxX, rect.left + metrics.actualBoundingBoxRight);
-    minY = Math.min(minY, baseline - (metrics.actualBoundingBoxAscent * scale));
-    maxY = Math.max(maxY, baseline + (metrics.actualBoundingBoxDescent * scale));
+  for (const glyph of title.querySelectorAll('[data-route-enter-glyph]')) {
+    const text = glyph.textContent;
+    if (!text.trim()) continue;
+    let left = 0;
+    let top = 0;
+    for (let node = glyph; node && node !== title; node = node.offsetParent) {
+      left += node.offsetLeft;
+      top += node.offsetTop;
+    }
+    const glyphStyle = getComputedStyle(glyph);
+    const metrics = context.measureText(text);
+    const fontSize = parseFloat(style.fontSize);
+    const ascent = metrics.fontBoundingBoxAscent ?? fontSize * 0.8;
+    const descent = metrics.fontBoundingBoxDescent ?? fontSize * 0.2;
+    const lineHeight = parseFloat(glyphStyle.lineHeight) || fontSize;
+    const baseline = top + parseFloat(glyphStyle.paddingTop) + ((lineHeight - ascent - descent) / 2) + ascent;
+    minX = Math.min(minX, left - metrics.actualBoundingBoxLeft);
+    maxX = Math.max(maxX, left + metrics.actualBoundingBoxRight);
+    minY = Math.min(minY, baseline - metrics.actualBoundingBoxAscent);
+    maxY = Math.max(maxY, baseline + metrics.actualBoundingBoxDescent);
   }
   if (!Number.isFinite(minX) || !Number.isFinite(minY)) return;
-  title.style.setProperty('--title-ink-x', `${(box.left + (box.width / 2)) - ((minX + maxX) / 2)}px`);
-  title.style.setProperty('--title-ink-y', `${(box.top + (box.height / 2)) - ((minY + maxY) / 2)}px`);
+  title.style.setProperty('--title-ink-x', `${(box.width / 2) - ((minX + maxX) / 2)}px`);
+  title.style.setProperty('--title-ink-y', `${(box.height / 2) - ((minY + maxY) / 2)}px`);
   title.closest('[data-title-field]').style.setProperty('--title-ink-height', `${maxY - minY}px`);
 }
 
@@ -232,6 +235,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
   const indicatorRef = useRef(null);
   const measureRef = useRef(null);
   const reducedMotionRef = useRef(reducedMotion);
+  const textMotionRef = useRef(contentDocument.globals?.textMotion);
   const motionOverrideRef = useRef(false);
   const fields = selectRollercoasterCopy(contentDocument);
   const utilityHost = document.getElementById('shell-route-utility-slot');
@@ -241,7 +245,11 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     reducedMotionRef.current = reducedMotion;
   }, [reducedMotion]);
 
-  useEffect(() => { measureRef.current?.(); }, [contentDocument]);
+  useEffect(() => {
+    textMotionRef.current = contentDocument.globals?.textMotion;
+    rootRef.current?.style.setProperty('--about-title-perspective', `${contentDocument.globals?.textMotion?.perspective ?? 1600}px`);
+    measureRef.current?.();
+  }, [contentDocument]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -254,6 +262,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     const titles = Array.from(content.querySelectorAll('[data-title-field]'));
     const titleRecords = titles.map(node => ({
       node, beatId: node.closest('[data-story-beat]').dataset.storyBeat, opacity: -1,
+      ink: node.querySelector('[data-title-ink]'), depth: null,
       support: node.querySelector('[data-title-support]'),
       actions: node.querySelector('[data-ending-actions]'),
       options: {
@@ -261,6 +270,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         opening: node.dataset.titleOpening === 'true', ending: node.dataset.titleEnding === 'true',
       },
     }));
+    const titleAnimator = createRollercoasterTitleAnimator(createEntranceSequence);
     // Also clean the former whole-field gate when this component is replaced
     // through hot reload. There is one semantic title, never a hidden clone.
     titles.forEach(node => {
@@ -282,7 +292,6 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     let sceneError = null;
     let measuredReady = false;
     let entranceStarted = root.dataset.routeEntranceStarted === 'true';
-    let entranceTime = entranceStarted ? performance.now() : null;
     let animationFrame = 0;
     let measurementFrame = 0;
     let historyTimer = 0;
@@ -306,6 +315,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       measuredReady = false;
       layout = null;
       sceneError = error?.message || String(error);
+      titleAnimator.dispose();
       scene?.dispose();
       scene = null;
       root.dataset.aboutSceneError = 'true';
@@ -316,7 +326,10 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         section.style.removeProperty('top');
         section.style.removeProperty('height');
       });
-      titleRecords.forEach(record => applyRollercoasterTitlePresentation(record, 1));
+      titleRecords.forEach(record => {
+        record.ink.style.setProperty('--title-depth', '0px');
+        applyRollercoasterTitlePresentation(record, 1);
+      });
       setSceneFailed(true);
       signalReady();
     };
@@ -343,6 +356,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       root.dataset.aboutFontState = fontState.status;
       if (!fontState.ready) return;
       titles.forEach((field) => {
+        prepareBookendTitleGlyphs(field.querySelector('[data-title-draw]'));
         if (glyphContext) centreTitleInk(field.querySelector('[data-title-ink]'), glyphContext);
       });
       if (!scene) {
@@ -407,15 +421,24 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
           root.dataset.aboutBeat = frame.beatId;
           lastPublishedProgress = frame.progress;
         }
-        const entranceOpacity = !entranceStarted ? 0
-          : motionReduced ? 1 : Math.min(1, (now - entranceTime) / 320);
+        let activeTitle = null;
         titleRecords.forEach((record) => {
           const active = record.beatId === frame.beatId;
-          const opacity = active ? rollercoasterTitleOpacity(frame.localProgress, record.options) * entranceOpacity : 0;
+          const opacity = active && entranceStarted ? rollercoasterTitleOpacity(frame.localProgress, record.options) : 0;
+          if (opacity > 0) activeTitle = record;
           if (record.opacity === opacity) return;
           record.opacity = opacity;
           applyRollercoasterTitlePresentation(record, opacity);
         });
+        const titleElapsed = titleAnimator.update(activeTitle, motionReduced, now);
+        if (activeTitle) {
+          const depth = rollercoasterTitleDepth(frame.localProgress, activeTitle.options, titleElapsed,
+            motionReduced, textMotionRef.current).toFixed(3);
+          if (depth !== activeTitle.depth) {
+            activeTitle.ink.style.setProperty('--title-depth', `${depth}px`);
+            activeTitle.depth = depth;
+          }
+        }
         const progressValue = Math.round(frame.progress * 100);
         if (indicatorRef.current && progressValue !== lastIndicatorValue) {
           const indicator = indicatorRef.current;
@@ -467,7 +490,6 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     const startEntrance = (event) => {
       if (event.detail?.routeId !== routeContentId) return;
       entranceStarted = true;
-      entranceTime = performance.now();
       previousTime = null;
     };
     const mediaQuery = matchMedia('(prefers-reduced-motion: reduce)');
@@ -545,6 +567,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       fontReadiness.destroy();
       cleanupEvents.forEach(cleanup => cleanup());
       unregister();
+      titleAnimator.dispose();
       scene?.dispose();
       if (import.meta.env.DEV && window.__aboutRollercoaster === inspection) delete window.__aboutRollercoaster;
     };
