@@ -14,6 +14,11 @@ import {
 } from '../../data/simulationCatalog.js';
 import { triggerHaptic } from '../../lib/haptics.js';
 import {
+  getSoundState,
+  playInteractionSound,
+  unlockAudio,
+} from '../../legacy/modules/audio/sound-engine.js';
+import {
   getWrappedAdjacentItem,
   shouldIgnoreGlobalKeyboardShortcut,
 } from '../../lib/global-keyboard-shortcuts.js';
@@ -105,6 +110,11 @@ export function SimulationFocusProvider({
       return false;
     }
 
+    if (getSoundState().isEnabled) {
+      void unlockAudio().then((unlocked) => {
+        if (unlocked) playInteractionSound('step', { source: 'simulation-next' });
+      });
+    }
     triggerHaptic('step');
     return true;
   }, [activeId, requestSimulationSwitch]);
@@ -185,7 +195,7 @@ export function SimulationFocusSwitcher() {
         className="simulation-focus-pill simulation-focus-switcher"
         label="CHANGE EFFECT"
         data-simulation-id={activeSimulation.id}
-        data-sound-action="step"
+        data-sound-action="manual"
         data-sound-source="simulation-next"
         data-advancing={String(isAdvancing)}
         data-phase={isAdvancing ? 'switching' : 'idle'}

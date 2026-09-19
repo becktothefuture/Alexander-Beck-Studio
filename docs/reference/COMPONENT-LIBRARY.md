@@ -40,6 +40,8 @@ The live reference is `/styleguide.html`. It must describe production components
 
 Production DOM actions declare `data-sound-action="press|close|step|manual|none"` and a stable `data-sound-source`. The shell delegates `press`, `close`, and `step` once per click. Components that own drag thresholds, compound project opening, contact motifs, or history-based close paths use `manual` and call the shared interaction API only after the action commits. Hover and focus remain silent. Development editors, styleguide controls, and embedded content are outside this contract.
 
+Home's Change effect control uses `manual`: its shared advance handler plays one `step` sound when a simulation switch is accepted, including button activation and the global Space shortcut. When sound is enabled, that user gesture unlocks or resumes audio so the first change after reload also has feedback. Busy or rejected requests stay silent. This avoids losing feedback when the control becomes `aria-disabled` before the delegated click listener runs, and preserves the sound engine's mute, volume, and reduced-motion rules.
+
 ## Utility icon buttons
 
 `.abs-icon-btn` is the shared frame for back, sound, and other glyph-only utility actions. Every icon button needs an accessible name and visible focus treatment.
