@@ -21,6 +21,14 @@ const sample = button => button.evaluate(el => ({
   opacity: Number(getComputedStyle(el.querySelector('.tactile-nav__active')).opacity),
   ink: getComputedStyle(el.querySelector('.button-bar__icon')).color,
 }));
+const shadowless = button => button.locator('.tactile-nav__active').evaluate(el => {
+  const shadow = getComputedStyle(el).boxShadow;
+  const colors = [...shadow.matchAll(/rgba?\(([^)]+)\)/g)];
+  return shadow === 'none' || (colors.length > 0 && colors.every(([, color]) => {
+    const channels = color.split(',').map(Number);
+    return channels.length === 4 && channels[3] === 0;
+  }));
+});
 
 // Real mobile contexts and native taps, run serially in both browser engines.
 for (const [name, engine] of Object.entries({ chromium, webkit })) {
@@ -47,6 +55,7 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
     await delay(120);
     const held = await sample(work);
     assert.equal(held.opacity, 1);
+    assert.ok(await shadowless(work), `${name}: held button gained a shadow`);
     await work.dispatchEvent('pointerup', pointer);
     await delay(100);
     assert.deepEqual(await sample(work), held, `${name}: face/ink flickered before click`);
@@ -54,10 +63,10 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
     await work.dispatchEvent('click', { button: 0, detail: 1 });
     await settle(page, 'portfolio');
     assert.deepEqual(await sample(work), held);
+    assert.ok(await shadowless(work), `${name}: selected button retained a press shadow`);
     assert.equal(await page.locator('[data-pressure], [data-release-pending]').count(), 0);
 
-    // Freeze a release halfway through, then press again in the same frame.
-    // Only one CSS transition may own the shadow; the rendered value must not jump.
+    // Rapid re-presses must not reintroduce depth or a shadow-release animation.
     const interrupted = await work.evaluate(el => {
       const layer = el.querySelector('.tactile-nav__active');
       const r = el.getBoundingClientRect();
@@ -76,7 +85,7 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
       send('pointercancel');
       return { before, after, owners: animations.map(a => a.transitionProperty || a.id) };
     });
-    assert.deepEqual(interrupted.owners, ['box-shadow'], `${name}: competing depth animations`);
+    assert.deepEqual(interrupted.owners, [], `${name}: flat press started a shadow animation`);
     assert.equal(interrupted.after, interrupted.before, `${name}: re-press snapped to another depth`);
 
     // Cancelled gestures and suppressed long-press clicks must never stick.
@@ -105,6 +114,7 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
         assert.equal(await page.locator('[data-visual-active=true]').count(), 1);
         assert.equal(await page.locator('[data-pressure], [data-release-pending]').count(), 0);
         assert.equal(await page.evaluate(() => getSelection().toString()), '');
+        assert.ok(await shadowless(nav(id)), `${name}/${theme}/${id}: selected shadow returned`);
       }
       for (const width of [320, 390]) {
         await page.setViewportSize({ width, height: 844 });

@@ -4,8 +4,8 @@
   --tactile-nav-icon-size: 16px;
   --tactile-nav-row-padding-top: 8px;
   --tactile-nav-row-padding-bottom: 4px;
-  --tactile-nav-row-padding-inline: 46px;
-  --tactile-nav-mobile-row-padding-inline: 28px;
+  --tactile-nav-side-padding: 10%;
+  --tactile-nav-group-max-width: 720px;
   --tactile-nav-button-gap: 7px;
   --tactile-nav-mobile-button-gap: 6px;
   --tactile-nav-label-gap: 7px;
@@ -13,11 +13,9 @@
   --tactile-nav-mobile-label-size: 11px;
   --tactile-nav-press-duration: 60ms;
   --tactile-nav-release-duration: 185ms;
-  --tactile-nav-pressed-depth: 1.5;
-  --tactile-nav-pop-strength: 0.05;
+  --tactile-nav-pressed-depth: 0;
+  --tactile-nav-pop-strength: 0;
   --tactile-nav-sound-volume: 0.15;
-  --tactile-nav-padding: var(--tactile-nav-row-padding-inline);
-  --tactile-nav-viewport-width-adjustment: clamp(-8px, calc(2.5vw - 25.6px), 16px);
   --tactile-nav-gap: var(--tactile-nav-button-gap);
   --tactile-nav-type: var(--tactile-nav-label-size);
   --tactile-nav-target-height: max(66px, calc(var(--tactile-nav-face-height) + var(--tactile-nav-label-gap) + var(--tactile-nav-type) + 14px));
@@ -28,8 +26,6 @@
 }
 @media (max-width: 767px) {
   :root {
-    --tactile-nav-padding: var(--tactile-nav-mobile-row-padding-inline);
-    --tactile-nav-viewport-width-adjustment: clamp(-4px, calc(5vw - 19.5px), 8px);
     --tactile-nav-gap: var(--tactile-nav-mobile-button-gap);
     --tactile-nav-type: var(--tactile-nav-mobile-label-size);
   }
@@ -38,8 +34,9 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  width: auto;
-  max-width: none;
+  width: calc(100% - 2 * var(--tactile-nav-side-padding));
+  max-width: var(--tactile-nav-group-max-width);
+  margin-inline: auto;
   min-height: 0;
   padding: 0;
   border: 0;
@@ -50,8 +47,9 @@
 }
 .button-bar.shell-bottom-band[data-button-bar-material='tactile'] {
   position: fixed;
-  left: max(8px, env(safe-area-inset-left));
-  right: max(8px, env(safe-area-inset-right));
+  left: max(var(--tactile-nav-side-padding), env(safe-area-inset-left));
+  right: max(var(--tactile-nav-side-padding), env(safe-area-inset-right));
+  width: auto;
   bottom: calc(var(--tactile-nav-row-padding-bottom) + var(--abs-safe-bottom));
   height: var(--tactile-nav-target-height);
   transform: none;
@@ -59,30 +57,30 @@
 }
 .button-bar[data-button-bar-material='tactile'] .button-bar__primary-buttons {
   display: flex;
-  flex: 0 1 auto;
-  width: auto;
+  flex: 1 1 0;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   padding: 0;
 }
 .button-bar[data-button-bar-material='tactile'] .button-bar__route-cluster {
   display: flex;
+  width: 100%;
   min-width: 0;
   gap: var(--tactile-nav-gap);
-  /* Extra width belongs to the faces; keep room for four targets on narrow screens. */
-  padding-inline: min(var(--tactile-nav-padding), 40px);
+  padding-inline: 0;
 }
 /* Override the legacy unselected press fill on the rectangular hit area. */
 .button-bar[data-button-bar-material='tactile'] .shell-tab,
 .button-bar[data-button-bar-material='tactile'] .shell-tab:is(:hover, :active:not([aria-current='page']), :focus-visible, [aria-current='page']) {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: var(--tactile-nav-label-gap);
   min-width: 44px;
-  width: calc(var(--tactile-nav-icon-size) + 2 * var(--tactile-nav-padding) + var(--tactile-nav-viewport-width-adjustment));
+  width: 0;
   height: var(--tactile-nav-target-height);
   min-height: var(--tactile-nav-target-height);
   padding: 4px 0 0;
@@ -119,7 +117,7 @@
   --tactile-nav-lit: color-mix(in srgb, var(--tactile-nav-surface), white calc(var(--tactile-nav-internal-light, 0.08) * var(--material-navigation-highlight, 1) * 100%));
   --tactile-nav-edge: color-mix(in srgb, var(--tactile-nav-surface), black calc(clamp(0, var(--tactile-nav-colour-falloff, 0.22) * var(--material-navigation-shadow, 1), 1) * 100%));
   --tactile-nav-inner-edge: var(--tactile-light-x) var(--tactile-light-y) calc(var(--tactile-nav-inset-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1)));
-  --tactile-nav-inner-catch: inset calc(-0.4 * var(--tactile-light-x)) calc(-0.4 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-light-softness, 4px) * max(0.25, var(--material-navigation-softness, 1))) rgb(255 255 255 / calc(var(--tactile-nav-lower-light-strength, 0) * var(--material-navigation-highlight, 1))), inset calc(-1 * var(--tactile-light-x)) calc(-1 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(var(--tactile-nav-lower-shadow-strength, 0.18) * var(--material-navigation-shadow, 1)));
+  --tactile-nav-inner-catch: inset calc(-0.4 * var(--tactile-light-x)) calc(-0.4 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-light-softness, 4px) * max(0.25, var(--material-navigation-softness, 1))) rgb(255 255 255 / calc(var(--tactile-nav-lower-light-strength, 0) * var(--material-navigation-highlight, 1))), inset calc(-1 * var(--tactile-light-x)) calc(-1 * var(--tactile-light-y)) calc(var(--tactile-nav-lower-shadow-softness, 6px) * max(0.25, var(--material-navigation-softness, 1))) rgb(0 0 0 / calc(var(--tactile-nav-lower-shadow-strength, 0) * var(--material-navigation-shadow, 1)));
   --tactile-nav-rest-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.30 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
   --tactile-nav-held-shadow: inset var(--tactile-nav-inner-edge) rgb(0 0 0 / calc(0.43 * var(--tactile-nav-pressed-depth) * var(--material-navigation-shadow, 1))), var(--tactile-nav-inner-catch);
   position: absolute;

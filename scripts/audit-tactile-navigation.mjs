@@ -79,9 +79,10 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
       }
       await route(page, 'portfolio').dispatchEvent('pointerdown', { pointerId: 25, isPrimary: true, button: 0 });
       await route(page, 'about').dispatchEvent('pointerdown', { pointerId: 26, isPrimary: false, button: 0 });
-      assert.equal(await page.locator('[data-pressure]').count(), 1);
+      assert.equal(await page.locator('[data-pressure]').count(), 0, 'Secondary touch must cancel the primary press');
       await route(page, 'portfolio').dispatchEvent('pointercancel', { pointerId: 25 });
-      // A zero rebound keeps the smooth CSS release instead of cancelling it.
+      // Pressing an already selected key keeps its finish stable: the authored
+      // press shadows and rebound are off, so release adds no depth animation.
       const home = route(page, 'home');
       await page.evaluate(() => document.documentElement.style.setProperty('--tactile-nav-pop-strength', '0'));
       await home.evaluate(el => el.addEventListener('pointerup', () => {
@@ -92,10 +93,10 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
       const restingShadow = await home.locator('.tactile-nav__active').evaluate(el => getComputedStyle(el).boxShadow);
       await page.mouse.down(); await page.waitForTimeout(120);
       // Observe the held style before release; elapsed time alone does not flush it.
-      assert.notEqual(await home.locator('.tactile-nav__active').evaluate(el => getComputedStyle(el).boxShadow), restingShadow);
+      assert.equal(await home.locator('.tactile-nav__active').evaluate(el => getComputedStyle(el).boxShadow), restingShadow);
       await page.mouse.up();
       const plainRelease = await page.evaluate(() => window.__plainRelease);
-      assert.ok(plainRelease.some(a => a.property === 'box-shadow'));
+      assert.ok(plainRelease.every(a => a.property !== 'box-shadow'));
       assert.ok(plainRelease.every(a => a.id !== 'tactile-nav-release'));
       await page.evaluate(() => document.documentElement.style.removeProperty('--tactile-nav-pop-strength'));
       // Sample actual animation frames while switching and releasing.
@@ -161,9 +162,14 @@ for (const [name, engine] of Object.entries({ chromium, webkit })) {
       for (const width of [320, 375, 480, 600, 601, 640, 641, 767, 768, 900, 991, 992, 1024, 1025, 1440, 3440]) {
         await page.setViewportSize({ width, height: width === 600 ? 375 : 844 });
         const layout = await page.evaluate(() => [...document.querySelectorAll('[data-route-tab]')].map(el => {
-          const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, height: r.height, viewport: innerWidth };
+          const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, height: r.height, viewport: innerWidth };
         }));
-        assert.ok(layout.every(r => r.left >= 0 && r.right <= r.viewport && r.height >= 66), `${name} ${width}: target overflow`);
+        assert.ok(layout.every(r => r.left >= 0 && r.right <= r.viewport && r.height >= 66 && r.width >= 44), `${name} ${width}: target overflow`);
+        const groupWidth = layout.at(-1).right - layout[0].left;
+        const expectedWidth = Math.min(width * 0.8, 720);
+        assert.ok(Math.abs(groupWidth - expectedWidth) < 1, `${name} ${width}: group must fill 80% up to 720px`);
+        assert.ok(Math.abs(layout[0].left - (width - expectedWidth) / 2) < 1, `${name} ${width}: group must be centred`);
+        assert.ok(layout.every(r => Math.abs(r.width - layout[0].width) < 0.1), `${name} ${width}: unequal button widths`);
       }
       await page.setViewportSize({ width: mobile ? 390 : 1440, height: mobile ? 844 : 900 });
       await page.emulateMedia({ reducedMotion: 'reduce' });
