@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { createTitleActivationSequence } from '../react-app/app/src/lib/motion/title-activation-order.js';
+import { applyRollercoasterTitlePresentation } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterStory.js';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const designConfig = JSON.parse(await read('../react-app/app/public/config/design-system.json'));
@@ -9,15 +10,15 @@ const sources = Object.fromEntries(await Promise.all([
   ['main', '../react-app/app/public/css/main.css'],
   ['actionButtons', '../react-app/app/src/components/app/action-buttons.css'],
   ['portfolioRoute', '../react-app/app/src/routes/portfolio/PortfolioRoute.jsx'],
-  ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['contactStyles', '../react-app/app/src/routes/contact/contact-route.css'],
+  ['contact', '../react-app/app/src/routes/contact/ContactRouteContent.jsx'],
   ['playground', '../react-app/app/src/routes/playground/PlaygroundExperience.jsx'],
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
-  ['about', '../react-app/app/src/routes/about-narrative-lab/AboutNarrativeLabExperience.jsx'],
+  ['about', '../react-app/app/src/routes/about-rollercoaster/AboutRollercoasterExperience.jsx'],
   ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
-  ['aboutStyles', '../react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css'],
+  ['aboutStyles', '../react-app/app/src/routes/about-rollercoaster/about-rollercoaster.css'],
   ['siteApp', '../react-app/app/src/components/app/SiteApp.jsx'],
   ['routeReadiness', '../react-app/app/src/lib/motion/route-transition-readiness.js'],
   ['entranceEvents', '../react-app/app/src/lib/motion/route-entrance-events.js'],
@@ -39,10 +40,12 @@ test('every production route lockup consumes the shared title, rule, and descrip
 
   assert.match(sources.aboutComingSoon, /route-centered-page__title route-bookend-title/);
   assert.match(sources.aboutComingSoon, /id="about-coming-soon-title"/);
-  assert.equal((sources.about.match(/route-centered-page__title route-bookend-title/g) || []).length, 2);
-  assert.equal((sources.about.match(/route-title-lockup__rule/g) || []).length, 2);
-  assert.equal((sources.about.match(/route-centered-page__description route-intro-description/g) || []).length, 2);
-  assert.match(sources.about, /<LinkedInAction[\s\S]*?href=\{ABOUT_NARRATIVE_CONTACT\.linkedin\}/);
+  assert.match(sources.about, /function TitleField\(\{ field, opening = false, ending = false/);
+  assert.match(sources.about, /rollercoaster-title route-centered-page__title/);
+  assert.match(sources.about, /data-title-ink/);
+  assert.equal((sources.about.match(/route-title-lockup__rule/g) || []).length, 1);
+  assert.equal((sources.about.match(/route-centered-page__description route-intro-description/g) || []).length, 1);
+  assert.match(sources.about, /<LinkedInAction[\s\S]*?href=\{CONTACT\.linkedin\}/);
 
   assert.match(sources.home, /--home-hero-title-scale: var\(--route-bookend-title-scale\)/);
   assert.match(sources.home, /--home-hero-title-size-scale: 0\.9/);
@@ -66,11 +69,12 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
   assert.doesNotMatch(sources.playground, /playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.doesNotMatch(sources.playgroundStyles, /playground-title-lockup h1|playground-title-lockup__(?:rule|description)|data-playground-(?:title-rule|description)/);
   assert.match(sources.playgroundResponsive, /titleScale: 1/);
-  const finaleTitleRule = sources.aboutStyles.match(/about-narrative-spatial-copy\.is-finale[\s\S]*?route-bookend-title \{([^}]*)\}/)?.[1] || '';
-  assert.doesNotMatch(finaleTitleRule, /font-(?:family|size|weight)|letter-spacing|line-height/);
-  assert.doesNotMatch(sources.aboutStyles, /--about-bookend-description-max-width/);
-  assert.match(sources.aboutStyles, /--route-intro-description-max-width: 42ch/);
-  assert.match(sources.aboutStyles, /--route-intro-description-max-width: 32ch/);
+  assert.match(sources.aboutStyles, /font-family: var\(--abs-font-headline\)/);
+  assert.match(sources.aboutStyles, /line-height: calc\(var\(--route-title-line-height\)/);
+  assert.match(sources.aboutStyles, /letter-spacing: var\(--route-title-letter-spacing\)/);
+  assert.match(sources.aboutStyles, /var\(--route-bookend-title-size\)/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title-support \.route-intro-description \{[\s\S]*?var\(--route-description-font-size\)[\s\S]*?var\(--route-intro-description-line-height\)/);
+
 });
 
 test('Contact and About share one centred, compact two-action family', () => {
@@ -86,31 +90,11 @@ test('Contact and About share one centred, compact two-action family', () => {
   assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.match(sources.actionButtons, /\.abs-labelled-action > i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.doesNotMatch(sources.main, /\.contact-linkedin-action i \{/);
-  assert.match(
-    sources.aboutStyles,
-    /\.about-narrative-spatial-copy\.is-finale \.about-narrative-finale-content \{[\s\S]*?grid-template-rows: minmax\(0, 1fr\) auto;[\s\S]*?justify-items: center;[\s\S]*?transform: none/,
-  );
+  assert.match(sources.about, /rollercoaster-contact-actions contact-action-stack/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title-support \{[\s\S]*?align-items: center;[\s\S]*?overflow-y: auto;/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-contact-actions \{[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: center;[\s\S]*?max-width: 100%;/);
   assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
-  assert.doesNotMatch(sources.aboutStyles, /left: 50%;[\s\S]{0,120}width: 50%/);
-});
 
-test('Contact keeps its narrower copy and divider optically centred at every width', () => {
-  assert.match(
-    sources.contactStyles,
-    /--contact-route-description-width: min\(75%, 37\.8ch\)/,
-  );
-  assert.match(
-    sources.contactStyles,
-    /--contact-route-rule-optical-offset:[\s\S]*?clamp\(11px, calc\(20\.714px - 0\.9524vw\), 15px\)/,
-  );
-  assert.match(
-    sources.contactStyles,
-    /\.contact-route__inner > \.route-title-lockup__rule \{[\s\S]*?margin-top: var\(--contact-route-rule-optical-offset\)/,
-  );
-  assert.match(
-    sources.contactStyles,
-    /\.contact-route__inner > \.route-intro-description \{[\s\S]*?inline-size: var\(--contact-route-description-width\);[\s\S]*?max-inline-size: var\(--contact-route-description-width\)/,
-  );
 });
 
 test('every production bookend uses one cached paint endpoint and glyph-only travel contract', () => {
@@ -121,7 +105,10 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
   );
   assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
-  assert.match(sources.about, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.about, /rollercoasterTitleOpacity\(/);
+  assert.match(sources.about, /applyRollercoasterTitlePresentation\(record, opacity\)/);
+  assert.doesNotMatch(sources.about, /data-route-enter-variant="bookend-title"/,
+    'The flight title owns its stationary glyph lifecycle rather than entrance travel.');
   assert.match(sources.playground, /data-route-enter-variant="bookend-title"/);
 
   assert.match(sources.entranceSequence, /const bookendEndpointByElement = new WeakMap\(\)/);
@@ -190,15 +177,17 @@ test('About prewarms its code-split scene and cannot paint an unstaged opener', 
   assert.match(sources.aboutRoute, /prewarm: \(\{ stage \} = \{\}\) => \{/);
   assert.match(sources.aboutRoute, /stage === 'data'/);
   assert.match(sources.aboutRoute, /return loadAboutNarrativeExperience\(\)/);
-  assert.match(sources.about, /data-about-route-entry-rule/);
+  assert.match(sources.aboutRoute, /import\('\.\.\/about-rollercoaster\/AboutRollercoasterExperience\.jsx'\)/);
+  assert.doesNotMatch(sources.aboutRoute, /AboutComingSoon|if \(!import\.meta\.env\.DEV\)/);
+  assert.doesNotMatch(sources.aboutRoute, /searchParams|localStorage|sessionStorage/);
   assert.match(sources.entranceEvents, /routeContent\.dataset\.routeEntranceStarted = 'true'/);
   assert.match(
     sources.main,
     /\.about-narrative-lab:not\(\[data-route-entrance-started='true'\]\)[\s\S]*?visibility: hidden/,
   );
   assert.match(
-    sources.main,
-    /data-abs-transition-phase='route-loading'[\s\S]*?\.about-narrative-indicator-layer[\s\S]*?visibility: hidden/,
+    sources.aboutStyles,
+    /data-abs-transition-phase='route-loading'[\s\S]*?\.rollercoaster-indicator-layer[\s\S]*?visibility: hidden/,
   );
 });
 
@@ -242,4 +231,48 @@ test('successive entrances and restored reload history cannot repeat the same le
     assert.notDeepEqual(afterReload, second);
     assert.deepEqual([...afterReload].sort((a, b) => a - b), slots);
   }
+});
+
+test('every flight title centres its glyph ink in the full viewport without moving during visibility', () => {
+  assert.match(sources.aboutStyles, /\.rollercoaster-title-viewport \{[\s\S]*?position: sticky;[\s\S]*?top: 0;[\s\S]*?height: var\(--beat-viewport-height/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title-anchor \{[\s\S]*?inset: 0;[\s\S]*?display: grid;[\s\S]*?place-items: center;/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title \{[\s\S]*?left: var\(--title-ink-x, 0px\);[\s\S]*?top: var\(--title-ink-y, 0px\);[\s\S]*?margin: 0;[\s\S]*?transform: none;/);
+  assert.match(sources.about, /centreTitleInk\(field\.querySelector\('\[data-title-ink\]'\), glyphContext\)/);
+  assert.match(sources.about, /\(box\.width \/ 2\)[\s\S]*?\(\(minX \+ maxX\) \/ 2\)/);
+  assert.match(sources.about, /\(box\.height \/ 2\)[\s\S]*?\(\(minY \+ maxY\) \/ 2\)/);
+  const lifecycleStart = sources.about.indexOf('        titleRecords.forEach((record) => {');
+  const lifecycleEnd = sources.about.indexOf('        const progressValue', lifecycleStart);
+  assert(lifecycleStart >= 0 && lifecycleEnd > lifecycleStart, 'Inspect the actual cached title update loop.');
+  const visibleLifecycle = sources.about.slice(lifecycleStart, lifecycleEnd);
+  assert.match(visibleLifecycle, /rollercoasterTitleOpacity\(frame\.localProgress, record\.options\)/);
+  assert.match(visibleLifecycle, /applyRollercoasterTitlePresentation\(record, opacity\)/);
+  assert.doesNotMatch(visibleLifecycle, /transform|\.style\.(?:top|left)|title-ink/);
+});
+
+test('flight title presentation preserves semantic copy and only gates ending controls', () => {
+  // Frozen/sealed nodes make any whole-field hiding, inertness, positional
+  // style, or transform mutation fail in the actual shared implementation.
+  for (const ending of [false, true]) {
+    const node = Object.freeze({
+      style: Object.seal({ opacity: '0' }),
+      dataset: Object.seal({ titleActive: 'false' }),
+      inert: false,
+      ariaHidden: null,
+    });
+    const record = { node, options: { ending },
+      support: Object.seal({ tabIndex: -1 }), actions: Object.seal({ inert: true }) };
+    for (const opacity of [0, 0.25, 1, 0.25, 0]) {
+      applyRollercoasterTitlePresentation(record, opacity);
+      assert.equal(node.style.opacity, String(opacity));
+      assert.equal(node.dataset.titleActive, String(opacity > 0));
+      assert.equal(node.inert, false);
+      assert.equal(node.ariaHidden, null);
+      assert.equal(record.support.tabIndex, ending && opacity > 0 ? 0 : -1);
+      assert.equal(record.actions.inert, !(ending && opacity > 0));
+    }
+  }
+  const titleFieldRule = sources.aboutStyles.match(/\.rollercoaster-title-field \{([^}]*)\}/)?.[1];
+  assert(titleFieldRule, 'Inspect the real title field CSS.');
+  assert.doesNotMatch(titleFieldRule, /visibility:\s*hidden|display:\s*none/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-title-field\[data-title-active='true'\] \.rollercoaster-title,[\s\S]*?\.rollercoaster-title-field\[data-title-active='true'\] \.rollercoaster-title-support \{\s*pointer-events: auto;/);
 });

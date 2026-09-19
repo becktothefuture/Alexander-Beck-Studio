@@ -14,6 +14,20 @@ export const ABOUT_NARRATIVE_EDITOR_HEADER = 'about-narrative-v1';
 export const ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES = 1024 * 1024;
 export const ABOUT_NARRATIVE_MAX_TRANSITION_LOCAL = 16;
 
+// The accepted desktop composition defines the physical gate/city passages.
+// Blender authoring consumes this same contract through the editorial envelope;
+// responsive text may lengthen the complete ride but cannot move these gates.
+export const ABOUT_NARRATIVE_PHYSICAL_STAGE_BOUNDARIES = Object.freeze([
+  0,
+  0.018743684948641225,
+  0.23274465198606312,
+  0.25914721287413583,
+  0.538100254462987,
+  0.5611565543066849,
+  0.68,
+  1,
+]);
+
 export const ABOUT_NARRATIVE_SECTION_TYPES = Object.freeze(['spatial', 'editorial', 'finale']);
 export const ABOUT_NARRATIVE_TEXT_MOVEMENT_MODES = Object.freeze(['spatial', 'vertical']);
 export const ABOUT_NARRATIVE_TITLE_STYLES = Object.freeze(['standard', 'display']);
@@ -585,7 +599,6 @@ export const ABOUT_NARRATIVE_V2_PAGE_PARAMETER_GROUPS = Object.freeze([
       ], 'auto')),
       globalParameter('material', 'pointDensity', ['pointMaterial', 'pointDensity']),
       globalParameter('material', 'solidCoverage', ['pointMaterial', 'solidCoverage']),
-      globalParameter('material', 'bustCoverage', ['pointMaterial', 'bustCoverage']),
       globalParameter('material', 'surfelCoverage', ['pointMaterial', 'surfelCoverage'], {
         label: 'Atmospheric point coverage',
       }),

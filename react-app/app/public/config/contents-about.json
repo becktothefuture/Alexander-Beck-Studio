@@ -1,7 +1,7 @@
 {
   "schemaVersion": 7,
   "globals": {
-    "scrollSmoothing": 0.64,
+    "scrollSmoothing": 0,
     "readingWidthRem": 50,
     "editorialRevealThreshold": 0.18,
     "editorialMotion": {
@@ -13,8 +13,8 @@
       "bodySizeScale": 1,
       "smallBodySizeScale": 1,
       "eyebrowSizeScale": 1,
-      "mainTitleSizeScale": 1,
-      "inbetweenTitleSizeScale": 1,
+      "mainTitleSizeScale": 0.75,
+      "inbetweenTitleSizeScale": 0.75,
       "bodyLineHeightScale": 1,
       "smallBodyLineHeightScale": 1,
       "eyebrowLineHeightScale": 1,
@@ -44,8 +44,8 @@
       "opacity": 1,
       "pointSize": 6,
       "surfelCoverage": 0.7,
-      "backfaceRetention": 0,
-      "minPointSize": 1.15,
+      "backfaceRetention": 1,
+      "minPointSize": 0.25,
       "perspectiveResponse": 1,
       "edgeSoftness": 1.35,
       "atmosphereStrength": 1.2,
@@ -56,7 +56,7 @@
       "pointerResponseMs": 65,
       "pointerReturnMs": 720,
       "pointDensity": 1,
-      "solidCoverage": 1.5,
+      "solidCoverage": 1.2,
       "bustCoverage": 1.35
     },
     "swarmTurbulence": {
@@ -72,12 +72,12 @@
       "displayMaxWidthCh": 17,
       "standardViewportY": 50,
       "bookendViewportY": 50,
-      "durationScale": 1,
-      "startY": 30,
+      "durationScale": 1.45,
+      "startY": 18,
       "openerStartY": 0,
-      "endY": -24,
-      "readableStart": 0.18,
-      "readableEnd": 0.72,
+      "endY": -18,
+      "readableStart": 0.1,
+      "readableEnd": 0.86,
       "titleDrawDurationMs": 90,
       "titleColorCount": 5,
       "titleLineStaggerMs": 70,
@@ -86,15 +86,33 @@
       "titleShadowOpacity": 0,
       "titleShadowBlurPx": 0,
       "perspective": 1600,
-      "entryDepth": 280,
-      "exitDepth": 180,
+      "entryDepth": 100,
+      "exitDepth": 70,
       "maxBlur": 0,
       "exitFraction": 0.18
     },
     "storyPacing": {
-      "titleToProseGapScreens": 0.5,
+      "titleToProseGapScreens": 0.06,
       "readingSpaceScale": 1,
-      "passageScale": 1
+      "passageScale": 1,
+      "connectedFlight": {
+        "schema": "about-connected-flight-pacing/v1",
+        "physicalStageBoundaries": [
+          0,
+          0.0761904761904762,
+          0.2619047619047619,
+          0.38571428571428573,
+          0.638095238095238,
+          0.7571428571428571,
+          0.9095238095238095,
+          1
+        ],
+        "openingReadEndFraction": 0.0380952380952381,
+        "travelOnlyStageIds": [
+          "about.02",
+          "about.05"
+        ]
+      }
     },
     "sceneMotion": {
       "masterIntensity": 1,
@@ -172,38 +190,6 @@
           "velocityMode": "fluid",
           "trigger": {
             "momentId": "text-promise-main",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "move-ride-material-yard",
-          "atWU": 6.133333,
-          "position": [
-            -0.961133,
-            0.127497,
-            -9.724558
-          ],
-          "easing": "linear",
-          "velocityMode": "fluid",
-          "trigger": {
-            "momentId": "text-complexity-idea",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "move-ride-hoops",
-          "atWU": 8.066666,
-          "position": [
-            -6.21457,
-            0.706026,
-            -28.521881
-          ],
-          "easing": "linear",
-          "velocityMode": "fluid",
-          "trigger": {
-            "momentId": "text-complexity-conditions",
             "phase": "enter",
             "offsetWU": 0
           }
@@ -338,7 +324,7 @@
         },
         {
           "id": "move-ride-terminal",
-          "atWU": 33.5,
+          "atWU": 33.6,
           "position": [
             -0.00548,
             1.560461,
@@ -347,8 +333,8 @@
           "easing": "linear",
           "velocityMode": "fluid",
           "trigger": {
-            "momentId": "text-epilogue-thinking",
-            "phase": "exit",
+            "momentId": "text-epilogue-invitation",
+            "phase": "enter",
             "offsetWU": 0
           }
         }
@@ -365,36 +351,6 @@
           "easing": "linear",
           "trigger": {
             "momentId": "text-promise-main",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "look-ride-material-yard",
-          "atWU": 6.133333,
-          "rotation": [
-            1.795071,
-            15.126695,
-            1.030809
-          ],
-          "easing": "linear",
-          "trigger": {
-            "momentId": "text-complexity-idea",
-            "phase": "enter",
-            "offsetWU": 0
-          }
-        },
-        {
-          "id": "look-ride-hoops",
-          "atWU": 8.066666,
-          "rotation": [
-            4.07672,
-            13.010915,
-            5.045886
-          ],
-          "easing": "linear",
-          "trigger": {
-            "momentId": "text-complexity-conditions",
             "phase": "enter",
             "offsetWU": 0
           }
@@ -521,7 +477,7 @@
         },
         {
           "id": "look-ride-terminal",
-          "atWU": 33.5,
+          "atWU": 33.6,
           "rotation": [
             1.856959,
             0,
@@ -529,8 +485,8 @@
           ],
           "easing": "linear",
           "trigger": {
-            "momentId": "text-epilogue-thinking",
-            "phase": "exit",
+            "momentId": "text-epilogue-invitation",
+            "phase": "enter",
             "offsetWU": 0
           }
         }
@@ -701,9 +657,10 @@
           "endWU": 0.85,
           "publishable": true,
           "flow": {
-            "minScreens": 0.85,
+            "minScreens": 2.4,
             "gapAfter": "chapter",
-            "focusMode": "middle"
+            "focusMode": "middle",
+            "gapAfterScreens": 0
           },
           "presentation": {
             "layout": "opener"
@@ -713,49 +670,6 @@
           "titleStyle": "display",
           "text": "Hi, I’m Alex.",
           "description": "I’m a designer at heart. I work across product design, visual systems, motion, 3D and code."
-        },
-        {
-          "id": "text-complexity-idea",
-          "stageId": "about.00",
-          "kind": "title",
-          "startWU": 6.133333,
-          "focusWU": 6.533333,
-          "endWU": 6.933333,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.8,
-            "gapAfter": "tight",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "I think in pictures."
-        },
-        {
-          "id": "text-complexity-conditions",
-          "stageId": "about.00",
-          "kind": "title",
-          "startWU": 8.066666,
-          "focusWU": 8.466666,
-          "endWU": 8.866666,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.8,
-            "gapAfter": "none",
-            "gapAfterScreens": 0.9,
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "Design was my way in."
         },
         {
           "id": "text-background-unit",
@@ -840,7 +754,7 @@
         },
         {
           "id": "text-complexity-curiosity",
-          "stageId": "about.02",
+          "stageId": "about.01",
           "kind": "title",
           "startWU": 16.133333,
           "focusWU": 16.533333,
@@ -861,7 +775,7 @@
         },
         {
           "id": "text-complexity-listen",
-          "stageId": "about.02",
+          "stageId": "about.03",
           "kind": "title",
           "startWU": 18.066666,
           "focusWU": 18.466666,
@@ -870,7 +784,7 @@
           "flow": {
             "minScreens": 0.8,
             "gapAfter": "standard",
-            "gapAfterScreens": 0.8,
+            "gapAfterScreens": 0,
             "focusMode": "middle"
           },
           "presentation": {
@@ -879,7 +793,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "It rarely stays in one lane."
+          "text": "Across disciplines."
         },
         {
           "id": "text-discipline-labels",
@@ -1082,7 +996,7 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I connect the disciplines."
+          "text": "Bring the pieces together."
         },
         {
           "id": "text-life-momentum",
@@ -1095,7 +1009,7 @@
           "flow": {
             "minScreens": 0.95,
             "gapAfter": "passage",
-            "gapAfterScreens": 0.6,
+            "gapAfterScreens": 0,
             "focusMode": "middle"
           },
           "presentation": {
@@ -1104,11 +1018,11 @@
           "movement": "spatial",
           "preset": "travelling-title-v1",
           "titleStyle": "standard",
-          "text": "I make it real, early."
+          "text": "Make it real."
         },
         {
           "id": "text-life-character",
-          "stageId": "about.05",
+          "stageId": "about.04",
           "kind": "scroll-block",
           "startWU": 30.1,
           "focusWU": 30.68,
@@ -1117,7 +1031,8 @@
           "flow": {
             "minScreens": 1.8,
             "gapAfter": "arrival",
-            "focusMode": "reading-start"
+            "focusMode": "reading-start",
+            "gapAfterScreens": 0.1
           },
           "presentation": {
             "layout": "reading"
@@ -1146,48 +1061,6 @@
           }
         },
         {
-          "id": "text-epilogue-shaping",
-          "stageId": "about.06",
-          "kind": "title",
-          "startWU": 32,
-          "focusWU": 32.35,
-          "endWU": 32.7,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.7,
-            "gapAfter": "tight",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "If you’re shaping something…"
-        },
-        {
-          "id": "text-epilogue-thinking",
-          "stageId": "about.06",
-          "kind": "title",
-          "startWU": 32.8,
-          "focusWU": 33.15,
-          "endWU": 33.5,
-          "publishable": true,
-          "flow": {
-            "minScreens": 0.7,
-            "gapAfter": "standard",
-            "focusMode": "middle"
-          },
-          "presentation": {
-            "layout": "center"
-          },
-          "movement": "spatial",
-          "preset": "travelling-title-v1",
-          "titleStyle": "standard",
-          "text": "…that needs more than one way of thinking…"
-        },
-        {
           "id": "text-epilogue-invitation",
           "stageId": "about.06",
           "kind": "title",
@@ -1196,9 +1069,10 @@
           "endWU": 35,
           "publishable": true,
           "flow": {
-            "minScreens": 1.4,
+            "minScreens": 0.8,
             "gapAfter": "none",
-            "focusMode": "middle"
+            "focusMode": "middle",
+            "sceneLeadScreens": 0
           },
           "presentation": {
             "layout": "text-finale-cta"

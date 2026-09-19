@@ -1,5 +1,5 @@
 // A semantic model key survives changes to the packed model inventory.
-export const ABOUT_SURFEL_PROFILES = Object.freeze({ atmosphere: 0, solid: 1, bust: 2 });
+export const ABOUT_SURFEL_PROFILES = Object.freeze({ atmosphere: 0, solid: 1, bust: 2, scan: 3 });
 
 export function resolveAboutSurfelProfile(model) {
   const authored = ABOUT_SURFEL_PROFILES[model?.renderingProfile];

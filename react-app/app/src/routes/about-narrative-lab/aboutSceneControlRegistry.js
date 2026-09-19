@@ -61,7 +61,7 @@ export const ABOUT_SCENE_CONTROL_REGISTRY = Object.freeze({
     numberControl('exitDepth', 'Exit depth (+Z)', 0, 3000, 10, 'px', 'text-depth', 180),
   ]),
   storyPacing: Object.freeze([
-    numberControl('titleToProseGapScreens', 'Title-to-prose clearance', 0.5, 2, 0.05, '×H', '', 0.5),
+    numberControl('titleToProseGapScreens', 'Title-to-prose clearance', 0.02, 2, 0.01, '×H', '', 0.06),
     numberControl('readingSpaceScale', 'Reading space', 0.75, 1.5, 0.05, '×', '', 1),
     numberControl('passageScale', 'Passage distance', 0.5, 2, 0.05, '×', '', 1),
   ]),

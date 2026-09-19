@@ -1,9 +1,17 @@
 import { resolveAboutNarrativeJourneyMap } from './aboutNarrativeJourneyMap.js';
 import { ABOUT_BLENDER_STAGE_IDS } from './aboutBlenderStages.js';
+import { resolveAboutCircleField } from './aboutBlenderCircleField.js';
+import {
+  aboutInstanceVisibilityDiagnostics,
+  decodeAboutInstanceVisibility,
+  resolveAboutInstanceVisibilityWindows,
+} from './aboutBlenderInstanceVisibility.js';
 
 const SHA256_PATTERN = /^[a-f\d]{64}$/i;
 const FILE_KEYS = Object.freeze(['cameraTrack', 'surfels']);
 const EPSILON = 0.000001;
+export const ABOUT_BLENDER_MAX_MODELS = 7;
+export const ABOUT_CONNECTED_WORLD_TYPE = 'connected-circle-world-v1';
 
 function isSha256(value) {
   return typeof value === 'string' && SHA256_PATTERN.test(value);
@@ -77,7 +85,12 @@ function metadataDiagnostics(meta) {
       'The bundle must declare its authored-source SHA-256.',
     ));
   }
-  diagnostics.push(...stageRangeDiagnostics(meta));
+  const connectedWorld = meta?.source?.worldType === ABOUT_CONNECTED_WORLD_TYPE;
+  if (meta?.source?.worldType !== undefined && !connectedWorld) {
+    diagnostics.push(diagnostic('scene-world-type-unsupported', 'meta.source.worldType',
+      'The declared world type needs a supported explicit contract.'));
+  }
+  if (!connectedWorld) diagnostics.push(...stageRangeDiagnostics(meta));
   const cameraFog = meta?.source?.authoring?.cameraFog;
   if (meta?.source?.authoring && (!cameraFog || !Number.isFinite(cameraFog.startWU) || cameraFog.startWU < 0
     || !Number.isFinite(cameraFog.endWU) || cameraFog.endWU <= cameraFog.startWU
@@ -89,7 +102,30 @@ function metadataDiagnostics(meta) {
     ));
   }
   const models = Array.isArray(meta?.models) ? meta.models : [];
+  if (connectedWorld) {
+    if (!models.length || models.length > ABOUT_BLENDER_MAX_MODELS
+      || models.some((model, index) => model?.id !== index || typeof model.key !== 'string' || !model.key
+        || model.renderingProfile !== 'solid')
+      || new Set(models.map((model) => model?.key)).size !== models.length) {
+      diagnostics.push(diagnostic('scene-connected-models-invalid', 'meta.models',
+        `Connected worlds need 1–${ABOUT_BLENDER_MAX_MODELS} solid models with unique keys and contiguous IDs.`));
+    }
+    try {
+      if (!resolveAboutCircleField(meta)) throw new Error('A shared source circle field is required.');
+    } catch (error) {
+      diagnostics.push(diagnostic('scene-connected-circles-invalid', 'meta.source.circleField', error.message));
+    }
+    if (meta.instanceVisibility !== undefined || meta.files?.instanceVisibility !== undefined
+      || meta.terminalResponse !== undefined || meta.terminalStudy !== undefined) {
+      diagnostics.push(diagnostic('scene-connected-persistence-invalid', 'meta',
+        'Connected worlds cannot use chapter or terminal component visibility overrides.'));
+    }
+  }
   const groups = Array.isArray(meta?.motionGroups) ? meta.motionGroups : [];
+  if (connectedWorld && groups.some(group => group?.motion != null)) {
+    diagnostics.push(diagnostic('scene-connected-motion-invalid', 'meta.motionGroups',
+      'Connected scenery must retain its fixed source geometry while the camera travels.'));
+  }
   const validGroups = groups.length > 0 && groups.every((group) =>
     Number.isInteger(group?.id) && group.id >= 0 && group.id < 32
     && typeof group.key === 'string' && group.key.length > 0)
@@ -121,9 +157,9 @@ function metadataDiagnostics(meta) {
     ));
   }
   for (const [index, model] of models.entries()) {
-    if (model?.renderingProfile != null && !['atmosphere', 'solid', 'bust'].includes(model.renderingProfile)) {
+    if (model?.renderingProfile != null && !['atmosphere', 'solid', 'bust', 'scan'].includes(model.renderingProfile)) {
       diagnostics.push(diagnostic('scene-rendering-profile-invalid', `meta.models[${index}].renderingProfile`,
-        'The model must use an atmospheric, solid-surface, or bust rendering profile.'));
+        'The model must use an atmospheric, solid-surface, portrait, or direct-scan rendering profile.'));
     }
     if (model?.material == null) continue;
     const material = model.material;
@@ -133,7 +169,7 @@ function metadataDiagnostics(meta) {
     const ids = owned.map((group) => group.id);
     const first = Math.min(...ids);
     const last = Math.max(...ids);
-    if (index >= 7 || !validGroups || !Number.isFinite(material.manifestationSpreadScale)
+    if (index >= ABOUT_BLENDER_MAX_MODELS || !validGroups || !Number.isFinite(material.manifestationSpreadScale)
       || material.manifestationSpreadScale < 0.001 || material.manifestationSpreadScale > 1
       || !Number.isFinite(material.detailBiasScale)
       || material.detailBiasScale < 0.2 || material.detailBiasScale > 2
@@ -195,7 +231,7 @@ function metadataDiagnostics(meta) {
   return diagnostics;
 }
 
-function cameraDiagnostics(cameraTrack) {
+function cameraDiagnostics(cameraTrack, meta = null) {
   const diagnostics = [];
   if (cameraTrack?.schema !== 'about-camera-track' || cameraTrack?.version !== 5) {
     diagnostics.push(diagnostic(
@@ -205,11 +241,18 @@ function cameraDiagnostics(cameraTrack) {
     return diagnostics;
   }
   const projection = cameraTrack.projection;
+  const short = projection?.shortLandscape;
+  const invalidShortProjection = short != null && (
+    !Number.isFinite(short.maxViewportWidth) || short.maxViewportWidth <= 0
+    || !Number.isFinite(short.maxViewportHeight) || short.maxViewportHeight <= 0
+    || !Number.isFinite(short.verticalOffsetNdc) || Math.abs(short.verticalOffsetNdc) >= 1
+  );
   if (projection?.type !== 'perspective' || projection?.fovAxis !== 'horizontal'
     || !Number.isFinite(projection?.horizontalFov)
     || projection.horizontalFov <= 0 || projection.horizontalFov >= 180
     || !Number.isFinite(projection?.portraitMaxVerticalFov)
     || projection.portraitMaxVerticalFov <= 0 || projection.portraitMaxVerticalFov >= 180
+    || invalidShortProjection
     || !Number.isSafeInteger(cameraTrack.sampleCount) || cameraTrack.sampleCount < 2
     || !Array.isArray(cameraTrack.samples)
     || cameraTrack.samples.length !== cameraTrack.sampleCount
@@ -220,6 +263,11 @@ function cameraDiagnostics(cameraTrack) {
       'scene-camera-data-invalid', 'cameraTrack',
       'The camera must contain finite seven-component samples and a valid horizontal perspective projection.',
     ));
+  }
+  if (meta?.source?.worldType === ABOUT_CONNECTED_WORLD_TYPE
+    && cameraTrack.routeId !== 'sculptural-connected-world') {
+    diagnostics.push(diagnostic('scene-connected-camera-invalid', 'cameraTrack.routeId',
+      'The connected world needs its own sculptural-connected-world camera rail.'));
   }
   return diagnostics;
 }
@@ -254,14 +302,19 @@ export async function validateAboutBlenderSceneBundle({
   meta,
   cameraTrackBytes,
   surfelBytes,
+  instanceVisibilityBytes,
   digestSha256,
   expectedSourceHash,
 } = {}) {
-  const empty = { cameraTrack: null, sourceHash: null, files: null };
+  const empty = { cameraTrack: null, sourceHash: null, files: null, instanceVisibilityIds: null };
   if (meta == null) {
     return result('pending', [diagnostic('scene-input-pending', 'meta', 'Bundle metadata has not arrived.')], empty);
   }
-  const diagnostics = metadataDiagnostics(meta);
+  const diagnostics = [...metadataDiagnostics(meta), ...aboutInstanceVisibilityDiagnostics(meta)];
+  if (instanceVisibilityBytes != null && meta.files?.instanceVisibility === undefined) {
+    diagnostics.push(diagnostic('scene-instance-visibility-invalid', 'instanceVisibilityBytes',
+      'The bundle supplied an undeclared instance visibility file.'));
+  }
   if (expectedSourceHash !== undefined
     && (!isSha256(expectedSourceHash)
       || String(meta.source?.sha256).toLowerCase() !== expectedSourceHash.toLowerCase())) {
@@ -271,11 +324,12 @@ export async function validateAboutBlenderSceneBundle({
       { expected: expectedSourceHash, actual: meta.source?.sha256 },
     ));
   }
-  const inputs = { cameraTrack: cameraTrackBytes, surfels: surfelBytes };
+  const fileKeys = meta.files?.instanceVisibility === undefined ? FILE_KEYS : [...FILE_KEYS, 'instanceVisibility'];
+  const inputs = { cameraTrack: cameraTrackBytes, surfels: surfelBytes, instanceVisibility: instanceVisibilityBytes };
   const views = {};
   const files = {};
   const pending = [];
-  for (const key of FILE_KEYS) {
+  for (const key of fileKeys) {
     const record = meta.files?.[key];
     if (!record || typeof record.file !== 'string' || !record.file
       || /[/\\?#]/.test(record.file) || record.file === '.' || record.file === '..'
@@ -314,8 +368,8 @@ export async function validateAboutBlenderSceneBundle({
       'SHA-256 verification is unavailable. Use a secure context with Web Crypto or provide a trusted digest capability; integrity was not checked.',
     )], empty);
   }
-  // Exactly two digest operations, after byte-length checks. Never hash in RAF.
-  const hashes = await Promise.all(FILE_KEYS.map(async (key) => {
+  // One digest per declared runtime file, after length checks. Never hash in RAF.
+  const hashes = await Promise.all(fileKeys.map(async (key) => {
     try {
       const hash = await digest(views[key]);
       return { key, hash: typeof hash === 'string' ? hash.toLowerCase() : '' };
@@ -343,12 +397,20 @@ export async function validateAboutBlenderSceneBundle({
       'The verified camera bytes are not valid UTF-8 JSON.',
     )], empty);
   }
-  diagnostics.push(...cameraDiagnostics(cameraTrack));
+  diagnostics.push(...cameraDiagnostics(cameraTrack, meta));
+  diagnostics.push(...aboutInstanceVisibilityDiagnostics(meta, cameraTrack));
   if (diagnostics.length) return result('incompatible', diagnostics, empty);
+  let instanceVisibilityIds;
+  try {
+    instanceVisibilityIds = decodeAboutInstanceVisibility(meta, views.instanceVisibility, views.surfels);
+  } catch (error) {
+    return result('incompatible', [diagnostic('scene-instance-binding-invalid', 'instanceVisibilityBytes', error.message)], empty);
+  }
   return result('compatible', [], {
     cameraTrack,
     sourceHash,
     files: Object.freeze(files),
+    instanceVisibilityIds,
   });
 }
 
@@ -361,13 +423,15 @@ export async function validateAboutBlenderSceneBundle({
  * Bundle integrity is a separate prerequisite, not implied by this result.
  */
 export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap } = {}) {
-  const empty = { journeyMap: null, visibilityWindows: null };
+  const connectedWorld = meta?.source?.worldType === ABOUT_CONNECTED_WORLD_TYPE;
+  const empty = { journeyMap: null, visibilityWindows: null, instanceVisibilityWindows: null };
   const pending = Object.entries({ meta, cameraTrack, storyMap })
     .filter(([, value]) => value == null)
     .map(([key]) => diagnostic('scene-input-pending', key, `${key} has not arrived.`));
   const diagnostics = [
     ...(meta == null ? [] : metadataDiagnostics(meta)),
-    ...(cameraTrack == null ? [] : cameraDiagnostics(cameraTrack)),
+    ...(cameraTrack == null ? [] : cameraDiagnostics(cameraTrack, meta)),
+    ...(meta == null ? [] : aboutInstanceVisibilityDiagnostics(meta, cameraTrack ?? null)),
   ];
   if (storyMap != null && (storyMap.valid !== true || !Array.isArray(storyMap.anchors) || !storyMap.anchors.length
     || !Number.isFinite(storyMap.durationWU) || storyMap.durationWU <= 0
@@ -396,14 +460,29 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
     diagnostics.push(diagnostic('scene-models-invalid', 'meta.models', 'The scene must declare its semantic models.'));
   }
   if (meta != null && Array.isArray(meta.models)) {
+    if (meta.models.some((model) => model?.renderingProfile === 'scan')) {
+      const geography = meta.source?.geography;
+      if (geography?.geometry !== 'unreconstructed-survey-points'
+        || geography.constructedGeometry !== false
+        || !isSha256(geography.source?.sha256)
+        || !/^\d{4}-\d{2}-\d{2}$/.test(geography.source?.acquisitionDate || '')
+        || !geography.source?.licence || !geography.source?.attribution
+        || !Array.isArray(geography.originBNG) || geography.originBNG.length !== 3
+        || !geography.originBNG.every(Number.isFinite)
+        || !Number.isFinite(geography.blenderUnitsPerMetre)
+        || !(geography.blenderUnitsPerMetre > 0)) {
+        diagnostics.push(diagnostic('scene-scan-provenance-invalid', 'meta.source.geography',
+          'A direct scan needs its dated source, licence, hash and geographic transform.'));
+      }
+    }
     const actualKeys = meta.models.map((model) => model?.key);
     // The archived body collection is optional in older compatible exports;
     // narrative stages remain stable even when that model is not exported.
     const expectedKeys = actualKeys.includes('about.01')
       ? ABOUT_BLENDER_STAGE_IDS
       : ABOUT_BLENDER_STAGE_IDS.filter((key) => key !== 'about.01');
-    if (actualKeys.length !== expectedKeys.length
-      || actualKeys.some((key, index) => key !== expectedKeys[index])) {
+    if (!connectedWorld && (actualKeys.length !== expectedKeys.length
+      || actualKeys.some((key, index) => key !== expectedKeys[index]))) {
       diagnostics.push(diagnostic(
         'scene-model-sequence-invalid', 'meta.models',
         'The About world must declare its ordered semantic models, with the archived body model optional.',
@@ -421,8 +500,8 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
       'The camera and current story do not form one complete Blender-authored journey.',
     ), ...journeyMap.diagnostics);
   }
-  // Scenery follows semantic camera cues. Responsive editorial reflow may move
-  // story-world distances without changing the authored physical rail ranges.
+  // Resolve source intervals once after layout. Connected scenery remains
+  // present across the rail; legacy scenes retain their semantic cue bindings.
   const anchors = new Map(journeyMap.anchors.map((anchor) => [anchor.id, anchor.cameraStoryWU]));
   const storyAnchors = new Map(journeyMap.anchors.map((anchor) => [anchor.id, anchor.storyWU]));
   const modelKeys = new Set();
@@ -437,6 +516,62 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
       return null;
     }
     modelKeys.add(model.key);
+    if (connectedWorld && model.visibilitySpace !== 'camera-distance-wu') {
+      diagnostics.push(diagnostic('scene-connected-persistence-invalid', `${path}.visibilitySpace`,
+        'Connected scenery needs a physical source interval covering the complete rail.'));
+      return null;
+    }
+    if (model.visibilitySpace !== undefined) {
+      if (model.visibilitySpace !== 'camera-distance-wu') {
+        diagnostics.push(diagnostic(
+          'scene-visibility-space-invalid', `${path}.visibilitySpace`,
+          `${model.key} declares an unsupported visibility coordinate space.`,
+        ));
+        return null;
+      }
+      const cameraStartWU = model.visibilityStartWU;
+      const cameraEndWU = model.visibilityEndWU;
+      const cameraHandoffWU = model.visibilityHandoffWU;
+      if (![cameraStartWU, cameraEndWU, cameraHandoffWU].every(Number.isFinite)
+        || cameraStartWU < 0 || cameraStartWU >= journeyMap.pathLengthWU
+        || cameraEndWU <= cameraStartWU || cameraHandoffWU <= 0
+        || cameraHandoffWU * (cameraStartWU > 0 ? 2 : 1) > cameraEndWU - cameraStartWU + EPSILON) {
+        diagnostics.push(diagnostic(
+          'scene-visibility-distance-invalid', path,
+          `${model.key} needs finite physical bounds and a positive fade that permits full visibility.`,
+          { cameraStartWU, cameraEndWU, cameraHandoffWU },
+        ));
+        return null;
+      }
+      if (connectedWorld) {
+        // The source owns the persistent interval. Do not stretch a chapter
+        // window or substitute a runtime birth/removal rule for missing scenery.
+        if (cameraStartWU !== 0 || cameraEndWU - cameraHandoffWU < journeyMap.pathLengthWU - EPSILON) {
+          diagnostics.push(diagnostic('scene-connected-persistence-invalid', path,
+            `${model.key} must remain fully present from the start through the complete camera rail.`));
+          return null;
+        }
+      } else {
+        for (const [side, cue] of [['Start', model.visibilityStartCue], ['End', model.visibilityEndCue]]) {
+          if (typeof cue !== 'string' || !anchors.has(cue)) {
+            diagnostics.push(diagnostic('scene-visibility-cue-unresolved', `${path}.visibility${side}Cue`,
+              `${model.key} requires an existing semantic cue to identify its source intent.`));
+          }
+        }
+      }
+      // Convert once at layout resolution. The renderer keeps its scene clock;
+      // the same source distance and fade stay fixed through editorial reflow.
+      const toSceneWU = distanceWU => distanceWU / journeyMap.pathLengthWU * journeyMap.durationWU;
+      return Object.freeze({
+        modelId: model.id, modelKey: model.key,
+        startWU: toSceneWU(cameraStartWU),
+        endWU: toSceneWU(cameraEndWU),
+        handoffWU: toSceneWU(cameraHandoffWU),
+        startCue: model.visibilityStartCue, endCue: model.visibilityEndCue,
+        visibilitySpace: model.visibilitySpace, cameraStartWU, cameraEndWU, cameraHandoffWU,
+        source: connectedWorld ? 'blender-authored-persistent-world' : 'blender-authored-camera-distance',
+      });
+    }
     const startCue = model.visibilityStartCue;
     const startOffsetWU = Number(model.visibilityStartOffsetWU);
     const endCue = model.visibilityEndCue;
@@ -497,5 +632,8 @@ export function resolveAboutBlenderSceneContract({ meta, cameraTrack, storyMap }
     });
   });
   if (diagnostics.length) return result('incompatible', diagnostics, empty);
-  return result('compatible', [], { journeyMap, visibilityWindows: Object.freeze(windows) });
+  return result('compatible', [], {
+    journeyMap, visibilityWindows: Object.freeze(windows),
+    instanceVisibilityWindows: resolveAboutInstanceVisibilityWindows(meta, journeyMap),
+  });
 }

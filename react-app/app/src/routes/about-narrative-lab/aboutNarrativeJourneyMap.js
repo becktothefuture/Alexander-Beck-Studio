@@ -10,21 +10,18 @@ const journeyRole = (id, stageId, stageProgress, cueName) => Object.freeze({
 
 const JOURNEY_ROLES = Object.freeze([
   journeyRole('opening', 'about.00', 0, 'ABS_STAGE_00'),
-  journeyRole('inciting-question', 'about.01', 0, 'ABS_STAGE_01'),
-  journeyRole('portal-entry', 'about.02', 0, 'ABS_STAGE_02'),
-  journeyRole('portal-exit', 'about.02', 1, 'ABS_ROUND_PORTALS_EXIT'),
-  journeyRole('portal-release', 'about.02', 1, 'ABS_ROUND_PORTALS_CLEAR'),
-  journeyRole('personal-origin', 'about.03', 0, 'ABS_PERSONAL_ORIGIN'),
-  journeyRole('earned-thesis', 'about.03', 0.33, 'ABS_TERRAIN_THESIS'),
-  journeyRole('landscape-release', 'about.03', 0.9, 'ABS_CANYON_CLEAR'),
-  journeyRole('gate-entry', 'about.04', 0, 'ABS_ROLL_GATE_START'),
-  journeyRole('method', 'about.05', 0, 'ABS_METHOD_RELEASE'),
-  journeyRole('lattice-approach', 'about.05', 0.5, 'ABS_LATTICE_APPROACH'),
-  journeyRole('gate-exit', 'about.05', 1, 'ABS_ROLL_GATE_END'),
-  journeyRole('gate-release', 'about.05', 1, 'ABS_GATE_PASSAGE_CLEAR'),
-  journeyRole('split-lattice-entry', 'about.06', 0, 'ABS_SPLIT_LATTICE_ENTRY'),
-  journeyRole('finale-deceleration', 'about.06', 0.3, 'ABS_FINALE_DECEL'),
-  journeyRole('invitation', 'about.06', 0.7, 'ABS_INVITATION'),
+  journeyRole('finding-form', 'about.01', 0, 'ABS_FINDING_FORM'),
+  journeyRole('crossing-entry', 'about.02', 0, 'ABS_CROSSING_ENTRY'),
+  journeyRole('crossing-exit', 'about.02', 1, 'ABS_CROSSING_EXIT'),
+  journeyRole('wider-field', 'about.03', 0, 'ABS_WIDER_FIELD'),
+  journeyRole('panorama', 'about.03', 0.65, 'ABS_PANORAMA'),
+  journeyRole('assembly-entry', 'about.04', 0, 'ABS_ASSEMBLY_ENTRY'),
+  journeyRole('method', 'about.05', 0, 'ABS_METHOD'),
+  journeyRole('river-reveal', 'about.06', 0, 'ABS_RIVER_REVEAL'),
+  journeyRole('cathedral-axis', 'about.06', 0.2, 'ABS_CATHEDRAL_AXIS'),
+  journeyRole('cathedral-pass', 'about.06', 0.5, 'ABS_CATHEDRAL_PASS'),
+  journeyRole('finale-deceleration', 'about.06', 0.7, 'ABS_FINALE_DECEL'),
+  journeyRole('invitation', 'about.06', 0.78, 'ABS_INVITATION'),
   journeyRole('camera-lock', 'about.06', 1, 'ABS_CAMERA_LOCK'),
   journeyRole('terminal-hold', 'about.06', 1, 'ABS_TERMINAL_FRAME'),
 ]);
@@ -48,8 +45,18 @@ function stageTiming(storyLayout, stageId, stageProgress) {
 
 export function compileAboutNarrativeJourneyMap(storyLayout) {
   const diagnostics = [];
+  const riverStartWU = stageTiming(storyLayout, 'about.06', 0);
+  const invitationStartWU = storyLayout?.fields?.find((field) => field.id === 'text-epilogue-invitation')?.startWU;
+  // Approach cues belong to the text-free lead. Enlarging the invitation must
+  // extend its reading/settling interval, never move the approach after it.
+  const approachProgress = { 'cathedral-axis': 0.27, 'cathedral-pass': 0.67, 'finale-deceleration': 0.93 };
   const anchors = JOURNEY_ROLES.map((role) => {
-    const storyWU = stageTiming(storyLayout, role.stageId, role.stageProgress);
+    const storyWU = role.id === 'invitation'
+      ? invitationStartWU
+        ?? stageTiming(storyLayout, role.stageId, role.stageProgress)
+      : approachProgress[role.id] != null && Number.isFinite(invitationStartWU)
+        ? riverStartWU + (invitationStartWU - riverStartWU) * approachProgress[role.id]
+      : stageTiming(storyLayout, role.stageId, role.stageProgress);
     if (!Number.isFinite(storyWU)) {
       diagnostics.push({
         level: 'warning',
@@ -91,7 +98,7 @@ export function compileAboutNarrativeJourneyMap(storyLayout) {
     anchors,
     signature,
     finaleStartWU: byId.get('finale-deceleration')?.storyWU ?? 0,
-    runwayStartWU: byId.get('split-lattice-entry')?.storyWU ?? 0,
+    runwayStartWU: byId.get('river-reveal')?.storyWU ?? 0,
     lockStoryWU: Number(storyLayout?.durationWU) || Number.POSITIVE_INFINITY,
     invitationStoryWU: byId.get('invitation')?.storyWU ?? Number.POSITIVE_INFINITY,
     durationWU: Number(storyLayout?.durationWU) || 0,
@@ -105,6 +112,8 @@ function resolveCue(cameraTrack, cueName) {
 
 function cameraPathDistances(cameraTrack) {
   const samples = cameraTrack?.samples || [];
+  if (samples.length < 2 || samples.some(sample => !Array.isArray(sample)
+    || !sample.slice(0, 3).every(Number.isFinite) || sample.length < 3)) return [];
   const distances = [0];
   for (let index = 1; index < samples.length; index += 1) {
     const from = samples[index - 1];
@@ -117,6 +126,7 @@ function cameraPathDistances(cameraTrack) {
 }
 
 function distanceAtProgress(distances, progress) {
+  if (distances.length < 2) return 0;
   const cursor = clamp01(progress) * (distances.length - 1);
   const index = Math.floor(cursor);
   const next = Math.min(index + 1, distances.length - 1);
@@ -124,7 +134,8 @@ function distanceAtProgress(distances, progress) {
 }
 
 function progressAtDistance(distances, distance) {
-  if (distance <= 0) return 0;
+  if (distances.length < 2 || distance <= 0) return 0;
+  if (distance >= distances.at(-1)) return 1;
   let low = 0;
   let high = distances.length - 1;
   // Upper bound also skips duplicate stationary samples without dividing by 0.
@@ -137,53 +148,6 @@ function progressAtDistance(distances, distance) {
   const length = distances[low] - distances[from];
   const mix = length > 0 ? (distance - distances[from]) / length : 0;
   return (from + mix) / Math.max(1, distances.length - 1);
-}
-
-// Monotone cubic Hermite rates preserve every semantic Blender cue while
-// joining passage and reading speeds continuously. These are compiled once;
-// sampling is stateless and reversing scroll retraces the same physical rail.
-function writeCameraTravelRates(anchors) {
-  const slopes = anchors.slice(1).map((anchor, index) => (
-    (anchor.cameraDistanceWU - anchors[index].cameraDistanceWU)
-      / Math.max(EPSILON, anchor.storyWU - anchors[index].storyWU)
-  ));
-  anchors.forEach((anchor, index) => {
-    if (index === 0 || index === anchors.length - 1) {
-      anchor.cameraRate = 0;
-      return;
-    }
-    const before = slopes[index - 1];
-    const after = slopes[index];
-    if (before <= EPSILON || after <= EPSILON) {
-      anchor.cameraRate = 0;
-      return;
-    }
-    const beforeSpan = anchor.storyWU - anchors[index - 1].storyWU;
-    const afterSpan = anchors[index + 1].storyWU - anchor.storyWU;
-    const beforeWeight = 2 * afterSpan + beforeSpan;
-    const afterWeight = afterSpan + 2 * beforeSpan;
-    anchor.cameraRate = (beforeWeight + afterWeight)
-      / (beforeWeight / before + afterWeight / after);
-  });
-}
-
-function cameraDistanceAtStoryWU(anchors, storyWU) {
-  if (!anchors.length) return 0;
-  if (storyWU <= anchors[0].storyWU) return anchors[0].cameraDistanceWU;
-  const last = anchors.at(-1);
-  if (storyWU >= last.storyWU) return last.cameraDistanceWU;
-  let toIndex = 1;
-  while (toIndex < anchors.length && storyWU > anchors[toIndex].storyWU) toIndex += 1;
-  const from = anchors[toIndex - 1];
-  const to = anchors[toIndex];
-  const spanWU = Math.max(EPSILON, to.storyWU - from.storyWU);
-  const progress = clamp01((storyWU - from.storyWU) / spanWU);
-  const squared = progress * progress;
-  const cubed = squared * progress;
-  return (2 * cubed - 3 * squared + 1) * from.cameraDistanceWU
-    + (cubed - 2 * squared + progress) * spanWU * from.cameraRate
-    + (-2 * cubed + 3 * squared) * to.cameraDistanceWU
-    + (cubed - squared) * spanWU * to.cameraRate;
 }
 
 export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
@@ -218,7 +182,7 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
       stageId: anchor.stageId,
       stageProgress: anchor.stageProgress,
       storyWU: anchor.storyWU,
-      journeyProgress: Number.isFinite(journeyProgress) ? clean(journeyProgress) : null,
+      journeyProgress,
       cueName: anchor.cueName,
     };
   });
@@ -237,9 +201,9 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
   });
   const authoredLockProgress = anchors.find((anchor) => anchor.id === 'camera-lock')?.journeyProgress;
   const lockProgress = Number.isFinite(authoredLockProgress) ? authoredLockProgress : 1;
-  // Exported sample time and editorial cues are not physical distance. Measure
-  // the existing rail once so semantic story anchors can target exact Blender
-  // positions, including the export's accelerated sections and stationary tail.
+  // Exported frame time is not physical distance. Measure the complete rail
+  // once, excluding the stationary tail, so equal scroll increments traverse
+  // equal distances regardless of title, reading or finale cue placement.
   const pathDistances = cameraPathDistances(cameraTrack);
   const pathLengthWU = distanceAtProgress(pathDistances, lockProgress);
   if (!(pathLengthWU > EPSILON) || !Number.isFinite(pathLengthWU)) {
@@ -252,52 +216,32 @@ export function resolveAboutNarrativeJourneyMap(storyMap, cameraTrack) {
     anchor.cameraDistanceWU = Number.isFinite(anchor.journeyProgress)
       ? Math.min(pathLengthWU, distanceAtProgress(pathDistances, anchor.journeyProgress))
       : 0;
-    // Preserve this compatibility field for visibility consumers. It now uses
-    // the semantic story clock, so camera and scene visibility cross each
-    // Blender cue at the same content-paced point.
-    anchor.cameraStoryWU = anchor.storyWU;
+    // Scenery follows the physical camera. Editorial timing remains measured
+    // from the content and cannot accelerate or slow down the flight.
+    anchor.cameraStoryWU = pathLengthWU > EPSILON
+      ? anchor.cameraDistanceWU / pathLengthWU * storyMap.durationWU
+      : 0;
   }
   const interpolationAnchors = [];
   for (const anchor of anchors) {
     const previous = interpolationAnchors.at(-1);
-    if (previous && Math.abs(previous.storyWU - anchor.storyWU) <= EPSILON) {
-      if (Math.abs(previous.cameraDistanceWU - anchor.cameraDistanceWU) > EPSILON) {
-        diagnostics.push({
-          level: 'error',
-          code: 'journey-coincident-anchor-drift',
-          path: `cameraTrack.journeyCues.${anchor.cueName}`,
-          message: `Coincident journey cue “${anchor.id}” resolves to a different camera position.`,
-        });
-      }
-      continue;
-    }
+    // These are physical checkpoints, not an editorial speed curve. Two text
+    // boundaries may coincide without changing the camera's distance mapping.
+    if (previous && Math.abs(previous.cameraDistanceWU - anchor.cameraDistanceWU) <= EPSILON) continue;
     interpolationAnchors.push(anchor);
   }
-  writeCameraTravelRates(interpolationAnchors);
-  const reducedReadingCuts = [
-    ['portal-exit', 'personal-origin'], ['gate-entry', 'method'],
-  ].flatMap(([startId, endId]) => {
-    const start = anchors.find((anchor) => anchor.id === startId);
-    const end = anchors.find((anchor) => anchor.id === endId);
-    return start && end && end.cameraStoryWU > start.cameraStoryWU ? [{
-      startWU: start.cameraStoryWU, endWU: end.cameraStoryWU,
-      cameraDistanceWU: end.cameraDistanceWU,
-    }] : [];
-  });
-
   return deepFreeze({
     valid: !diagnostics.some((item) => item.level === 'error'),
     diagnostics,
     anchors,
     interpolationAnchors,
-    signature: `${storyMap.signature}:${cameraTrack?.source?.sha256 || cameraTrack?.sampleCount || ''}:semantic-monotone-v4`,
-    finaleStartWU: storyMap.finaleStartWU,
-    runwayStartWU: storyMap.runwayStartWU,
+    signature: `${storyMap.signature}:${cameraTrack?.source?.sha256 || cameraTrack?.sampleCount || ''}:constant-distance-v6`,
+    finaleStartWU: anchors.find(anchor => anchor.id === 'finale-deceleration')?.cameraStoryWU ?? 0,
+    runwayStartWU: anchors.find(anchor => anchor.id === 'river-reveal')?.cameraStoryWU ?? 0,
     lockStoryWU: storyMap.durationWU,
     lockProgress,
     pathDistances,
     pathLengthWU,
-    reducedReadingCuts,
     invitationStoryWU: storyMap.invitationStoryWU,
     durationWU: storyMap.durationWU,
   });
@@ -335,10 +279,7 @@ export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reduced
 
   output.valid = true;
   output.sceneStoryWU = Math.min(time, map.durationWU);
-  output.cameraDistanceWU = cameraDistanceAtStoryWU(
-    map.interpolationAnchors || map.anchors,
-    output.sceneStoryWU,
-  );
+  output.cameraDistanceWU = clamp01(time / map.durationWU) * map.pathLengthWU;
   if (reducedMotion) {
     // Accessible playback cuts between existing authored poses. It never flies
     // continuously, and it still resolves to the same final world and camera.
@@ -348,17 +289,6 @@ export function sampleAboutNarrativeJourneyMapInto(map, storyWU, target, reduced
       if (anchor.cameraStoryWU > time + EPSILON) break;
       output.cameraDistanceWU = anchor.cameraDistanceWU;
       output.sceneStoryWU = anchor.cameraStoryWU;
-    }
-    // Settle directly into the authored reading pose after each passage. The
-    // exit pose can still be turned toward the last portal/gate; holding it
-    // throughout prose leaves a clipped world beside the text. These cuts use
-    // existing camera cues, preserve one scene clock, and never affect normal
-    // scroll travel or introduce continuous movement under Reduced Motion.
-    for (const cut of map.reducedReadingCuts || []) {
-      if (output.sceneStoryWU >= cut.startWU - EPSILON && output.sceneStoryWU < cut.endWU) {
-        output.cameraDistanceWU = cut.cameraDistanceWU;
-        output.sceneStoryWU = cut.endWU;
-      }
     }
   }
   const sceneTime = output.sceneStoryWU;

@@ -6,11 +6,15 @@ import {
   writeAboutNarrativeCameraLookAtQuaternion,
 } from './aboutNarrativeCameraRig.js';
 import { ABOUT_BLENDER_STAGE_IDS } from './aboutBlenderStages.js';
+import { ABOUT_NARRATIVE_PHYSICAL_STAGE_BOUNDARIES } from './aboutNarrativeDefinitions.js';
 import {
   compileAboutNarrativeLongRideTrack,
   sampleAboutNarrativeLongRidePositionInto,
 } from './aboutNarrativeLongRideTrack.js';
-import { ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND } from './aboutNarrativeTrackSchema.js';
+import {
+  ABOUT_NARRATIVE_CAREER_SEQUENCE_KIND,
+  isAboutNarrativeConnectedFlightPacing,
+} from './aboutNarrativeTrackSchema.js';
 
 const FLOW_EPSILON = 0.000001;
 const DEFAULT_PROFILE_ID = 'desktop';
@@ -20,6 +24,10 @@ const DEFAULT_PROFILE_ID = 'desktop';
 export const ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS = Object.freeze({
   desktop: 0.24, tablet: 0.22, mobile: 0.2,
 });
+
+// The scanned river is the last part of the same physical journey. Its lead
+// is visible travel through the city, followed by the compact invitation.
+export const ABOUT_NARRATIVE_RIVER_TRAVEL_SHARE = 1 - ABOUT_NARRATIVE_PHYSICAL_STAGE_BOUNDARIES.at(-2);
 
 export const ABOUT_NARRATIVE_STORY_GAP_PRESETS = Object.freeze({
   none: Object.freeze({ desktop: 0, tablet: 0, mobile: 0 }),
@@ -134,6 +142,7 @@ function getFlow(field) {
   if (!flow || typeof flow !== 'object') return null;
   return {
     minScreens: clamp(Number(flow.minScreens) || 0.6, 0.2, 12),
+    sceneLeadScreens: clamp(Number(flow.sceneLeadScreens) || 0, 0, 6),
     gapAfter: ABOUT_NARRATIVE_STORY_GAP_PRESETS[flow.gapAfter]
       ? flow.gapAfter
       : 'tight',
@@ -214,6 +223,140 @@ function compileLegacyLayout(fields, profileId) {
   });
 }
 
+function finishStagedLayout({
+  profileId, profile, editorialLeadScreens, diagnostics, compiledFields, sections,
+  durationWU, pacingMode = 'legacy',
+}) {
+  const gaps = compiledFields.slice(0, -1).map((field, index) => {
+    const next = compiledFields[index + 1];
+    return {
+      id: `gap-${field.id}-to-${next.id}`,
+      fromFieldId: field.id,
+      toFieldId: next.id,
+      preset: 'none',
+      startWU: field.endWU,
+      endWU: next.startWU,
+      durationWU: cleanWU(Math.max(0, next.startWU - field.endWU)),
+    };
+  });
+  const signature = JSON.stringify({
+    profileId,
+    sections: sections.map((section) => [
+      section.id,
+      section.startWU,
+      section.endWU,
+      section.sceneStartWU,
+      section.sceneEndWU,
+      section.fieldIds,
+    ]),
+    fields: compiledFields.map((field) => [field.id, field.startWU, field.focusWU, field.endWU]),
+  });
+  return Object.freeze({
+    mode: 'content-flow',
+    sectionMode: 'content-paced',
+    pacingMode,
+    profileId,
+    valid: !diagnostics.some((item) => item.level === 'error'),
+    diagnostics: Object.freeze(diagnostics.map(Object.freeze)),
+    fields: Object.freeze(compiledFields.map(Object.freeze)),
+    gaps: Object.freeze(gaps.map(Object.freeze)),
+    sections: Object.freeze(sections.map((section) => Object.freeze({
+      ...section,
+      fieldIds: Object.freeze(section.fieldIds),
+    }))),
+    durationWU,
+    contentExtentWU: cleanWU(durationWU + 1),
+    editorialLeadWU: cleanWU(editorialLeadScreens),
+    editorialTailWU: cleanWU(profile.editorialTailScreens),
+    riverStartWU: sections.at(-1).sceneStartWU,
+    riverTravelShare: cleanWU((durationWU - sections.at(-1).sceneStartWU) / durationWU),
+    signature,
+  });
+}
+
+function compileConnectedFlightLayout({
+  connectedFlight, fieldsByStage, measurementsById, durationById, gapAfterById,
+  scrollToStory, profileId, profile, editorialLeadScreens, diagnostics,
+}) {
+  const boundaries = connectedFlight.physicalStageBoundaries;
+  const stageDemands = ABOUT_BLENDER_STAGE_IDS.map((stageId, index) => {
+    const stageFields = fieldsByStage.get(stageId);
+    // Native prose can enter before its logical marker. Reserve that approach
+    // inside the calm region even when it follows a short opening statement.
+    let entryWU = 0;
+    let contentWU = 0;
+    stageFields.forEach((field) => {
+      contentWU += measurementsById.get(field.id).flow.sceneLeadScreens * scrollToStory;
+      const firstPixelWU = contentWU
+        + (field.kind === 'scroll-block' ? (editorialLeadScreens - 1) * scrollToStory : 0);
+      entryWU = Math.max(entryWU, -firstPixelWU);
+      contentWU += durationById.get(field.id) + gapAfterById.get(field.id);
+    });
+    const readingEndFraction = index === 0
+      ? connectedFlight.openingReadEndFraction : boundaries[index + 1];
+    return { entryWU, contentWU, share: readingEndFraction - boundaries[index] };
+  });
+  const durationWU = cleanWU(Math.max(FLOW_EPSILON, ...stageDemands.map(
+    ({ entryWU, contentWU, share }) => (entryWU + contentWU) / share,
+  )));
+  const compiledFields = [];
+  const sections = ABOUT_BLENDER_STAGE_IDS.map((stageId, index) => {
+    const stageFields = fieldsByStage.get(stageId);
+    const demand = stageDemands[index];
+    const startWU = cleanWU(boundaries[index] * durationWU);
+    const endWU = cleanWU(boundaries[index + 1] * durationWU);
+    const readingEndWU = index === 0
+      ? cleanWU(connectedFlight.openingReadEndFraction * durationWU) : endWU;
+    const extraWU = Math.max(0, readingEndWU - startWU - demand.entryWU - demand.contentWU);
+    const readingDurationWU = stageFields.reduce((sum, field) => sum
+      + (field.kind === 'scroll-block' ? durationById.get(field.id) : 0), 0);
+    // Extra space belongs to native reading blocks. Bookends and intermediate
+    // statements retain their existing lifecycle; the invitation ends the rail.
+    let cursorWU = startWU + demand.entryWU
+      + (index === ABOUT_BLENDER_STAGE_IDS.length - 1 ? extraWU : 0);
+    stageFields.forEach((field) => {
+      const flowData = measurementsById.get(field.id);
+      const fieldDurationWU = cleanWU(durationById.get(field.id)
+        + (field.kind === 'scroll-block' && readingDurationWU > 0
+          ? extraWU * durationById.get(field.id) / readingDurationWU : 0));
+      const fieldStartWU = cleanWU(cursorWU + flowData.flow.sceneLeadScreens * scrollToStory);
+      const fieldEndWU = cleanWU(fieldStartWU + fieldDurationWU);
+      compiledFields.push({
+        id: field.id,
+        stageId,
+        stageIndex: index,
+        kind: field.kind,
+        startWU: fieldStartWU,
+        focusWU: getFocusWU(field, flowData.flow, fieldStartWU, fieldDurationWU),
+        endWU: fieldEndWU,
+        durationWU: fieldDurationWU,
+        naturalScreens: cleanWU(flowData.naturalScreens),
+        minScreens: flowData.flow.minScreens,
+        gapAfter: 'none',
+        measured: flowData.measured,
+      });
+      cursorWU = fieldEndWU + gapAfterById.get(field.id);
+    });
+    return {
+      id: stageId,
+      index,
+      startWU,
+      endWU,
+      durationWU: cleanWU(endWU - startWU),
+      sceneStartWU: startWU,
+      sceneEndWU: endWU,
+      fieldIds: stageFields.map((field) => field.id),
+      travelOnly: connectedFlight.travelOnlyStageIds.includes(stageId),
+      readingAllocationWU: cleanWU(readingDurationWU > 0 ? extraWU : 0),
+      approachAllocationWU: cleanWU(readingDurationWU > 0 ? demand.entryWU : extraWU),
+    };
+  });
+  return finishStagedLayout({
+    profileId, profile, editorialLeadScreens, diagnostics, compiledFields, sections,
+    durationWU, pacingMode: 'connected-flight',
+  });
+}
+
 function compileStagedLayout(document, fields, {
   profileId,
   profile,
@@ -222,10 +365,26 @@ function compileStagedLayout(document, fields, {
   diagnostics,
 }) {
   const stageIds = ABOUT_BLENDER_STAGE_IDS;
+  const authoredConnectedFlight = document.globals?.storyPacing?.connectedFlight;
+  const connectedFlight = isAboutNarrativeConnectedFlightPacing(authoredConnectedFlight)
+    ? authoredConnectedFlight : null;
+  if (authoredConnectedFlight != null && !connectedFlight) {
+    diagnostics.push({
+      level: 'error', code: 'connected-flight-pacing', path: 'globals.storyPacing.connectedFlight',
+      message: 'Connected flight requires a valid physical pacing contract.',
+    });
+  }
   const fieldsByStage = new Map(stageIds.map((stageId) => [stageId, []]));
   fields.forEach((field) => fieldsByStage.get(field.stageId)?.push(field));
   stageIds.forEach((stageId) => {
-    if (!fieldsByStage.get(stageId).length) {
+    const travelOnly = connectedFlight?.travelOnlyStageIds.includes(stageId);
+    if (travelOnly && fieldsByStage.get(stageId).length) {
+      diagnostics.push({
+        level: 'error', code: 'story-travel-has-text', path: `tracks.text.fields.${stageId}`,
+        message: `Travel-only stage “${stageId}” cannot contain Text fields.`,
+      });
+    }
+    if (!travelOnly && !fieldsByStage.get(stageId).length) {
       diagnostics.push({
         level: 'error',
         code: 'story-stage-empty',
@@ -243,10 +402,7 @@ function compileStagedLayout(document, fields, {
   const titleMotionScale = Math.max(0.1, Number(document.globals?.textMotion?.durationScale) || 1);
   const titleTravelScreens = (ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS[profileId]
     ?? ABOUT_NARRATIVE_TITLE_TRAVEL_SCREENS.desktop) * titleMotionScale;
-  // Editorial content is positioned below its timeline origin by the reveal
-  // threshold. Account for its first visible pixel, not only its start marker.
-  const readingClearanceScreens = Math.max(0, Number(pacing?.titleToProseGapScreens ?? 0.5))
-    + Math.max(0, 1 - editorialLeadScreens);
+  const readingClearanceScreens = Math.max(0, Number(pacing?.titleToProseGapScreens ?? 0.06));
   const measurementsById = new Map();
   const durationById = new Map();
   fields.forEach((field) => {
@@ -263,10 +419,16 @@ function compileStagedLayout(document, fields, {
       ? cleanWU(Math.max(readingFitWU, Math.max(flow.minScreens, readingFitWU) * readingSpaceScale))
       : isStatement
         ? cleanWU(titleTravelScreens * scrollToStory)
-        : cleanWU(Math.max(flow.minScreens, naturalScreens * physicalToStory));
+        : cleanWU(Math.max(
+          flow.minScreens * (field.preset === 'finale-v1' ? scrollToStory : 1),
+          naturalScreens * physicalToStory,
+        ));
     measurementsById.set(field.id, {
       flow,
       naturalScreens,
+      protectedScreens: measurement?.protectedHeightPx != null
+        ? Math.max(0, Number(measurement.protectedHeightPx)) / Math.max(1, Number(measurement.viewportHeightPx))
+        : naturalScreens + (field.kind === 'title' ? profile.titleContentPaddingScreens : 0),
       measured: measuredScreens != null,
     });
     durationById.set(field.id, durationWU);
@@ -281,7 +443,9 @@ function compileStagedLayout(document, fields, {
   const occupiedTotalWU = [...durationById.values()].reduce((sum, value) => sum + value, 0);
   const readingFields = fields.filter((field) => field.kind === 'scroll-block');
   const readingTotalWU = readingFields.reduce((sum, field) => sum + durationById.get(field.id), 0);
-  const extraReadingWU = Math.max(0, requestedTotalWU * readingSpaceScale - occupiedTotalWU);
+  const completelyMeasured = fields.every((field) => measurementsById.get(field.id).measured);
+  const extraReadingWU = completelyMeasured ? 0
+    : Math.max(0, requestedTotalWU * readingSpaceScale - occupiedTotalWU);
   readingFields.forEach((field) => {
     const durationWU = durationById.get(field.id);
     durationById.set(field.id, cleanWU(durationWU
@@ -289,23 +453,54 @@ function compileStagedLayout(document, fields, {
   });
   const gapAfterById = new Map(fields.map((field, fieldIndex) => {
     const next = fields[fieldIndex + 1];
+    // Physical stages already supply cross-region travel. Only handoffs inside
+    // one calm region consume that region's reading allocation.
+    if (connectedFlight && next?.stageId !== field.stageId) return [field.id, 0];
     const authoredGapScreens = measurementsById.get(field.id).flow.gapAfterScreens;
     const leadsToReading = field.kind === 'title' && next?.kind === 'scroll-block';
+    const viewportY = Number(document.globals?.textMotion?.[
+      field.preset === 'opener-v1' ? 'bookendViewportY' : 'standardViewportY'
+    ] ?? 50) / 100;
+    // Prose may enter the lower viewport while the title finishes its fixed
+    // hold. At the exact title exit, its first pixel still sits below the
+    // complete measured lockup plus the authored clearance. Earlier pixels
+    // are farther down, so this never asks the title to move out of their way.
+    const requiredGapScreens = Math.max(0, viewportY
+      + measurementsById.get(field.id).protectedScreens * 0.5
+      + readingClearanceScreens - editorialLeadScreens);
     const gapScreens = leadsToReading
-      ? Math.max(readingClearanceScreens, Math.max(authoredGapScreens, readingClearanceScreens)
+      ? Math.max(requiredGapScreens, Math.max(authoredGapScreens, requiredGapScreens)
         * (['about.02', 'about.04'].includes(field.stageId) ? passageScale : 1))
       : authoredGapScreens;
     return [field.id, next ? cleanWU(gapScreens * scrollToStory) : 0];
   }));
+  if (connectedFlight) {
+    return compileConnectedFlightLayout({
+      connectedFlight, fieldsByStage, measurementsById, durationById, gapAfterById,
+      scrollToStory, profileId, profile, editorialLeadScreens, diagnostics,
+    });
+  }
   const compiledFields = [];
   let stageCursorWU = 0;
   const sections = stageIds.map((stageId, stageIndex) => {
     const stageFields = fieldsByStage.get(stageId);
     const startWU = cleanWU(stageCursorWU);
     let cursorWU = startWU;
-    stageFields.forEach((field) => {
+    const authoredStageDurationWU = stageFields.reduce((sum, field) => sum
+      + durationById.get(field.id)
+      + measurementsById.get(field.id).flow.sceneLeadScreens * scrollToStory
+      + gapAfterById.get(field.id), 0);
+    const riverLeadWU = stageIndex === stageIds.length - 1
+      ? Math.max(0, startWU * ABOUT_NARRATIVE_RIVER_TRAVEL_SHARE
+        / (1 - ABOUT_NARRATIVE_RIVER_TRAVEL_SHARE) - authoredStageDurationWU)
+      : 0;
+    stageFields.forEach((field, fieldIndex) => {
       const durationWU = durationById.get(field.id);
       const flowData = measurementsById.get(field.id);
+      // A scene can have its own uninterrupted approach before the invitation.
+      // This space is authored in viewport lengths and survives text reflow.
+      cursorWU = cleanWU(cursorWU + flowData.flow.sceneLeadScreens * scrollToStory
+        + (fieldIndex === 0 ? riverLeadWU : 0));
       const fieldStartWU = cleanWU(cursorWU);
       const fieldEndWU = cleanWU(fieldStartWU + durationWU);
       compiledFields.push({
@@ -350,48 +545,56 @@ function compileStagedLayout(document, fields, {
     section.sceneEndWU = sections[index + 1]?.sceneStartWU ?? section.endWU;
   });
 
-  const gaps = compiledFields.slice(0, -1).map((field, index) => {
-    const next = compiledFields[index + 1];
-    return {
-      id: `gap-${field.id}-to-${next.id}`,
-      fromFieldId: field.id,
-      toFieldId: next.id,
-      preset: 'none',
-      startWU: field.endWU,
-      endWU: next.startWU,
-      durationWU: cleanWU(Math.max(0, next.startWU - field.endWU)),
-    };
+  // A physical gate cannot follow text reflow. Fit the complete layout to the
+  // longest required stage, then use one constant rate for the whole journey.
+  // The scene/section offset preserves the native lower-viewport prose entry.
+  const physicalBoundaries = ABOUT_NARRATIVE_PHYSICAL_STAGE_BOUNDARIES;
+  const fittedDurationWU = cleanWU(Math.max(...sections.map((section, index) => (
+    (section.sceneEndWU - section.sceneStartWU)
+      / (physicalBoundaries[index + 1] - physicalBoundaries[index])
+  ))));
+  const sectionOffsets = sections.map(section => section.sceneStartWU - section.startWU);
+  sections.forEach((section, index) => {
+    const originalStartWU = section.startWU;
+    const originalSceneDurationWU = section.sceneEndWU - section.sceneStartWU;
+    const targetSceneStartWU = cleanWU(physicalBoundaries[index] * fittedDurationWU);
+    const targetSceneEndWU = cleanWU(physicalBoundaries[index + 1] * fittedDurationWU);
+    const startWU = cleanWU(targetSceneStartWU - sectionOffsets[index]);
+    const endWU = index === sections.length - 1 ? fittedDurationWU
+      : cleanWU(targetSceneEndWU - sectionOffsets[index + 1]);
+    const extraWU = Math.max(0, targetSceneEndWU - targetSceneStartWU - originalSceneDurationWU);
+    const stageFields = compiledFields.filter(field => field.stageId === section.id);
+    const readingDurationWU = stageFields.reduce((sum, field) => (
+      sum + (field.kind === 'scroll-block' ? field.durationWU : 0)
+    ), 0);
+    // Split added reading room across the existing native blocks. Title pairs
+    // keep their exact common lifecycle, with their extra approach/exit space
+    // outside both title spans. The invitation keeps its compact endpoint.
+    let cumulativeExtraWU = section.id === 'about.06' ? extraWU
+      : ['about.02', 'about.04'].includes(section.id) ? extraWU * 0.5 : 0;
+    for (const field of stageFields) {
+      const addedDurationWU = field.kind === 'scroll-block' && readingDurationWU > 0
+        ? extraWU * field.durationWU / readingDurationWU : 0;
+      field.startWU = cleanWU(startWU + field.startWU - originalStartWU + cumulativeExtraWU);
+      field.durationWU = cleanWU(field.durationWU + addedDurationWU);
+      field.endWU = cleanWU(field.startWU + field.durationWU);
+      field.focusWU = getFocusWU(field, measurementsById.get(field.id).flow,
+        field.startWU, field.durationWU);
+      cumulativeExtraWU += addedDurationWU;
+    }
+    section.startWU = startWU;
+    section.endWU = endWU;
+    section.durationWU = cleanWU(endWU - startWU);
+    section.sceneStartWU = targetSceneStartWU;
+    section.sceneEndWU = targetSceneEndWU;
+    section.readingAllocationWU = cleanWU(readingDurationWU > 0 ? extraWU : 0);
+    section.approachAllocationWU = cleanWU(readingDurationWU > 0 ? 0 : extraWU);
   });
-  const durationWU = cleanWU(stageCursorWU);
-  const signature = JSON.stringify({
-    profileId,
-    sections: sections.map((section) => [
-      section.id,
-      section.startWU,
-      section.endWU,
-      section.sceneStartWU,
-      section.sceneEndWU,
-      section.fieldIds,
-    ]),
-    fields: compiledFields.map((field) => [field.id, field.startWU, field.focusWU, field.endWU]),
-  });
-  return Object.freeze({
-    mode: 'content-flow',
-    sectionMode: 'content-paced',
-    profileId,
-    valid: !diagnostics.some((item) => item.level === 'error'),
-    diagnostics: Object.freeze(diagnostics.map(Object.freeze)),
-    fields: Object.freeze(compiledFields.map(Object.freeze)),
-    gaps: Object.freeze(gaps.map(Object.freeze)),
-    sections: Object.freeze(sections.map((section) => Object.freeze({
-      ...section,
-      fieldIds: Object.freeze(section.fieldIds),
-    }))),
-    durationWU,
-    contentExtentWU: cleanWU(durationWU + 1),
-    editorialLeadWU: cleanWU(editorialLeadScreens),
-    editorialTailWU: cleanWU(profile.editorialTailScreens),
-    signature,
+  stageCursorWU = fittedDurationWU;
+
+  return finishStagedLayout({
+    profileId, profile, editorialLeadScreens, diagnostics, compiledFields, sections,
+    durationWU: cleanWU(stageCursorWU),
   });
 }
 

@@ -7,38 +7,26 @@ export const ABOUT_NARRATIVE_REVEAL_ROW_TOLERANCE_PX = 1;
 export const ABOUT_NARRATIVE_REVEAL_ROW_ADVANCE_CAP = 1.25;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MIN_PX = 4;
 export const ABOUT_NARRATIVE_REVEAL_SOFTNESS_MAX_PX = 18;
-export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.2;
+export const ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY = 0.88;
 export const ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY = 1;
 export const ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD = 0.12;
 export const ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y = 0.32;
 export const ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y = 0.12;
 
 export function getAboutNarrativeEditorialFocusOpacity(
-  lineProgress,
+  _lineProgress,
   viewportY,
   reducedMotion = false,
-  restingOpacity = ABOUT_NARRATIVE_EDITORIAL_UPCOMING_OPACITY,
 ) {
-  // Cross each edge of the reading band in one step. Sampling position alone
-  // keeps entry and exit identical when scrolling back through the paragraph.
-  const entryThreshold = reducedMotion ? ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD : 0.5;
-  const exitThreshold = reducedMotion
-    ? ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y
-    : (ABOUT_NARRATIVE_EDITORIAL_EXIT_START_VIEWPORT_Y + ABOUT_NARRATIVE_EDITORIAL_EXIT_END_VIEWPORT_Y) / 2;
-  // Resolve exact boundary ties consistently despite floating-point scroll math.
-  const focused = Number(lineProgress) + 1e-7 >= entryThreshold
-    && Number(viewportY) + 1e-7 >= exitThreshold;
-  return focused ? ABOUT_NARRATIVE_EDITORIAL_ACTIVE_OPACITY : clamp01(restingOpacity);
+  if (reducedMotion) return 1;
+  // One restrained paragraph entrance. Once visible, copy remains readable all
+  // the way to the viewport edge; there is no internal dimmed reading band.
+  const t = clamp01((1 - Number(viewportY)) / 0.12);
+  return 0.88 + 0.12 * t * t * (3 - 2 * t);
 }
 
-export function getAboutNarrativeEditorialPhraseOpacity(
-  lineProgress,
-  reducedMotion = false,
-) {
-  if (Number(lineProgress) < ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD) return 0;
-  return reducedMotion || Number(lineProgress) >= ABOUT_NARRATIVE_EDITORIAL_PHRASE_THRESHOLD
-    ? 1
-    : 0;
+export function getAboutNarrativeEditorialPhraseOpacity() {
+  return 1;
 }
 
 export function getAboutNarrativeReadingOrderRevealMetrics(items = []) {

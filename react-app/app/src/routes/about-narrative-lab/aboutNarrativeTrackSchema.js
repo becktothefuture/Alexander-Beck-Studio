@@ -49,7 +49,7 @@ import {
   ABOUT_NARRATIVE_DISCIPLINE_POSITION_BOUNDS,
   getAboutNarrativeDisciplineMinimumSeparation,
 } from './aboutNarrativeDisciplinePositions.js';
-import { isAboutBlenderStageId } from './aboutBlenderStages.js';
+import { ABOUT_BLENDER_STAGE_IDS, isAboutBlenderStageId } from './aboutBlenderStages.js';
 
 export const ABOUT_NARRATIVE_TRACK_SCHEMA_VERSION = 5;
 export const ABOUT_NARRATIVE_TRACK_LAYOUT_PROFILE_IDS = Object.freeze(['desktop', 'tablet', 'mobile']);
@@ -168,6 +168,7 @@ const PRESENTATION_KEYS = new Set(['layout', 'viewportY']);
 const VIEWPORT_Y_KEYS = new Set(['desktop', 'mobile']);
 const STORY_FLOW_KEYS = new Set([
   'minScreens',
+  'sceneLeadScreens',
   'gapAfter',
   'gapAfterScreens',
   'focusMode',
@@ -221,6 +222,28 @@ function cleanWU(value) {
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+const CONNECTED_FLIGHT_PACING_KEYS = new Set([
+  'schema', 'physicalStageBoundaries', 'openingReadEndFraction', 'travelOnlyStageIds',
+]);
+
+export function isAboutNarrativeConnectedFlightPacing(value) {
+  if (!isObject(value)
+    || value.schema !== 'about-connected-flight-pacing/v1'
+    || Object.keys(value).some((key) => !CONNECTED_FLIGHT_PACING_KEYS.has(key))) return false;
+  const boundaries = value.physicalStageBoundaries;
+  if (!Array.isArray(boundaries) || boundaries.length !== ABOUT_BLENDER_STAGE_IDS.length + 1
+    || boundaries[0] !== 0 || boundaries.at(-1) !== 1
+    || boundaries.some((item, index) => !Number.isFinite(item)
+      || (index > 0 && item <= boundaries[index - 1]))) return false;
+  if (!Number.isFinite(value.openingReadEndFraction)
+    || value.openingReadEndFraction <= 0
+    || value.openingReadEndFraction > boundaries[1]) return false;
+  const travelIds = value.travelOnlyStageIds;
+  return Array.isArray(travelIds) && new Set(travelIds).size === travelIds.length
+    && travelIds.every((stageId) => isAboutBlenderStageId(stageId)
+      && stageId !== ABOUT_BLENDER_STAGE_IDS[0] && stageId !== ABOUT_BLENDER_STAGE_IDS.at(-1));
 }
 
 function diagnostic(diagnostics, code, path, message, level = 'error') {
@@ -332,8 +355,15 @@ function validateGlobals(globals, diagnostics, schemaVersion) {
   for (const owner of ['storyPacing', 'sceneMotion']) {
     if (globals[owner] == null) continue;
     const controls = ABOUT_SCENE_CONTROL_REGISTRY[owner];
-    unknownKeys(diagnostics, globals[owner], new Set(controls.map((control) => control.id)), `globals.${owner}`);
+    const allowed = new Set(controls.map((control) => control.id));
+    if (owner === 'storyPacing') allowed.add('connectedFlight');
+    unknownKeys(diagnostics, globals[owner], allowed, `globals.${owner}`);
     controls.forEach((control) => validateControlValue(globals[owner]?.[control.id], control, diagnostics, `globals.${owner}.${control.id}`));
+  }
+  if (globals.storyPacing?.connectedFlight != null
+    && !isAboutNarrativeConnectedFlightPacing(globals.storyPacing.connectedFlight)) {
+    diagnostic(diagnostics, 'connected-flight-pacing', 'globals.storyPacing.connectedFlight',
+      'Connected flight requires ordered physical boundaries from zero to one, an opening reading limit, and unique interior travel-only stages.');
   }
   for (const owner of ['pointMaterial', 'textMotion']) {
     ABOUT_SCENE_CONTROL_REGISTRY[owner].forEach((control) => {
@@ -1170,6 +1200,13 @@ function validateTextField(field, index, seen, diagnostics, durationWU, schemaVe
             `${path}.flow.gapAfterScreens`,
             'A field-specific gap must stay between 0 and 3 viewport heights.',
           );
+        }
+      }
+      if (field.flow.sceneLeadScreens != null) {
+        const sceneLeadScreens = Number(field.flow.sceneLeadScreens);
+        if (!Number.isFinite(sceneLeadScreens) || sceneLeadScreens < 0 || sceneLeadScreens > 6) {
+          diagnostic(diagnostics, 'story-flow-scene-lead', `${path}.flow.sceneLeadScreens`,
+            'The scene approach must stay between 0 and 6 viewport heights.');
         }
       }
     }

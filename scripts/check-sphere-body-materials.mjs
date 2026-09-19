@@ -83,7 +83,7 @@ const primaryRouteSemanticCoverage = Object.freeze({
   ]),
   About: Object.freeze([
     {
-      path: 'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+      path: 'react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js',
       renderer: 'webgl',
       imports: ['getSimulationBodyMaterialAtlas', 'subscribeSimulationBodyMaterial'],
     },
@@ -321,35 +321,45 @@ function assertPrimaryRouteSemanticContracts() {
   );
 
   assertRequiredSourcePatterns(
-    'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+    'react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js',
     [
       {
         label: 'About must draw Blender surfels as instanced circle quads',
-        pattern: /new\s+THREE\.InstancedBufferGeometry\s*\(\s*\)[\s\S]{0,900}?setAttribute\(\s*['"]iRadius['"]/,
+        pattern: /new\s+THREE\.InstancedBufferGeometry\s*\(\s*\)[\s\S]{0,900}?setAttribute\(\s*['"]iPosition['"]/,
       },
       {
-        label: 'About circle coverage must use a bounded whole-surfel reveal scale',
-        pattern: /radiusPx\s*=\s*separatedSurfelRadius\([\s\S]{0,800}?radiusPx\s*\*=\s*revealProgress\s*\*\s*clamp\(uEntranceScale,\s*0\.0,\s*1\.0\)/,
+        label: 'About circles use one Home-linked radius in camera space',
+        pattern: /center\.xy \+= position\.xy \* uRadius[\s\S]*?resolveRollercoasterBodySize\(appearance,[\s\S]*?uniforms\.uRadius\.value = size\.radiusWU/,
       },
       {
-        label: 'Atmospheric circles retain their spacing cap; solid profiles have bounded overlapping coverage',
-        pattern: /float\s+separatedSurfelRadius\([\s\S]{0,2200}?return\s+min\(maximumRadiusPx,\s*min\(preferredRadiusPx,\s*spacingCapPx\)\)/,
+        label: 'About discards outside the complete circle and samples the shared atlas',
+        pattern: /dot\(vCircle, vCircle\) > 1\.0[\s\S]*?texture2D\(uAtlas/,
       },
       {
-        label: 'About must discard only fragments outside the complete circle',
-        pattern: /float\s+circleRadius\s*=\s*length\(vCircle\);[\s\S]{0,120}?if\s*\(circleRadius\s*>\s*1\.0\)\s*discard/,
+        label: 'About circle edges retain the shared anti-aliased atlas alpha',
+        pattern: /gl_FragColor = vec4\(applyRollercoasterTone\(material\.rgb, uToneDarkMix\), material\.a \* corridorCoverage\(visibility\)\)/,
       },
       {
-        label: 'About circle edges must remain softly anti-aliased',
-        pattern: /edgeWidth\s*=\s*max\(fwidth\(circleRadius\)[\s\S]{0,120}?smoothstep\(1\.0\s*-\s*edgeWidth,\s*1\.0,\s*circleRadius\)/,
-      },
-      {
-        label: 'About fog must admit whole opaque palette bodies with edge-only multisample coverage',
-        pattern: /revealProgress\s*=\s*smoothstep\([\s\S]*?revealProgress\s*<=\s*0\.0[\s\S]*?texture2D\(uMaterialAtlas,\s*atlasUv\)[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*1\.0\)[\s\S]*?alpha\s*=\s*edge\s*\*\s*materialAlpha[\s\S]*?gl_FragColor\s*=\s*vec4\(shaded,\s*alpha\)/,
+        label: 'About uses one camera-depth corridor and discards hidden circles before depth writes',
+        pattern: /float visibility = corridorVisibility\(vDepth\);[\s\S]{0,180}?if \(visibility <= 0\.0\) discard/,
       },
       {
         label: 'About surfels must keep multisample depth ownership in both passes',
         pattern: /transparent:\s*false,[\s\S]{0,120}?alphaToCoverage:\s*true,[\s\S]{0,120}?depthTest:\s*true,[\s\S]{0,120}?depthWrite:\s*true,[\s\S]{0,120}?blending:\s*THREE\.NoBlending/,
+      },
+    ],
+  );
+
+  assertRequiredSourcePatterns(
+    'react-app/app/src/routes/about-rollercoaster/rollercoasterVisibility.js',
+    [
+      {
+        label: 'About size must resolve through the shared Home sizing helper',
+        pattern: /const radiusPx = resolveHomeSimulationBodyRadius\(appearance\.homeSimulationBodyRadiusPx/,
+      },
+      {
+        label: 'All About surfaces share the near fade multiplied by the far fade',
+        pattern: /return smoothstep\(uVisibility\.x, uVisibility\.y, depth\)\s*\* \(1\.0 - smoothstep\(uVisibility\.z, uVisibility\.w, depth\)\)/,
       },
     ],
   );

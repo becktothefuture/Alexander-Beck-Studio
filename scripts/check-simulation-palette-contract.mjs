@@ -317,7 +317,7 @@ const productionConsumers = [
   'react-app/app/src/routes/repel-room/repelRoomRenderer.js',
   'react-app/app/src/routes/spatial-scan/SpatialScanPointCloud.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
-  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+  'react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
 ];
@@ -364,7 +364,7 @@ const requiredRegistrations = [
   'react-app/app/src/routes/flock-of-birds/FlockOfBirdsDemo.jsx',
   'react-app/app/src/routes/repel-room/RepelRoomDemo.jsx',
   'react-app/app/src/legacy/modules/portfolio/portfolio-speed-field.js',
-  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+  'react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js',
   'react-app/app/src/routes/contact/contactRippleRenderer.js',
   'react-app/app/src/legacy/modules/rendering/atmosphere/simulation-atmosphere.js',
 ];
@@ -379,16 +379,19 @@ requiredRegistrations.forEach((relativePath) => {
 
 const aboutSource = readFileSync(resolve(
   repoRoot,
-  'react-app/app/src/routes/about-narrative-lab/aboutBlenderPointScene.js',
+  'react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js',
 ), 'utf8');
-assert.match(aboutSource, /#include <tonemapping_fragment>[\s\S]*#include <colorspace_fragment>/);
+assert.match(aboutSource, /#include <colorspace_fragment>/);
+assert.match(aboutSource, /renderer\.toneMapping\s*=\s*THREE\.NoToneMapping/);
 assert.match(aboutSource, /renderer\.outputColorSpace\s*=\s*THREE\.SRGBColorSpace/);
-assert.match(aboutSource, /subscribeSimulationPalette\s*\(\s*\(snapshot\)\s*=>\s*\{[\s\S]{0,240}?syncPalette\(uniforms, snapshot\)/);
-assert.doesNotMatch(
-  aboutSource.match(/subscribeSimulationPalette\s*\(\s*\(snapshot\)\s*=>\s*\{[\s\S]*?\n  \}\);/)?.[0] || '',
-  /needsUpdate|setAttribute|createSurfelGeometry/,
-  'About palette commits must update uniforms without rewriting surfel buffers.',
-);
+assert.match(aboutSource, /subscribeSimulationPalette\(appearanceChanged\)/);
+assert.match(aboutSource, /subscribeSimulationBodyMaterial\(appearanceChanged\)/);
+assert.match(aboutSource, /function appearanceChanged\(snapshot\)[\s\S]*?syncMaterial\(snapshot\?\.colors \? snapshot : undefined\)/);
+const aboutMaterialSync = aboutSource.slice(aboutSource.indexOf('  function syncMaterial('), aboutSource.indexOf('  function resize('));
+assert.match(aboutMaterialSync, /getSimulationBodyMaterialAtlas\(colors, \{ theme: nextTheme \}\)/);
+assert.match(aboutMaterialSync, /uniforms\.uAtlas\.value = nextTexture/);
+assert.doesNotMatch(aboutMaterialSync, /setAttribute|createGeometry|geometry\./,
+  'About palette commits must update material uniforms without rewriting world geometry.');
 
 const contactSource = readFileSync(resolve(
   repoRoot,
@@ -432,7 +435,7 @@ for (const relativePath of [
 const cssPaletteFallbackFiles = [
   'react-app/app/public/css/main.css',
   'react-app/app/public/css/panel.css',
-  'react-app/app/src/routes/about-narrative-lab/about-narrative-lab.css',
+  'react-app/app/src/routes/about-rollercoaster/about-rollercoaster.css',
   'react-app/app/src/routes/loader-playground/loader-playground.css',
   'react-app/app/src/routes/loader-playground/loaderPlaygroundControls.js',
   'react-app/app/src/routes/route-ball-transition-lab/RouteBallTransitionLab.jsx',

@@ -5,6 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { aboutRollercoasterPreviewPlugin } from '../../scripts/lib/about-rollercoaster-preview.mjs';
 import {
   createDevAdminPlugin,
   shouldSuppressAboutNarrativeEditorReload,
@@ -96,6 +97,7 @@ export default defineConfig(({ mode }) => {
   plugins: [
     react(),
     absContentVirtualPlugin(),
+    aboutRollercoasterPreviewPlugin(resolve(__dirname, '../..')),
     ...(process.env.ABS_PUBLIC_DEV === '1'
       ? [publicDevGuardPlugin()]
       : [createDevAdminPlugin({ publicConfigDir })]),

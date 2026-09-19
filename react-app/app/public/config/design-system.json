@@ -414,7 +414,11 @@
     "tactileNavLowerShadowStrength": 0,
     "tactileNavLowerShadowSoftnessPx": 6,
     "tactileNavPressDurationMs": 60,
-    "tactileNavReleaseDurationMs": 185
+    "tactileNavReleaseDurationMs": 185,
+    "aboutVisibilityNearHiddenWU": 2,
+    "aboutVisibilityNearClearWU": 7,
+    "aboutVisibilityFarClearWU": 8,
+    "aboutVisibilityFarHiddenWU": 24
   },
   "shell": {
     "theme": {

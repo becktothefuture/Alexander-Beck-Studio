@@ -6,7 +6,6 @@ import {
 } from '../../lib/smooth-scroll.js';
 import {
   createEntranceSequence,
-  measureBookendTitleGlyphLines,
   prepareBookendTitleGlyphs,
 } from '../../lib/motion/entrance-sequence.js';
 import { createScrollSoundController } from '../../legacy/modules/audio/scroll-sound-controller.js';
@@ -29,6 +28,10 @@ import {
   getAboutNarrativeReadingOrderRevealMetrics,
 } from './aboutNarrativeReveal.js';
 import { writeAboutNarrativeReadingStage } from './aboutNarrativeReadingStage.js';
+import {
+  collectAboutNarrativeFontRequests,
+  createAboutNarrativeFontReadiness,
+} from './aboutNarrativeFontReadiness.js';
 import {
   advanceAboutNarrativeFinaleOrbitWU,
   getAboutNarrativeFinaleOverflowPixels,
@@ -208,8 +211,22 @@ export function useAboutNarrativeTimeline({
     const setScrollFromStoryWU = (nextStoryWU) => {
       const durationWU = planRef.current?.durationWU;
       if (!(durationWU > 0)) return;
+      const maximumScrollTop = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+      if (!lenis) {
+        const currentScrollTop = scrollport.scrollTop;
+        const currentStoryWU = maximumScrollTop > 0
+          ? clamp01(currentScrollTop / maximumScrollTop) * durationWU : 0;
+        const targetStoryWU = Math.min(durationWU, Math.max(0, nextStoryWU));
+        // Preserve an already represented native position. Its inverse float
+        // can sit just below an integer and WebKit can floor away one pixel.
+        if (currentScrollTop >= 0 && currentScrollTop <= maximumScrollTop
+          && currentStoryWU === targetStoryWU) {
+          lastScrollStoryWU = currentStoryWU;
+          return;
+        }
+      }
       const nextScrollTop = clamp01(nextStoryWU / durationWU)
-        * Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
+        * maximumScrollTop;
       if (lenis) lenis.scrollTo(nextScrollTop, { immediate: true, force: true });
       else scrollport.scrollTop = nextScrollTop;
       lastScrollStoryWU = clamp01(nextStoryWU / durationWU) * durationWU;
@@ -347,6 +364,9 @@ export function useAboutNarrativeTimeline({
         wrapper: scrollport,
         content,
         smoothing,
+        // Enlarged finale copy scrolls within its sky region before the
+        // surrounding journey consumes the remaining wheel gesture.
+        allowNestedScroll: true,
         // Coarse-pointer devices never reach this branch. Keep touch
         // interpolation disabled for fine-pointer hybrid devices as well.
         syncTouch: false,
@@ -380,15 +400,18 @@ export function useAboutNarrativeTimeline({
         if (!fieldId) return;
         const title = node.querySelector('h1, h2');
         const isTitle = node.closest('.about-narrative-render-span--title');
+        const opening = isTitle && node.querySelector('.about-narrative-opening-copy');
         const titleStyle = isTitle && title ? getComputedStyle(title) : null;
         // Measure the untransformed text lines. Projected bounds vary with
         // scroll depth; the protective ink padding is not reading content.
-        const measuredHeightPx = titleStyle
+        const measuredHeightPx = opening ? opening.offsetHeight : titleStyle
           ? Math.max(0, title.offsetHeight - Number.parseFloat(titleStyle.paddingTop) - Number.parseFloat(titleStyle.paddingBottom))
           : Math.max(node.scrollHeight, node.getBoundingClientRect().height);
         const previous = pressure[fieldId]?.measuredHeightPx || 0;
         pressure[fieldId] = {
           measuredHeightPx: Math.max(previous, measuredHeightPx),
+          protectedHeightPx: opening ? opening.offsetHeight : isTitle && title
+            ? title.offsetHeight : measuredHeightPx,
           viewportHeightPx: viewportHeight,
         };
         if (node.closest('.about-narrative-render-span--editorial')) {
@@ -471,7 +494,10 @@ export function useAboutNarrativeTimeline({
             titleSampleByIdRef.current.set(field.id, sample);
           }
           const drawNode = node.querySelector(ABOUT_TITLE_DRAW_SELECTOR);
-          if (drawNode) measureBookendTitleGlyphLines(drawNode);
+          // Establish the glyph layout before measuring the finale's sky.
+          // WebKit can round an unprepared heading differently, which would
+          // otherwise change the projection on its first visible entrance.
+          if (drawNode) prepareBookendTitleGlyphs(drawNode);
           titleFields.push({
             drawNode,
             drawKey: drawNode ? `${field.id}:${field.text}` : '',
@@ -504,6 +530,11 @@ export function useAboutNarrativeTimeline({
         titleFields,
         contextFields,
       };
+      // A fitted Story wrapper can retain its height while native text grows
+      // inside it. Observe the measured nodes themselves so text enlargement
+      // and rotation cannot leave the previous valid rail installed silently.
+      content.querySelectorAll('[data-text-field-id], .about-narrative-opening-copy, h1, h2')
+        .forEach(node => resizeObserver.observe(node));
     };
 
     const measure = () => {
@@ -512,6 +543,13 @@ export function useAboutNarrativeTimeline({
       const preservedStoryWU = getCurrentStoryWU();
       const sourceDocument = getPlaybackDocument(documentRef, editorStore);
       const contentPressure = collectContentPressure(viewportHeight);
+      const fontReadiness = requiredFonts.read(collectAboutNarrativeFontRequests(content));
+      root.dataset.aboutFontState = fontReadiness.status;
+      if (fontReadiness.diagnostics.length) {
+        root.dataset.aboutFontDiagnostics = JSON.stringify(fontReadiness.diagnostics);
+      } else {
+        delete root.dataset.aboutFontDiagnostics;
+      }
       const candidate = compileAboutNarrativeComposerPlan(sourceDocument, {
         inlineSize: viewportWidth,
         blockSize: viewportHeight,
@@ -524,12 +562,19 @@ export function useAboutNarrativeTimeline({
         // Keep the last valid plan usable without retrying the same rejected
         // draft on every frame after a resize. A source edit retries normally.
         installScrollGeometry(preservedStoryWU, viewportWidth, viewportHeight);
+        root.dataset.aboutLayoutValidation = 'invalid';
+        root.dataset.aboutLayoutDiagnostics = JSON.stringify(candidate.diagnostics.map(({ code, path }) => ({ code, path })));
+        delete root.dataset.aboutMeasuredDurationWu;
+        setLayoutReady(false);
         editorStore?.setRuntimePlan?.(candidate);
         measurementsRef.current.dirty = false;
         return;
       }
 
       const profileKey = `${candidate.layoutProfile}:${candidate.motionProfile}`;
+      root.dataset.aboutLayoutValidation = 'valid';
+      root.dataset.aboutMeasuredDurationWu = String(candidate.durationWU);
+      delete root.dataset.aboutLayoutDiagnostics;
       const storyLayoutSignature = String(candidate.storyLayout?.signature || '');
       const modelOrProfileChanged = sourceDocument !== installedDocument
         || profileKey !== installedProfileKey
@@ -553,9 +598,7 @@ export function useAboutNarrativeTimeline({
       // Initial spans are estimates. A restored scroll percentage must wait
       // for the committed, font-measured layout rather than being converted
       // through that temporary geometry and drifting to a different beat.
-      if (!modelOrProfileChanged && window.document.fonts?.status !== 'loading') {
-        setLayoutReady(true);
-      }
+      setLayoutReady(!modelOrProfileChanged && fontReadiness.ready);
       lastDiagnosticKey = diagnosticKey;
     };
 
@@ -995,7 +1038,7 @@ export function useAboutNarrativeTimeline({
     window.document.addEventListener('visibilitychange', handleVisibilityChange);
     root.addEventListener('about:world-runtime-ready', handleRuntimeReady);
     const unsubscribe = editorStore?.subscribe?.(handleStoreChange);
-    window.document.fonts?.ready?.then(markDirty).catch(() => {});
+    const requiredFonts = createAboutNarrativeFontReadiness(window.document.fonts, markDirty);
     measure();
     rebuildLenis();
     raf = window.requestAnimationFrame(renderFrame);
@@ -1008,6 +1051,7 @@ export function useAboutNarrativeTimeline({
       window.clearTimeout(preparationTimer);
       lenis?.destroy();
       scrollSoundController.reset();
+      requiredFonts.destroy();
       resizeObserver.disconnect();
       unsubscribe?.();
       reducedMotionQuery.removeEventListener('change', handleReducedMotionChange);
@@ -1031,6 +1075,11 @@ export function useAboutNarrativeTimeline({
       delete root.dataset.finaleOrbitWu;
       delete root.dataset.openingScrollCue;
       delete root.dataset.narrativeStoryWu;
+      delete root.dataset.aboutLayoutValidation;
+      delete root.dataset.aboutLayoutDiagnostics;
+      delete root.dataset.aboutMeasuredDurationWu;
+      delete root.dataset.aboutFontState;
+      delete root.dataset.aboutFontDiagnostics;
       root.style.removeProperty('--about-opening-scroll-cue-opacity');
       // Keep measured geometry while this root remains mounted. Loading the
       // development editor restarts this effect; removing these values would

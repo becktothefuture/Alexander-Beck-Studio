@@ -15,6 +15,8 @@ react-app/app/public/models/napoleon-bust/source/
 # Local About scene recovery files and raw third-party downloads.
 # Keep the canonical .blend and processed runtime assets tracked.
 source-assets/about-v2-blender-current/*.blend[0-9]
+source-assets/about-surface-world/*.blend[0-9]
+source-assets/about-surface-world/*.pre-*.blend
 source-assets/about-v2-blender-current/*.pre-*.blend
 source-assets/about-v2-blender-current/backups/
 source-assets/about-v2-blender-current/external/

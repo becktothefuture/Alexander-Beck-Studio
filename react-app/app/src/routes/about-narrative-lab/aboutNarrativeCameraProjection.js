@@ -29,6 +29,29 @@ export function resolveResponsiveVerticalFovFromHorizontalFov(
   );
 }
 
+// Select a source-authored lens only when the viewport changes. Story position
+// and measured copy never enter this calculation.
+export function resolveAboutSceneProjection(projection, aspectRatio, viewportWidth, viewportHeight) {
+  const short = projection.shortLandscape;
+  if (short != null && (
+    !Number.isFinite(short.maxViewportWidth) || short.maxViewportWidth <= 0
+    || !Number.isFinite(short.maxViewportHeight) || short.maxViewportHeight <= 0
+    || !Number.isFinite(short.verticalOffsetNdc) || Math.abs(short.verticalOffsetNdc) >= 1
+  )) {
+    throw new RangeError('The short landscape projection must contain positive viewport bounds and a finite sensor offset within the frame.');
+  }
+  const shortLandscape = short && viewportWidth > viewportHeight
+    && viewportWidth <= short.maxViewportWidth && viewportHeight <= short.maxViewportHeight;
+  return {
+    verticalFov: resolveResponsiveVerticalFovFromHorizontalFov(
+      projection.horizontalFov, aspectRatio, projection.portraitMaxVerticalFov,
+    ),
+    // A positive perspective matrix [9] shifts the image down. It leaves
+    // focal scale unchanged; source gate rays add this value to screen NDC y.
+    verticalOffsetNdc: shortLandscape ? short.verticalOffsetNdc : 0,
+  };
+}
+
 export function resolveHorizontalFovFromVerticalFov(verticalFovDegrees, aspectRatio) {
   const verticalFov = Number(verticalFovDegrees);
   const aspect = Math.max(MIN_ASPECT_RATIO, Number(aspectRatio) || 1);

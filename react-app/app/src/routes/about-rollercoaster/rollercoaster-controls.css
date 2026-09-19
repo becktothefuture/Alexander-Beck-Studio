@@ -1,0 +1,74 @@
+/* The shared About parameter sheet owns the shell, tokens and touch clamp. */
+.rollercoaster-controls .about-scene-parameter-panel__note {
+  margin: 0;
+}
+
+.rollercoaster-controls__copy {
+  display: grid;
+  gap: 5px;
+  padding: 6px 8px 8px;
+}
+
+.rollercoaster-controls__copy > label {
+  overflow: hidden;
+  color: var(--parameterizer-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rollercoaster-controls__copy textarea {
+  width: 100%;
+  height: 112px;
+  padding: 6px;
+  resize: none;
+  color: var(--parameterizer-text);
+  border: 1px solid var(--parameterizer-separator);
+  border-radius: 2px;
+  background: var(--parameterizer-widget-bg);
+  font: inherit;
+  line-height: 1.4;
+}
+
+.rollercoaster-controls__source dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 8px;
+}
+
+.rollercoaster-controls__source dt,
+.rollercoaster-controls__source h3 {
+  margin: 0 0 3px;
+  color: var(--parameterizer-muted);
+  font: inherit;
+}
+
+.rollercoaster-controls__source h3 {
+  padding: 8px 8px 0;
+  font-weight: 650;
+}
+
+.rollercoaster-controls__source dd,
+.rollercoaster-controls__source pre {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font: 500 9px/1.4 var(--abs-font-mono);
+}
+
+.rollercoaster-controls__source pre {
+  padding: 8px;
+}
+
+.rollercoaster-controls textarea:focus-visible {
+  outline: 1px solid var(--parameterizer-accent);
+  outline-offset: -1px;
+}
+
+@media (pointer: coarse), (max-width: 700px) {
+  .rollercoaster-controls textarea,
+  .rollercoaster-controls select {
+    font-size: 16px;
+  }
+}

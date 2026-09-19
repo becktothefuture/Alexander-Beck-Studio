@@ -66,6 +66,14 @@ export function getThemeGlowMix(now = performance.now()) {
   return transition.fromGlow + (transition.toGlow - transition.fromGlow) * progress;
 }
 
+// Read-only view of the displayed sRGB bytes. Consumers must not mutate or
+// retain this array as an endpoint. Null means the canonical theme is displayed.
+// Returning the existing array lets renderers follow the surface without
+// allocating snapshots, parsing CSS or running a second interpolation clock.
+export function getThemeBackgroundColour() {
+  return transition?.background || null;
+}
+
 export function getThemeTransitionSnapshot() {
   return transition ? {
     active: true,

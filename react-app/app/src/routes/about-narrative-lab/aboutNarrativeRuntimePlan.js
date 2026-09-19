@@ -483,25 +483,16 @@ export function sampleAboutNarrativeTitleFieldInto(
   target.x = 0;
   target.y = 0;
   target.z = 0;
-  if (!reducedMotion) {
-    // Restore the August 17 scroll-owned travel, independent of colour draw.
-    const travel = Math.min(1, Math.max(0, progress));
+  if (!reducedMotion && holds) {
+    // Final invitation arrival retains its existing compact settle. Opening
+    // and intermediate titles stay at their viewport anchor for every phase;
+    // colour draw and exit opacity provide their complete lifecycle.
     const entryDepth = Number(textMotion?.entryDepth ?? 280);
-    const exitDepth = Number(textMotion?.exitDepth ?? 180);
-    if (holds) {
-      const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
-      const settle = applyAboutNarrativeTrackEasing('smoothstep',
-        (Number(storyWU) - startWU) / (focusWU - startWU));
-      target.y = mix(18, 0, settle);
-      target.z = mix(-entryDepth * 0.12, 0, settle);
-    } else if (field?.preset === 'opener-v1') {
-      const drift = applyAboutNarrativeTrackEasing('smoothstep', travel);
-      target.y = mix(Number(textMotion?.openerStartY ?? 0), Number(textMotion?.endY ?? -24), drift);
-      target.z = mix(0, exitDepth * 0.4, drift);
-    } else {
-      target.y = mix(Number(textMotion?.startY ?? 30), Number(textMotion?.endY ?? -24), travel);
-      target.z = mix(-entryDepth, exitDepth, travel);
-    }
+    const focusWU = Math.max(startWU + 0.00001, Number(field?.focusWU ?? endWU));
+    const settle = applyAboutNarrativeTrackEasing('smoothstep',
+      (Number(storyWU) - startWU) / (focusWU - startWU));
+    target.y = mix(18, 0, settle);
+    target.z = mix(-entryDepth * 0.12, 0, settle);
   }
   return target;
 }

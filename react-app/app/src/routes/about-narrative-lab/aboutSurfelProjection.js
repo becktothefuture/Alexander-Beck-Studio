@@ -20,10 +20,17 @@ export function decodeAboutSurfelNormal(xEncoded, yEncoded) {
   return [x / length, y / length, z / length];
 }
 
+export function resolveAboutSurfelRevealProgress(visibility, rank, reducedMotion, circleFieldMode = false) {
+  if (circleFieldMode) return visibility > 0 ? 1 : 0;
+  const progress = smoothstep(rank, Math.min(1, rank + 0.08), visibility);
+  return reducedMotion ? (progress >= 0.001 ? 1 : 0) : progress;
+}
+
 export function resolveAboutSurfelRadiusPx(point, controls) {
   const { radiusWU, cameraDepthWU, projectionScalePx, surfaceFacing,
     lodRank, featureClass, revealProgress, detailBiasScale = 1, renderingProfile = 0 } = point;
-  if (revealProgress <= 0 || surfaceFacing < -clamp(controls.backfaceRetention, 0, 1)) return 0;
+  if (revealProgress <= 0 || (renderingProfile !== 3
+    && surfaceFacing < -clamp(controls.backfaceRetention, 0, 1))) return 0;
   const depth = 8 * Math.pow(Math.max(0.0001, cameraDepthWU) / 8,
     clamp(controls.perspectiveResponse, 0.1, 2));
   const physicalRadiusPx = radiusWU * projectionScalePx / Math.max(0.0001, depth);
@@ -32,9 +39,10 @@ export function resolveAboutSurfelRadiusPx(point, controls) {
   const detailFraction = clamp(spacingForDetail * controls.detailBias * detailBiasScale
     * featureRetention / 3.5, 0.12, 1);
   const density = clamp(controls.pointDensity ?? 1, 0.25, 1);
-  if (lodRank > (renderingProfile > 0 ? density : detailFraction * density)) return 0;
-  if (renderingProfile > 0) {
-    const coverage = renderingProfile > 1 ? (controls.bustCoverage ?? 1.35) : (controls.solidCoverage ?? 1.5);
+  if (lodRank > (controls.circleFieldMode || renderingProfile > 0 ? density : detailFraction * density)) return 0;
+  if (controls.circleFieldMode || renderingProfile > 0) {
+    const coverage = !controls.circleFieldMode && renderingProfile === 2
+      ? (controls.bustCoverage ?? 1.35) : (controls.solidCoverage ?? 1.5);
     return Math.min(Math.max(controls.minPointSizePx, controls.maxPointSizePx),
       Math.max(controls.minPointSizePx, physicalRadiusPx * coverage / Math.sqrt(density))) * revealProgress;
   }
