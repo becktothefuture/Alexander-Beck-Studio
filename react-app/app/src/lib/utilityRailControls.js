@@ -1,13 +1,14 @@
 export const UTILITY_RAIL_DEFAULTS = Object.freeze({
   utilityRailButtonSizePx: 32,
   utilityRailHorizontalOffsetPx: -11,
+  utilityRailVerticalPositionVh: 20,
   utilityRailPaddingPx: 6,
   utilityRailCornerRadiusPx: 33,
   utilityRailMobileButtonSizePx: 25,
   utilityRailMobileHorizontalOffsetPx: -11,
   utilityRailMobilePaddingPx: 5,
   utilityRailMobileCornerRadiusPx: 29.5,
-  utilityRailMobileVerticalPositionVh: 76,
+  utilityRailMobileVerticalPositionVh: 20,
 });
 
 export const UTILITY_RAIL_CONTROL_GROUPS = Object.freeze([
@@ -54,6 +55,16 @@ export const UTILITY_RAIL_CONTROL_GROUPS = Object.freeze([
         step: 1,
         display: 'px',
         hint: 'Distance inward from the studio window right edge.',
+      },
+      {
+        id: 'utilityRailVerticalPositionVh',
+        label: 'Vertical Position',
+        type: 'range',
+        min: 10,
+        max: 90,
+        step: 1,
+        display: '%',
+        hint: 'Desktop-only rail centre measured from the top of the viewport. Limited by available window space.',
       },
     ],
   },
@@ -105,11 +116,11 @@ export const UTILITY_RAIL_CONTROL_GROUPS = Object.freeze([
         id: 'utilityRailMobileVerticalPositionVh',
         label: 'Vertical Position',
         type: 'range',
-        min: 55,
+        min: 10,
         max: 90,
         step: 1,
         display: '%',
-        hint: 'Mobile-only rail centre measured from the top of the viewport.',
+        hint: 'Mobile-only rail centre measured from the top of the viewport. Limited to clear the top introduction and window corners.',
       },
     ],
   },
@@ -157,6 +168,10 @@ export function applyUtilityRailCssVars(source = {}, root = null) {
   targetRoot.style.setProperty(
     '--utility-rail-horizontal-offset',
     `${config.utilityRailHorizontalOffsetPx}px`,
+  );
+  targetRoot.style.setProperty(
+    '--utility-rail-vertical-position',
+    `${config.utilityRailVerticalPositionVh}svh`,
   );
   targetRoot.style.setProperty(
     '--utility-rail-mobile-button-size',

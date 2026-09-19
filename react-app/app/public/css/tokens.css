@@ -347,10 +347,11 @@
   --utility-rail-button-size: 32px;
   --utility-rail-icon-size: 14.72px;
   --utility-rail-horizontal-offset: -11px;
+  --utility-rail-vertical-position: 20svh;
   --utility-rail-mobile-button-size: 25px;
   --utility-rail-mobile-icon-size: 11.5px;
   --utility-rail-mobile-horizontal-offset: -11px;
-  --utility-rail-mobile-vertical-position: 76svh;
+  --utility-rail-mobile-vertical-position: 20svh;
   --button-bar-top-bevel: rgba(var(--abs-rgb-white), 0.1);
   --button-bar-outer-ink: rgba(var(--abs-rgb-white), 0.88);
   --button-bar-outer-ink-muted: rgba(var(--abs-rgb-white), 0.64);

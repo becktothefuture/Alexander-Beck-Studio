@@ -4,7 +4,10 @@
   --utility-rail-effective-button-size: var(--utility-rail-button-size, 32px);
   --utility-rail-effective-icon-size: var(--utility-rail-icon-size, 14.72px);
   --utility-rail-effective-horizontal-offset: var(--utility-rail-horizontal-offset, -11px);
-  --utility-rail-effective-vertical-position: 50svh;
+  --utility-rail-effective-vertical-position: max(
+    var(--utility-rail-vertical-position, 20svh),
+    calc(10rem + var(--utility-rail-edge-clearance))
+  );
   --utility-rail-edge-clearance: calc(var(--utility-rail-effective-button-size) * 2 + 14px);
   position: fixed;
   inset-block-start: clamp(
@@ -153,7 +156,13 @@
     --utility-rail-effective-button-size: var(--utility-rail-mobile-button-size, 25px);
     --utility-rail-effective-icon-size: var(--utility-rail-mobile-icon-size, 11.5px);
     --utility-rail-effective-horizontal-offset: var(--utility-rail-mobile-horizontal-offset, -11px);
-    --utility-rail-effective-vertical-position: var(--utility-rail-mobile-vertical-position, 76svh);
+    /* Narrower phones need more room for the wrapped Home introduction.
+       Reserve it on every route, keeping the
+       persistent shell still when route content changes. */
+    --utility-rail-effective-vertical-position: max(
+      var(--utility-rail-mobile-vertical-position, 20svh),
+      calc(clamp(10rem, 34rem - 100vw, 13rem) + var(--utility-rail-edge-clearance))
+    );
     /* Keep the existing expanded touch region inside the viewport too. */
     --utility-rail-viewport-clearance: max(0px, calc((44px - var(--utility-rail-effective-button-size)) / 2 - var(--utility-rail-effective-padding)));
     --utility-rail-effective-padding: var(--utility-rail-mobile-padding, 5px);
