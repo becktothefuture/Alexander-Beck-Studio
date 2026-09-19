@@ -69,10 +69,11 @@ that slot. Both **Data-linked** and **Object-linked** material assignments expor
 - `About · Palette role 1` through `6` map to current site palette slots 0–5.
 - `About · All colours` has `about_palette_role=6`. Its magenta solid-preview
   colour is an authoring marker. The browser distributes the six site roles;
-  magenta is not a seventh website colour.
+  magenta is not a seventh website colour. Both Canopy ribbons around the
+  disciplines section use this All colours material.
 - Reassign the actual material. There is no duplicated per-object palette field.
 
-The browser owns circle spacing and uses Home's shared ball size, matched at an
+The browser owns circle spacing and uses 50% of Home's shared ball size, matched at an
 8-world-unit reference plane with perspective scaling. The About panel's four
 visibility controls fade both ends of one camera-depth corridor. All surfaces,
 including the final wall, share these settings; there are no Blender fog controls.

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { withBasePath } from '../../lib/base-path.js';
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../lib/theme-state.js';
-import { getThemeBackgroundColour, getThemeGlowMix } from '../../lib/theme-transition.js';
+import { getThemeBackgroundColour } from '../../lib/theme-transition.js';
 import { getSimulationPaletteSnapshot, subscribeSimulationPalette } from '../../palette/simulationPaletteController.js';
 import { getSimulationBodyMaterialAtlas, subscribeSimulationBodyMaterial } from '../../legacy/modules/rendering/materials/simulation-body-material.js';
 import { resolveAboutSurfelPaletteColors } from '../about-narrative-lab/aboutSurfelPalette.js';
@@ -15,13 +15,12 @@ import {
 import { ROLLERCOASTER_MOTION_GLSL, rollercoasterMotionPhase, sampleRollercoasterMotion } from './rollercoasterMotion.js';
 import { ROLLERCOASTER_FIELD, sampleRollercoasterField } from './rollercoasterField.js';
 import { resolveRollercoasterProjection, resolveRollercoasterSamplingSpacing } from './rollercoasterProjection.js';
-import { ROLLERCOASTER_TONE_GLSL } from './rollercoasterTone.js';
 
 import {
   loadRollercoasterAppearance, getRollercoasterAppearance, subscribeRollercoasterAppearance,
 } from './rollercoasterAppearance.js';
 import {
-  HOME_SIZE_REFERENCE_DEPTH_WU, ROLLERCOASTER_VISIBILITY_GLSL, ROLLERCOASTER_COVERAGE_GLSL,
+  ABOUT_HOME_BODY_SCALE, HOME_SIZE_REFERENCE_DEPTH_WU, ROLLERCOASTER_VISIBILITY_GLSL, ROLLERCOASTER_COVERAGE_GLSL,
   resolveRollercoasterBodySize, sampleRollercoasterVisibility,
 } from './rollercoasterVisibility.js';
 
@@ -60,13 +59,11 @@ const FRAGMENT_SHADER = `
   uniform float uPaletteSlots[6];
   uniform vec4 uVisibility;
   uniform float uDitherVisibility;
-  uniform float uToneDarkMix;
   varying vec2 vCircle;
   varying float vPalette;
   varying float vDepth;
   ${ROLLERCOASTER_VISIBILITY_GLSL}
   ${ROLLERCOASTER_COVERAGE_GLSL}
-  ${ROLLERCOASTER_TONE_GLSL}
   void main() {
     if (dot(vCircle, vCircle) > 1.0 || vDepth <= 0.0) discard;
     vec2 uv = vCircle * 0.5 + 0.5;
@@ -79,7 +76,7 @@ const FRAGMENT_SHADER = `
     float visibility = corridorVisibility(vDepth);
     // Fully hidden circles must not write depth over visible circles behind them.
     if (visibility <= 0.0) discard;
-    gl_FragColor = vec4(applyRollercoasterTone(material.rgb, uToneDarkMix), material.a * corridorCoverage(visibility));
+    gl_FragColor = vec4(material.rgb, material.a * corridorCoverage(visibility));
     #include <colorspace_fragment>
   }
 `;
@@ -201,7 +198,6 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     if (!atlas) throw new Error('The shared Home circle material is unavailable.');
     slotColors = colors;
     theme = nextTheme;
-    uniforms.uToneDarkMix.value = getThemeGlowMix() ?? (theme === 'dark' ? 1 : 0);
     if (atlas.key === materialKey) return;
     const nextTexture = new THREE.CanvasTexture(atlas.canvas);
     nextTexture.colorSpace = THREE.SRGBColorSpace;
@@ -328,11 +324,6 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     const background = getThemeBackgroundColour();
     if (background) uniforms.uFogColor.value.setRGB(background[0] / 255, background[1] / 255, background[2] / 255, THREE.SRGBColorSpace);
     else uniforms.uFogColor.value.copy(fogTarget);
-    const toneDarkMix = getThemeGlowMix() ?? (theme === 'dark' ? 1 : 0);
-    if (toneDarkMix !== uniforms.uToneDarkMix.value) {
-      uniforms.uToneDarkMix.value = toneDarkMix;
-      invalidate();
-    }
     if (hasFrame && renderedProgress === resolvedProgress && renderedTime === time
       && renderedRevision === renderRevision && renderedBackground.equals(uniforms.uFogColor.value)) {
       skippedDrawCount += 1;
@@ -383,11 +374,10 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       viewport: { width, height, pixelRatio },
       visibilityMode: uniforms.uDitherVisibility.value ? 'screen-door' : 'multisample-coverage',
       canvasAlpha: renderer.getContext().getContextAttributes()?.alpha,
-      toneDarkMix: uniforms.uToneDarkMix.value,
       visibilityCorridor: { nearHidden: appearance.nearHidden, nearClear: appearance.nearClear,
         farClear: appearance.farClear, farHidden: appearance.farHidden },
       circleField: { spacing: field.spacing, radius: uniforms.uRadius.value,
-        homeDiameterPx: bodyRadiusPx * 2, referenceDepthWU: HOME_SIZE_REFERENCE_DEPTH_WU,
+        diameterPxAtReference: bodyRadiusPx * 2, homeSizeScale: ABOUT_HOME_BODY_SCALE, referenceDepthWU: HOME_SIZE_REFERENCE_DEPTH_WU,
         diameterToPitch: uniforms.uRadius.value * 2 / field.spacing, samplingRevision }, pointCount: field.count,
       field: { ...field, surfaceCounts: { ...field.surfaceCounts }, objectRanges: field.objectRanges.map(range => ({ ...range })) },
       slotColors: [...slotColors], slotIndices: [...uniforms.uPaletteSlots.value], paletteId, paletteGeneration,
@@ -459,7 +449,6 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       uAtlas: { value: null }, uAtlasScale: { value: new THREE.Vector4() }, uAtlasYScale: { value: 1 },
       uPaletteSlots: { value: new Float32Array(6) }, uFogColor: { value: new THREE.Color() },
       uVisibility: { value: new THREE.Vector4() }, uRadius: { value: 0 }, uDitherVisibility: { value: 0 },
-      uToneDarkMix: { value: 0 },
     };
     material = new THREE.ShaderMaterial({ vertexShader: VERTEX_SHADER, fragmentShader: FRAGMENT_SHADER, uniforms,
       transparent: false, alphaToCoverage: true, depthTest: true, depthWrite: true, blending: THREE.NoBlending });

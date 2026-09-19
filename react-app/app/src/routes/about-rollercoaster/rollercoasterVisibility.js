@@ -2,10 +2,11 @@ import { resolveHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.
 
 // A fixed calibration plane preserves perspective and keeps size independent of fog.
 export const HOME_SIZE_REFERENCE_DEPTH_WU = 8;
+export const ABOUT_HOME_BODY_SCALE = 0.5;
 
 export function resolveRollercoasterBodySize(appearance, width, height, focalLengthPx) {
   const radiusPx = resolveHomeSimulationBodyRadius(appearance.homeSimulationBodyRadiusPx,
-    appearance, { cssWidth: width, cssHeight: height });
+    appearance, { cssWidth: width, cssHeight: height }) * ABOUT_HOME_BODY_SCALE;
   return { radiusPx, radiusWU: focalLengthPx > 0 ? radiusPx * HOME_SIZE_REFERENCE_DEPTH_WU / focalLengthPx : 0 };
 }
 

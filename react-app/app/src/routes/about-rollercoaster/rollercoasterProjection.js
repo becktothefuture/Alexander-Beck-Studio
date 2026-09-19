@@ -2,7 +2,9 @@ import { ROLLERCOASTER_FIELD } from './rollercoasterField.js';
 
 const DEGREES = 180 / Math.PI;
 const SAMPLING_BUCKET_RATIO = 1.1;
-const CIRCLE_PITCH_RATIO = 0.55;
+// Half-size circles and ~sqrt(2) closer samples double the surface density,
+// while leaving more open space between the full-colour gradients.
+const CIRCLE_PITCH_RATIO = 0.55 / Math.SQRT2;
 export const ROLLERCOASTER_PORTRAIT_MIN_CAP = 105;
 
 /** One responsive lens for the entire rail. The optional cap supports measured
@@ -34,7 +36,7 @@ export function resolveRollercoasterSamplingSpacing(radiusWU, {
   const diameter = radiusWU * 2;
   if (Number.isFinite(currentSpacing) && currentSpacing >= baseSpacing) {
     const ratio = diameter / currentSpacing;
-    if ((currentSpacing === baseSpacing || ratio >= 0.52) && ratio <= 0.585) return currentSpacing;
+    if ((currentSpacing === baseSpacing || ratio >= 0.365) && ratio <= 0.415) return currentSpacing;
   }
   const desired = Math.max(baseSpacing, diameter / CIRCLE_PITCH_RATIO);
   const bucket = Math.max(0, Math.round(Math.log(desired / baseSpacing) / Math.log(SAMPLING_BUCKET_RATIO)));

@@ -337,7 +337,7 @@ function assertPrimaryRouteSemanticContracts() {
       },
       {
         label: 'About circle edges retain the shared anti-aliased atlas alpha',
-        pattern: /gl_FragColor = vec4\(applyRollercoasterTone\(material\.rgb, uToneDarkMix\), material\.a \* corridorCoverage\(visibility\)\)/,
+        pattern: /gl_FragColor = vec4\(material\.rgb, material\.a \* corridorCoverage\(visibility\)\)/,
       },
       {
         label: 'About uses one camera-depth corridor and discards hidden circles before depth writes',

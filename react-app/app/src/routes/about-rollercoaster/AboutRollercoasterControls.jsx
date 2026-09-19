@@ -300,7 +300,7 @@ function VisibilityControls({ appearance, disabled, onError }) {
         </span>
       </label>;
     })}
-    <p className="about-scene-parameter-panel__note">Ball size linked to Home. Home size at 8 units; perspective varies with distance.</p>
+    <p className="about-scene-parameter-panel__note">Ball size linked to Home at 50%. Matched at 8 units; perspective varies with distance.</p>
   </>;
 }
 

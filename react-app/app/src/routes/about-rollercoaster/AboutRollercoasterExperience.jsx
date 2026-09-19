@@ -23,6 +23,7 @@ import {
 } from '../about-narrative-lab/aboutNarrativeFontReadiness.js';
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
 import { createRollercoasterScene } from './rollercoasterScene.js';
+import { stepRollercoasterCamera } from './rollercoasterCameraMotion.js';
 import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
   ROLLERCOASTER_READING_BEATS, restoreRollercoasterScrollPosition,
@@ -272,6 +273,8 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     const abortController = new AbortController();
     const frame = { progress: 0, beatId: 'departure', beatIndex: 0, localProgress: 0, scrollTop: 0 };
     const renderFrame = { progress: 0, ambientSeconds: 0, reducedMotion: reducedMotionRef.current };
+    const cameraMotion = { progress: NaN, velocity: 0 };
+    let snapCamera = true;
     let disposed = false;
     let scene = null;
     let layout = null;
@@ -373,6 +376,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       // A no-op measurement must never round-trip an unchanged native pixel.
       // Changed reading budgets restore the same authored source position.
       restoreRollercoasterScrollPosition(scrollport, previous, next, preservedProgress, !restored);
+      if (!restored) snapCamera = true;
       restored = true;
       measuredReady = true;
       scene.resize(root.clientWidth, root.clientHeight);
@@ -385,13 +389,17 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     function render(now) {
       if (disposed) return;
       const motionReduced = reducedMotionRef.current;
+      const deltaSeconds = previousTime == null ? 0 : Math.max(0, (now - previousTime) / 1000);
       if (previousTime != null && !document.hidden && entranceStarted && !motionReduced) {
         renderFrame.ambientSeconds += Math.max(0, (now - previousTime) / 1000);
       }
       previousTime = document.hidden ? null : now;
       if (layout && measuredReady) {
         sampleRollercoasterScroll(layout, scrollport.scrollTop, frame);
-        renderFrame.progress = frame.progress;
+        renderFrame.progress = stepRollercoasterCamera(cameraMotion, frame.progress, deltaSeconds,
+          snapCamera || motionReduced || document.hidden || deltaSeconds > 0.25);
+        snapCamera = false;
+        if (import.meta.env.DEV) root.dataset.aboutCameraProgress = String(renderFrame.progress);
         renderFrame.reducedMotion = motionReduced;
         if (!document.hidden) scene?.render(renderFrame);
         if (frame.progress !== lastPublishedProgress) {
@@ -473,6 +481,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       addStableEventListener(window, 'popstate', restoreHistory),
       addStableEventListener(document, 'visibilitychange', () => {
         previousTime = null;
+        snapCamera = true;
         if (document.hidden) flushHistory();
       }),
       addStableEventListener(mediaQuery, 'change', event => {

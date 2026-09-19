@@ -19,7 +19,7 @@ import { resolveHomeSimulationBodyRadius } from '../react-app/app/src/lib/homeSi
 import {
   resolveRollercoasterProjection, resolveRollercoasterSamplingSpacing,
 } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterProjection.js';
-import { mapRollercoasterTone } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterTone.js';
+import { stepRollercoasterCamera } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterCameraMotion.js';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const near = (actual, expected, epsilon = 1e-10) => assert.ok(Math.abs(actual - expected) < epsilon, `${actual} != ${expected}`);
@@ -55,25 +55,21 @@ test('one aspect-driven lens retains desktop framing and widens portrait capture
   }
 });
 
-test('responsive pitch preserves Home pixel size and circle separation without a denser field', () => {
+test('half-size circles double surface density while preserving clear gaps across viewport sizes', () => {
   const appearance = { homeSimulationBodyRadiusPx: 9.79, mobileSimulationBodyScale: 0.8 };
   const source = { horizontalFov: 70, portraitVerticalFov: 90 };
   for (const [width, height] of [[1412, 898], [1252, 618], [362, 742], [292, 466], [402, 830], [816, 288]]) {
     const lens = resolveRollercoasterProjection(source, width, height);
     const body = resolveRollercoasterBodySize(appearance, width, height, lens.focalLengthPx);
-    const spacing = resolveRollercoasterSamplingSpacing(body.radiusWU, { currentSpacing: 0.23 });
-    assert.ok(spacing >= 0.23);
-    assert.ok(spacing > body.radiusWU * 2 * (5 / 3),
-      'The clear gap remains at least two thirds of a circle diameter.');
-    if (spacing > 0.23) assert.ok(spacing < body.radiusWU * 4,
-      'The portrait field must retain a continuous circle lattice rather than become isolated dots.');
+    const spacing = resolveRollercoasterSamplingSpacing(body.radiusWU);
+    const oldDesired = Math.max(0.23, body.radiusWU * 4 / 0.55);
+    const oldPitch = 0.23 * 1.1 ** Math.max(0, Math.round(Math.log(oldDesired / 0.23) / Math.log(1.1)));
+    const densityGain = (oldPitch / spacing) ** 2;
+    assert.ok(densityGain >= 1.8 && densityGain <= 2.3, `Surface density gain ${densityGain}`);
+    assert.ok(spacing > body.radiusWU * 4, 'Full-colour circles retain more than a diameter of clear space.');
     near(body.radiusWU * lens.focalLengthPx / HOME_SIZE_REFERENCE_DEPTH_WU, body.radiusPx);
     assert.equal(resolveRollercoasterSamplingSpacing(body.radiusWU, { currentSpacing: spacing }), spacing);
   }
-  assert.ok(resolveRollercoasterSamplingSpacing(0.08760424, { currentSpacing: 0.23 }) > 0.23,
-    'The quieter global separation applies on desktop as well as phones.');
-  assert.equal(resolveRollercoasterSamplingSpacing(0.04, { currentSpacing: 0.23 }), 0.23,
-    'Large views never increase sampling density beyond the existing baseline.');
 });
 
 test('small responsive changes keep one sampling bucket and larger changes settle reversibly', () => {
@@ -83,7 +79,7 @@ test('small responsive changes keep one sampling bucket and larger changes settl
     const jittered = radius * (1 + Math.sin(index) * 0.01);
     assert.equal(resolveRollercoasterSamplingSpacing(jittered, { currentSpacing: spacing }), spacing);
   }
-  assert.equal(resolveRollercoasterSamplingSpacing(0.04, { currentSpacing: spacing }), 0.23);
+  assert.equal(resolveRollercoasterSamplingSpacing(0.02, { currentSpacing: spacing }), 0.16263456);
   const wider = resolveRollercoasterSamplingSpacing(radius * 1.4, { currentSpacing: spacing });
   assert.ok(wider > spacing);
   assert.equal(resolveRollercoasterSamplingSpacing(radius, { currentSpacing: wider }), spacing);
@@ -113,45 +109,41 @@ test('resizing through sampling boundaries is monotonic and does not chatter aft
   }
 });
 
-test('global material exposure maintains primary prose contrast across both themes and fog coverage', async () => {
-  const { runtime } = JSON.parse(await readFile(new URL('../react-app/app/public/config/design-system.json', import.meta.url), 'utf8'));
-  const linear = value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  const srgb = value => value <= 0.0031308 ? value * 12.92 : 1.055 * value ** (1 / 2.4) - 0.055;
-  const rgb = hex => [1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
-  const luminance = color => color.reduce((sum, value, index) => sum + linear(value) * [0.2126, 0.7152, 0.0722][index], 0);
-  for (const [darkMix, ink, background] of [
-    [0, runtime.textColorLight, runtime.bgLight], [1, runtime.textColorDark, runtime.bgDark],
-  ]) {
-    const inkLuminance = luminance(rgb(ink)), ground = rgb(background);
-    for (const r of [0, 0.1, 0.4, 0.75, 1]) for (const g of [0, 0.1, 0.4, 0.75, 1]) for (const b of [0, 0.1, 0.4, 0.75, 1]) {
-      const material = mapRollercoasterTone([r, g, b], darkMix).map(srgb);
-      for (const coverage of [0, 0.125, 0.25, 0.5, 0.75, 1]) {
-        const resolved = material.map((channel, index) => channel * coverage + ground[index] * (1 - coverage));
-        const sceneLuminance = luminance(resolved);
-        const contrast = (Math.max(inkLuminance, sceneLuminance) + 0.05) / (Math.min(inkLuminance, sceneLuminance) + 0.05);
-        assert.ok(contrast >= 4.5, `Primary ink contrast ${contrast.toFixed(3)} at theme ${darkMix}, RGB ${[r, g, b]}, coverage ${coverage}`);
-      }
+test('camera inertia is frame-rate independent, settles exactly and does not overshoot', () => {
+  const results = [];
+  for (const hz of [30, 60, 120]) {
+    const state = { progress: 0.2, velocity: 0 };
+    let previous = state.progress;
+    for (let i = 0; i < hz / 2; i += 1) {
+      const next = stepRollercoasterCamera(state, 0.3, 1 / hz);
+      assert.ok(next >= previous && next <= 0.3);
+      previous = next;
     }
+    assert.ok(state.progress > 0.299 && state.progress < 0.3);
+    results.push(state.progress);
+    for (let i = 0; i < hz; i += 1) stepRollercoasterCamera(state, 0.3, 1 / hz);
+    assert.equal(state.progress, 0.3);
+    assert.equal(state.velocity, 0);
   }
+  vectorNear(results, [results[0], results[0], results[0]]);
 });
 
-test('tonal exposure preserves hue relationships and continuous gradient order for every theme mix', () => {
-  const hue = [0.8, 0.35, 0.1];
-  const hueRatio = (hue[0] - hue[1]) / (hue[1] - hue[2]);
-  for (const mix of [0, 0.2, 0.5, 0.8, 1]) {
-    let previousLuminance = -1;
-    for (let step = 0; step <= 100; step += 1) {
-      const input = hue.map(channel => channel * step / 100);
-      const output = mapRollercoasterTone(input, mix);
-      assert.ok(output.every(channel => channel >= 0 && channel <= 1));
-      const luminance = output[0] * 0.2126 + output[1] * 0.7152 + output[2] * 0.0722;
-      assert.ok(luminance > previousLuminance, 'The material gradient retains smooth brightness ordering.');
-      if (step > 0) near((output[0] - output[1]) / (output[1] - output[2]), hueRatio, 1e-8);
-      previousLuminance = luminance;
-    }
+test('camera reversals and endpoint flings remain bounded, while restoration and reduced motion snap', () => {
+  const state = { progress: NaN, velocity: 0 };
+  assert.equal(stepRollercoasterCamera(state, 0.4, 0), 0.4);
+  stepRollercoasterCamera(state, 1, 1 / 60);
+  assert.ok(state.progress > 0.4 && state.progress < 1);
+  let previous = state.progress;
+  for (let i = 0; i < 120; i += 1) {
+    const next = stepRollercoasterCamera(state, 0, 1 / 60);
+    assert.ok(next <= previous && next >= 0);
+    previous = next;
   }
-  assert.throws(() => mapRollercoasterTone([0, NaN, 1]), /linear RGB/);
-  assert.throws(() => mapRollercoasterTone([0, 0.5, 1], 2), /theme mix/);
+  assert.equal(state.progress, 0);
+  assert.equal(stepRollercoasterCamera(state, 0.75, 0, true), 0.75);
+  assert.equal(state.velocity, 0);
+  assert.equal(stepRollercoasterCamera(state, 1, 0), 0.75);
+  assert.equal(stepRollercoasterCamera(state, 0.15, 0.016, true), 0.15);
 });
 
 function fixture() {
@@ -408,7 +400,7 @@ test('viewport sampling resolves once from verified metadata before allocating t
     },
   });
   assert.equal(resolutions, 1);
-  assert.ok(loaded.field.spacing > 0.4);
+  assert.ok(loaded.field.spacing > 0.4 && loaded.field.spacing < 0.6);
   assert.deepEqual(loaded.geometry, f.geometry);
   const corrupt = fetchFixture(f, (url, bytes) => url.endsWith('/geometry.json') ? Buffer.alloc(bytes.length) : bytes);
   await assert.rejects(loadRollercoasterBundle({ assetRoot: '/new-world', fetchImpl: corrupt.fetchImpl, retryDelayMs: 0,
@@ -526,8 +518,9 @@ test('the renderer uses the same near and far visibility for all material and mo
   assert.match(source, /renderer\.setClearColor\(uniforms\.uFogColor\.value, 1\)/);
   assert.match(source, /renderedBackground\.equals\(uniforms\.uFogColor\.value\)/,
     'Theme interpolation must invalidate a static reduced-motion frame.');
-  assert.match(fragment, /applyRollercoasterTone\(material\.rgb, uToneDarkMix\)/,
-    'The shared atlas uses one tonal response before coverage, without group or story branches.');
+  assert.match(fragment, /gl_FragColor = vec4\(material\.rgb, material\.a \* corridorCoverage\(visibility\)\)/,
+    'The original Home gradient RGB reaches the output unchanged; depth fog only changes coverage.');
+  assert.doesNotMatch(source, /uToneDarkMix|applyRollercoasterTone/);
 });
 
 test('one visibility corridor fades both ends, remains clear between them and treats the ending identically', () => {
@@ -540,15 +533,15 @@ test('one visibility corridor fades both ends, remains clear between them and tr
   for (const wallDepth of [10.8, 12, 13.2]) assert.equal(sampleRollercoasterVisibility(wallDepth, shortened), 0);
 });
 
-test('Home size is exact at the reference plane on desktop and mobile, with perspective independent of fog or DPR', () => {
+test('Half the Home size is exact at the reference plane on desktop and mobile, with perspective independent of fog or DPR', () => {
   const appearance = { homeSimulationBodyRadiusPx: 9.79, mobileSimulationBodyScale: .8 };
   for (const [width, height] of [[1440, 900], [390, 844], [844, 390]]) {
     const focal = width / (2 * Math.tan(35 * Math.PI / 180));
     const size = resolveRollercoasterBodySize(appearance, width, height, focal);
     const home = resolveHomeSimulationBodyRadius(appearance.homeSimulationBodyRadiusPx, appearance,
       { cssWidth: width, cssHeight: height });
-    near(size.radiusWU * focal / HOME_SIZE_REFERENCE_DEPTH_WU, home);
-    near(size.radiusWU * focal / (HOME_SIZE_REFERENCE_DEPTH_WU * 2), home / 2);
+    near(size.radiusWU * focal / HOME_SIZE_REFERENCE_DEPTH_WU, home / 2);
+    near(size.radiusWU * focal / (HOME_SIZE_REFERENCE_DEPTH_WU * 2), home / 4);
     for (const pixelRatio of [1, 2, 3]) {
       const again = resolveRollercoasterBodySize({ ...appearance, pixelRatio, farClear: 4, farHidden: 6 }, width, height, focal);
       assert.deepEqual(again, size);

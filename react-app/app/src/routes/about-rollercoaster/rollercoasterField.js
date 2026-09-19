@@ -1,6 +1,6 @@
 // Blender owns surfaces. These constants own the generated circle population.
 export const ROLLERCOASTER_FIELD = Object.freeze({
-  spacing: 0.23, radiusRatio: 0.075 / 0.23, maxPoints: 600000, maxCandidates: 4000000,
+  spacing: 0.16263456, radiusRatio: 0.075 / 0.23, maxPoints: 600000, maxCandidates: 4000000,
 });
 export const ROLLERCOASTER_SURFACE_LIMITS = Object.freeze({
   objects: 256, vertices: 100000, faces: 50000, geometryBytes: 20 * 1024 * 1024, coordinate: 1000000,

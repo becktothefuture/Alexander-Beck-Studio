@@ -35,7 +35,7 @@ test('browser spacing changes circle density and radius without mutating the sou
   const dense = sampleRollercoasterField(geometry), sparse = sampleRollercoasterField(geometry, { spacing: 0.46 });
   assert.equal(JSON.stringify(geometry), before);
   assert.ok(dense.field.count > sparse.field.count * 3);
-  assert.equal(dense.field.radius, 0.075);
+  assert.equal(dense.field.radius, ROLLERCOASTER_FIELD.spacing * ROLLERCOASTER_FIELD.radiusRatio);
   assert.equal(sparse.field.radius, 0.15);
   assert.equal(dense.field.owner, 'browser-code');
   assert.equal(dense.field.count * 6, dense.points.length);
@@ -88,12 +88,12 @@ test('shared seams weld across objects but independently animated groups retain 
   const a = quad({ id: 'a', width: 0.92, height: 0.92 }), b = structuredClone(a);
   b.id = b.name = 'b';
   b.positions = [0, 0, 0, 0.92, 0, 0, 0.92, 0, 0.92, 0, 0, 0.92];
-  const result = sampleRollercoasterField(world(a, b));
+  const result = sampleRollercoasterField(world(a, b), { spacing: 0.23 });
   const positions = rows(result.points).map(row => row.slice(0, 3).join(','));
   assert.equal(new Set(positions).size, positions.length);
   assert.equal(result.field.count, 25 + 25 - 5);
   b.motionGroup = 1;
-  assert.equal(sampleRollercoasterField(world(a, b)).field.count, 50);
+  assert.equal(sampleRollercoasterField(world(a, b), { spacing: 0.23 }).field.count, 50);
 });
 
 test('object order does not change stable IDs, ranges or the generated field', () => {
@@ -106,7 +106,7 @@ test('object order does not change stable IDs, ranges or the generated field', (
 
 test('far translated walls retain complete rows without Float32 welding holes', () => {
   for (const x of [0, 100, 1000]) {
-    const { points } = sample(quad({ x, width: 23, height: 23 }));
+    const { points } = sample(quad({ x, width: 23, height: 23 }), { spacing: 0.23 });
     const byY = new Map();
     for (const [px, py] of rows(points)) {
       const key = py.toFixed(5);

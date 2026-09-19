@@ -8,7 +8,7 @@
 | --- | --- |
 | Camera rail, bank, surfaces, colour roles, motion and beats | `source-assets/about-surface-world/about-surface-world.blend` |
 | Circle density | `react-app/app/src/routes/about-rollercoaster/rollercoasterField.js` |
-| Visibility corridor and shared Home ball size | `react-app/app/public/config/design-system.json` runtime |
+| Visibility corridor and Home size baseline | `react-app/app/public/config/design-system.json` runtime |
 | Copy, career entries, clients and typography | `react-app/app/public/config/contents-about.json` |
 | Circle gradients and live colour palette | Shared Home material generator and palette controller |
 | Playback and native scroll layout | `react-app/app/src/routes/about-rollercoaster/` |
@@ -19,7 +19,7 @@ The browser reads `public/models/about-rollercoaster-world/meta.json`, `camera.j
 
 A native scroll container maps eleven source beats to the camera rail. The baseline is 32 viewport lengths. Measured prose can extend reading beats so every line can enter and leave the viewport. This does not shorten either tunnel.
 
-The camera follows evaluated Blender position and rotation. Stop scrolling to hold the camera; reverse scrolling to retrace the path. Moving assemblies have a separate ambient clock. They keep moving during a scroll hold and stop when the page is hidden or reduced motion is enabled. The surface contract supports ambient object loops only; scroll-bound object animation is not an exposed control.
+The camera follows evaluated Blender position and rotation. A critically damped spring gives the camera a short glide after scrolling. It settles exactly on the native scroll target without overshoot. Reverse scrolling retraces the path; history restoration and reduced motion bypass the glide. Moving assemblies have a separate ambient clock. They keep moving during a scroll hold and stop when the page is hidden or reduced motion is enabled. The surface contract supports ambient object loops only; scroll-bound object animation is not an exposed control.
 
 Opening, intermediate and ending titles use measured glyph bounds to centre visible lettering in the studio window. Prose scrolls through physical reading chambers. No browser mask, title plate or camera-gaze correction creates the reading space. The camera stops at 97% and holds while the full multicolour wall continues to move.
 
@@ -29,7 +29,7 @@ Reduced motion selects stable views of the same scene and freezes environment lo
 
 The first passage alternates enclosed entry, twelve separate round hoops and enclosed exit. Seven infill hoops keep the open stretch from becoming a blank view between gates. The second uses the same structure with five square or diamond gates. The spaces between each short hoop or gate are real openings. Geometry remains in the world throughout; the browser does not switch scenes on and off.
 
-The current environment contains 36 simple surface objects, preserving the author's latest removals. Upright panels follow the reading route, and four simple floor strips form open releases. The large terminal wall is the intentional exception to the close-to-path composition. Each object uses one of six palette-role materials; `All colours` is a seventh authoring marker. Its browser result uses all six current website colours. Assign the material through Blender's Material Properties. The browser creates the same gradient-circle material on all surfaces.
+The current environment contains 36 simple surface objects, preserving the author's latest removals. Upright panels follow the reading route, and four simple floor strips form open releases. The large terminal wall is the intentional exception to the close-to-path composition. Each object uses one of six palette-role materials; `All colours` is a seventh authoring marker. Its browser result uses all six current website colours. Assign the material through Blender's Material Properties. Both disciplines gate ribbons use All colours. The browser creates the same original, unmuted gradient-circle material on all surfaces. A global pitch target of about 0.389 gives approximately twice the former circle count per surface, with half-size circles and wider clear gaps.
 
 One visibility corridor applies to every circle. Defaults: hidden through 2 WU, clear from 7 to 8 WU, and fully hidden from 24 WU onward. Smooth fades join the boundaries. The four values save in the canonical design system and apply live without rebuilding the field. The final wall has no exception. Fully hidden circles do not write depth over other surfaces.
 
@@ -43,7 +43,7 @@ Copy, typography and visibility use live apply, canonical save, reload and rever
 
 ## Blender controls and export
 
-See the [source guide](../../source-assets/about-surface-world/README.md). Edit `FlightRail`'s 48 aligned Bézier controls and tilt to change the camera and environment together. Static surfaces use a shared Geometry Nodes path binding; moving gates and the final wall use fixed normalized Follow Path anchors. Lengthening the path retains their place in the journey. Static source meshes use unrolled coordinates; preserve their binding modifiers. Use `About World Controls` for progress, ambient time and timeline playback. The browser controls the shared near/far visibility corridor. Space plays or stops, and the timeline has named chapter markers. Frames 1–5401 cover the 180-second reference journey at 30 fps. Solid Blender surfaces show the camera and object motion; browser code adds the circle material and distance fade. Set `ROLLERCOASTER_FIELD.spacing` in browser code to change density. Circle size uses Home's shared helper at an 8-WU reference depth and retains perspective. The About panel saves four visibility distances to the canonical design-system runtime; the final wall has no exemption. Rotation controllers own loop period, phase and amplitude.
+See the [source guide](../../source-assets/about-surface-world/README.md). Edit `FlightRail`'s 48 aligned Bézier controls and tilt to change the camera and environment together. Static surfaces use a shared Geometry Nodes path binding; moving gates and the final wall use fixed normalized Follow Path anchors. Lengthening the path retains their place in the journey. Static source meshes use unrolled coordinates; preserve their binding modifiers. Use `About World Controls` for progress, ambient time and timeline playback. The browser controls the shared near/far visibility corridor. Space plays or stops, and the timeline has named chapter markers. Frames 1–5401 cover the 180-second reference journey at 30 fps. Solid Blender surfaces show the camera and object motion; browser code adds the circle material and distance fade. Set `ROLLERCOASTER_FIELD.spacing` in browser code to change density. Circle size uses 50% of Home's shared helper at an 8-WU reference depth and retains perspective. The About panel saves four visibility distances to the canonical design-system runtime; the final wall has no exemption. Rotation controllers own loop period, phase and amplitude.
 
 Start the saved-source exporter beside the development server:
 
