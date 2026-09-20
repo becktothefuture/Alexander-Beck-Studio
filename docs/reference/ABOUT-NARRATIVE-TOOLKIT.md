@@ -8,7 +8,7 @@
 | --- | --- |
 | Camera rail, bank, surfaces, colour roles, motion and beats | `source-assets/about-surface-world/about-surface-world.blend` |
 | Circle density | `react-app/app/src/routes/about-rollercoaster/rollercoasterField.js` |
-| Visibility corridor and Home size baseline | `react-app/app/public/config/design-system.json` runtime |
+| Scene presentation controls and Home size baseline | `react-app/app/public/config/design-system.json` runtime |
 | Copy, career entries, clients and typography | `react-app/app/public/config/contents-about.json` |
 | Circle gradients and live colour palette | Shared Home material generator and palette controller |
 | Playback and native scroll layout | `react-app/app/src/routes/about-rollercoaster/` |
@@ -33,7 +33,7 @@ The first passage alternates enclosed entry, twelve separate round hoops and enc
 
 The current environment contains 36 simple surface objects, preserving the author's latest removals. Upright panels follow the reading route, and four simple floor strips form open releases. The large terminal wall is the intentional exception to the close-to-path composition. Each object uses one of six palette-role materials; `All colours` is a seventh authoring marker. Its browser result uses all six current website colours. Assign the material through Blender's Material Properties. Both disciplines gate ribbons use All colours. The browser creates the same original, unmuted gradient-circle material on all surfaces. A global pitch target of about 0.389 gives approximately twice the former circle count per surface, with half-size circles and wider clear gaps.
 
-One visibility corridor applies to every circle. Defaults: hidden through 2 WU, clear from 7 to 12 WU, and fully hidden from 38 WU onward. Smooth fades join the boundaries. The four values save in the canonical design system and apply live without rebuilding the field. The longer fade reveals successive gates and the final wall earlier, giving the scene more depth. A 95-degree portrait lens cap brings the gates closer in phone framing without changing the Blender rail. The final wall has no exception. Fully hidden circles do not write depth over other surfaces.
+One visibility corridor applies to every circle. Defaults: hidden through 2 WU, clear from 7 to 9 WU, and fully hidden from 22 WU onward. Smooth fades join the boundaries. The four values save in the canonical design system and apply live without rebuilding the field. The shorter range hides distant rooms and keeps each nearby passage distinct. A 95-degree portrait lens cap brings the gates closer in phone framing without changing the Blender rail. The final wall has no exception. Fully hidden circles do not write depth over other surfaces.
 
 The final wall is one complete four-corner rest plane, with a preview-only deformation that shows its broad wave in Blender. Browser spacing determines its circle count. There is no central recess, cutout or separate neutral-colour patch. The ending title stays centred, with its support line in primary text colour and medium weight.
 
@@ -41,11 +41,11 @@ The final wall is one complete four-corner rest plane, with a preview-only defor
 
 Open `http://localhost:8012/about.html` and press `/` to open the docked panel. Escape closes it. `?edit=0` hides authoring controls for review.
 
-Copy, typography and visibility use live apply, canonical save, reload and revert. Copy/type save to contents-about.json with existing conflict checks. Visibility saves only the four About visibility runtime keys in design-system.json, merging against a fresh copy. The panel has one Save action for both sources. Geometry, camera and motion remain read-only: their owner is the saved Blender file. Shared schema, persistence, fonts and history helpers remain under `about-narrative-lab/`; these are compatibility infrastructure, not the old scene.
+Copy, typography and visibility use live apply, canonical save, reload and revert. Copy/type save to contents-about.json with existing conflict checks. All 13 scene controls save only their declared runtime keys in design-system.json, merging against a fresh copy with conflict detection. The panel has one Save action for both sources. Geometry, camera rail and authored motion shapes remain read-only: their owner is the saved Blender file. Browser controls change presentation and playback, without altering the source. Shared schema, persistence, fonts and history helpers remain under `about-narrative-lab/`; these are compatibility infrastructure, not the old scene.
 
 ## Blender controls and export
 
-See the [source guide](../../source-assets/about-surface-world/README.md). Edit `FlightRail`'s 23 aligned Bézier controls and tilt to change the camera and environment together. Static surfaces use a shared Geometry Nodes path binding; moving gates and the final wall use fixed normalized Follow Path anchors. Lengthening the path retains their place in the journey. Static source meshes use unrolled coordinates; preserve their binding modifiers. Use `About World Controls` for progress, ambient time and timeline playback. The browser controls the shared near/far visibility corridor. Space plays or stops, and the timeline has named chapter markers. Frames 1–5401 cover the 180-second reference journey at 30 fps. Solid Blender surfaces show the camera and object motion; browser code adds the circle material and distance fade. Set `ROLLERCOASTER_FIELD.spacing` in browser code to change density. Circle size uses 50% of Home's shared helper at an 8-WU reference depth and retains perspective. The About panel saves four visibility distances to the canonical design-system runtime; the final wall has no exemption. Rotation controllers own loop period, phase and amplitude.
+See the [source guide](../../source-assets/about-surface-world/README.md). Edit `FlightRail`'s 23 aligned Bézier controls and tilt to change the camera and environment together. Static surfaces use a shared Geometry Nodes path binding; moving gates and the final wall use fixed normalized Follow Path anchors. Lengthening the path retains their place in the journey. Static source meshes use unrolled coordinates; preserve their binding modifiers. Use `About World Controls` for progress, ambient time and timeline playback. The browser controls the shared near/far visibility corridor. Space plays or stops, and the timeline has named chapter markers. Frames 1–5401 cover the 180-second reference journey at 30 fps. Solid Blender surfaces show the camera and object motion; browser code adds the circle material and distance fade. Use Circle density in the panel to change the shared sampling pitch. The hard minimum spacing and point budget remain code-owned safety limits. Circle size uses 50% of Home's shared helper at an 8-WU reference depth and retains perspective. The About panel saves the visibility distances and presentation controls to the canonical design-system runtime; the final wall has no exemption. Rotation controllers own loop period, phase and amplitude.
 
 Start the saved-source exporter beside the development server:
 
@@ -78,3 +78,21 @@ The rejected source and tools are recorded in [RETIRED.md](../plans/about-roller
 The first gallery ends in a clear downward entry to the round tunnel. Its 30 panel pairs sit beside the rail and stop before the drop; the lateral turn and bank develop inside the passage. Keep this entrance free of crossing panels when editing the first curve.
 
 The former point-authored master in `source-assets/about-rollercoaster-reset/` is retained only for recovery. The active watcher reads the new surface master.
+
+
+### Scene controls (20 September 2026)
+
+Open `/about.html?edit=1` and choose **Scene controls**, or press `/`. The existing fixed 280px panel has one scroll region and Save/Revert actions. The touch launcher is authoring-only. `edit=0`, the read-only mirror and production do not expose authoring controls.
+
+| Folder | Controls and defaults |
+| --- | --- |
+| Visibility corridor | Near hidden 2 WU; Near clear 7 WU; Far clear 9 WU; Far hidden 22 WU. The same smooth fade applies to every circle. |
+| Camera | Lens width 1× the Blender horizontal lens; Mobile lens cap 95°; Scroll glide 600ms (roughly 95% response). Larger glide values settle more slowly. |
+| Circles & motion | Circle size 0.5× Home; Circle density 1× the reviewed baseline; Animation speed 1×. Zero speed freezes the environment without stopping scroll travel. |
+| Title legibility | Title contrast 0.9; Clearance 24px; Soft edge 80px. Only material behind the active title/support loses contrast. The complete grid and its animation remain present. |
+
+Size and density are independent. Resize buckets and the existing sampling safety budget still apply. Density stops increasing at the shared minimum pitch. Lens and circle changes apply live; sampling changes settle after 140ms of inactivity. The environment clock accumulates scaled time, so changing speed does not jump its phase. Reduced motion still bypasses glide and freezes ambient motion. Camera and title code allocate no new frame objects for these controls; title bounds are measured with the existing layout pass.
+
+The palette and gradient atlas stay owned by Home. Rail positions, turns, bank, object colour roles and motion amplitudes remain Blender edits. GPU budgets, sampling hysteresis and panel geometry stay code-owned. There is one appearance schema in `rollercoasterAppearance.js`, one store and one canonical save path. `flatten:design-config` copies the runtime keys into the generated configuration; no browser-storage overrides are authoritative.
+
+To check the full journey as a compiled local preview while publication is held, use `NODE_ENV=development npm run build:about-certification`, then `npm run preview --prefix react-app/app -- --outDir dist-certify --host 127.0.0.1 --strictPort`. The regular certification command respects the production hold and shows Coming soon; it does not establish full-journey acceptance. This local verification build is never the deployment output.

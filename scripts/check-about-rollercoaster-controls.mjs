@@ -12,7 +12,7 @@ import {
   serializeAboutNarrativePointFieldSource,
 } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativePointFieldPersistence.js';
 import {
-  ABOUT_VISIBILITY_CONTROLS,
+  ABOUT_VISIBILITY_CONTROLS, ABOUT_APPEARANCE_CONTROLS,
   getRollercoasterAppearance,
   getRollercoasterAppearanceState,
   getRollercoasterVisibilityBounds,
@@ -268,15 +268,15 @@ test('visibility defaults use four canonical keys and the existing Home sizing n
   assert.deepEqual(ABOUT_VISIBILITY_CONTROLS.map(control => [control.id, control.runtimeKey, control.min, control.max, control.defaultValue]), [
     ['nearHidden', 'aboutVisibilityNearHiddenWU', 0, 8, 2],
     ['nearClear', 'aboutVisibilityNearClearWU', 0.1, 12, 7],
-    ['farClear', 'aboutVisibilityFarClearWU', 3, 60, 12],
-    ['farHidden', 'aboutVisibilityFarHiddenWU', 4, 120, 38],
+    ['farClear', 'aboutVisibilityFarClearWU', 3, 60, 9],
+    ['farHidden', 'aboutVisibilityFarHiddenWU', 4, 120, 22],
   ]);
   const loaded = await loadRollercoasterAppearance({ forceReload: true });
   assert.equal(loaded, getRollercoasterAppearance(), 'Renderer snapshots are stable between changes.');
   assert.equal(loaded.homeSimulationBodyRadiusPx, canonicalDesign.runtime.homeSimulationBodyRadiusPx);
   assert.equal(loaded.mobileSimulationBodyScale, canonicalDesign.runtime.mobileSimulationBodyScale);
   assert.ok(!Object.hasOwn(loaded, 'homeSimulationMobileRadiusScale'));
-  ABOUT_VISIBILITY_CONTROLS.forEach(control => assert.equal(canonicalDesign.runtime[control.runtimeKey], control.defaultValue));
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => assert.equal(canonicalDesign.runtime[control.runtimeKey], control.defaultValue));
   assert.equal(await loadRollercoasterAppearance(), loaded);
   assert.equal(requests, 1, 'A second renderer/panel load reuses the same initialized store.');
 });
@@ -324,7 +324,7 @@ test('invalid visibility intervals never apply and dynamic slider limits keep al
   assert.equal(getRollercoasterAppearanceState().dirty, false);
 });
 
-test('appearance save fresh-merges only four runtime keys and survives the real atomic flatten/reload path', async (t) => {
+test('appearance save fresh-merges only owned runtime keys and survives the real atomic flatten/reload path', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'about-visibility-save-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   await flattenDesignConfigDir(directory, canonicalDesign);
@@ -345,7 +345,9 @@ test('appearance save fresh-merges only four runtime keys and survives the real 
     return Response.json({ ok: true });
   });
   await loadRollercoasterAppearance({ forceReload: true });
-  setRollercoasterAppearance({ nearHidden: 1, nearClear: 3, farClear: 18, farHidden: 40 });
+  setRollercoasterAppearance({ nearHidden: 1, nearClear: 3, farClear: 18, farHidden: 40,
+    lensWidth: 1.1, portraitFov: 100, scrollGlideMs: 800, circleScale: 0.6, density: 1.25,
+    animationSpeed: 0.5, titleQuiet: 0.85, titlePadding: 30, titleFeather: 100 });
 
   // Another editor changes unrelated settings after our panel loaded.
   const changedElsewhere = JSON.parse(await readFile(configPath, 'utf8'));
@@ -362,11 +364,11 @@ test('appearance save fresh-merges only four runtime keys and survives the real 
   assert.equal(saved.homeSimulationBodyRadiusPx, 12);
   assert.equal(saved.mobileSimulationBodyScale, 0.9);
   const expected = clone(fresh);
-  ABOUT_VISIBILITY_CONTROLS.forEach(control => { expected.runtime[control.runtimeKey] = saved[control.id]; });
-  assert.deepEqual(submitted, expected, 'The POST changes exactly the four owned keys in a freshly read document.');
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => { expected.runtime[control.runtimeKey] = saved[control.id]; });
+  assert.deepEqual(submitted, expected, 'The POST changes exactly the owned keys in a freshly read document.');
   assert.deepEqual(JSON.parse(await readFile(configPath, 'utf8')), expected);
   const flattened = JSON.parse(await readFile(join(directory, 'default-config.json'), 'utf8'));
-  ABOUT_VISIBILITY_CONTROLS.forEach(control => assert.equal(flattened[control.runtimeKey], saved[control.id]));
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => assert.equal(flattened[control.runtimeKey], saved[control.id]));
   assert.deepEqual(await loadRollercoasterAppearance({ forceReload: true }), saved);
   assert.equal(getRollercoasterAppearanceState().dirty, false);
   assert.deepEqual(requests.map(request => request.options.method || 'GET'), ['GET', 'GET', 'POST', 'GET', 'GET']);
@@ -473,7 +475,7 @@ test('one panel save commits copy before appearance and reports partial failure 
     getState: () => ({ dirty: true, status: 'ready' }),
     save: async () => { events.push('appearance'); throw new Error('Source unavailable'); },
   };
-  await assert.rejects(savePanelChanges(editor, appearance), /Copy saved\. Visibility not saved\. Source unavailable/);
+  await assert.rejects(savePanelChanges(editor, appearance), /Copy saved\. Scene settings not saved\. Source unavailable/);
   assert.deepEqual(events, ['copy', 'appearance']);
   assert.equal(editor.getSnapshot().dirty, false);
 
@@ -483,7 +485,7 @@ test('one panel save commits copy before appearance and reports partial failure 
   assert.deepEqual(events, [], 'Invalid visible copy blocks the shared Save action before either write.');
   editor.revert();
   appearance.save = async () => { events.push('appearance'); };
-  assert.equal(await savePanelChanges(editor, appearance), 'Visibility settings saved.');
+  assert.equal(await savePanelChanges(editor, appearance), 'Scene settings saved.');
   assert.deepEqual(events, ['appearance']);
 });
 
@@ -496,6 +498,29 @@ test('the corridor uses the fixed panel row controls and keeps Home size read on
     assert.ok(html.includes(control.label));
     assert.ok(html.includes(`about-visibility-${control.id}`));
   }
-  assert.match(html, /Ball size linked to Home/);
+
   assert.doesNotMatch(html, /id="(?:homeSimulationBodyRadiusPx|mobileSimulationBodyScale)"/);
+});
+
+
+test('all scene controls are bounded, live and reversible through one schema', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json(canonicalDesign));
+  await loadRollercoasterAppearance({ forceReload: true });
+  const initial = getRollercoasterAppearance();
+  for (const control of ABOUT_APPEARANCE_CONTROLS.filter(item => !ABOUT_VISIBILITY_CONTROLS.includes(item))) {
+    const html = renderToStaticMarkup(React.createElement(VisibilityControls, {
+      controls: [control], appearance: getRollercoasterAppearanceState(), disabled: false, onError() {},
+    }));
+    assert.ok(html.includes(control.label));
+    for (const value of [NaN, Infinity, null, '1', control.min - control.step, control.max + control.step]) {
+      assert.throws(() => setRollercoasterAppearance({ [control.id]: value }));
+    }
+    for (const value of [control.min, control.max]) {
+      setRollercoasterAppearance({ [control.id]: value });
+      assert.equal(getRollercoasterAppearance()[control.id], value);
+      assert.equal(getRollercoasterAppearanceState().dirty, value !== initial[control.id]);
+      revertRollercoasterAppearance();
+      assert.deepEqual(getRollercoasterAppearance(), initial);
+    }
+  }
 });

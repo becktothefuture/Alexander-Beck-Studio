@@ -10,7 +10,7 @@ import {
   validateAboutNarrativePointFieldDocument,
 } from '../about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import {
-  ABOUT_VISIBILITY_CONTROLS,
+  ABOUT_VISIBILITY_CONTROLS, ABOUT_CAMERA_CONTROLS, ABOUT_MATERIAL_CONTROLS, ABOUT_TITLE_CONTROLS,
   getRollercoasterAppearanceState,
   getRollercoasterVisibilityBounds,
   loadRollercoasterAppearance,
@@ -282,10 +282,11 @@ function TypeControls({ snapshot, editor, disabled }) {
   });
 }
 
-function VisibilityControls({ appearance, disabled, onError }) {
+function VisibilityControls({ appearance, disabled, onError, controls = ABOUT_VISIBILITY_CONTROLS }) {
   return <>
-    {ABOUT_VISIBILITY_CONTROLS.map((control) => {
-      const bounds = getRollercoasterVisibilityBounds(control.id, appearance.config);
+    {controls.map((control) => {
+      const bounds = ABOUT_VISIBILITY_CONTROLS.includes(control)
+        ? getRollercoasterVisibilityBounds(control.id, appearance.config) : control;
       const id = `about-visibility-${control.id}`;
       return <label key={id} className="parameterizer-row" htmlFor={id} title={control.label}>
         <span className="parameterizer-label">{control.label}</span>
@@ -296,11 +297,10 @@ function VisibilityControls({ appearance, disabled, onError }) {
               try { setRollercoasterAppearance({ [control.id]: Number(event.target.value) }); }
               catch (error) { onError(error.message); }
             }} />
-          <output className="parameterizer-value" htmlFor={id}>{appearance.config[control.id].toFixed(2)} {control.unit}</output>
+          <output className="parameterizer-value" htmlFor={id}>{appearance.config[control.id].toFixed(control.step >= 1 ? 0 : 2)} {control.unit}</output>
         </span>
       </label>;
     })}
-    <p className="about-scene-parameter-panel__note">Ball size linked to Home at 50%. Matched at 8 units; perspective varies with distance.</p>
   </>;
 }
 
@@ -311,15 +311,15 @@ async function savePanelChanges(editor, appearance = {
   const copy = editor.getSnapshot();
   const visibility = appearance.getState();
   if (copy.inputError || (copy.dirty && !editor.canSave())) throw new Error(`Copy not saved. ${copy.message}`);
-  if (visibility.dirty && visibility.status !== 'ready') throw new Error(`Visibility not saved. ${visibility.message}`);
+  if (visibility.dirty && visibility.status !== 'ready') throw new Error(`Scene settings not saved. ${visibility.message}`);
   // Design-system persistence can reload the page. Commit valid copy first.
   if (copy.dirty && !await editor.save()) throw new Error(`Copy not saved. ${editor.getSnapshot().message}`);
   if (visibility.dirty) {
     try { await appearance.save(); }
-    catch (error) { throw new Error(`${copy.dirty ? 'Copy saved. ' : ''}Visibility not saved. ${error.message}`, { cause: error }); }
+    catch (error) { throw new Error(`${copy.dirty ? 'Copy saved. ' : ''}Scene settings not saved. ${error.message}`, { cause: error }); }
   }
-  if (copy.dirty && visibility.dirty) return 'Copy, typography and visibility saved.';
-  if (visibility.dirty) return 'Visibility settings saved.';
+  if (copy.dirty && visibility.dirty) return 'Copy, typography and scene settings saved.';
+  if (visibility.dirty) return 'Scene settings saved.';
   return 'Copy and typography saved.';
 }
 
@@ -330,12 +330,12 @@ function SourceInspector({ meta }) {
     ['Camera SHA-256', meta.cameraSha256], ['Geometry SHA-256', meta.geometry?.sha256],
     ['Surface objects', meta.geometry?.objectCount],
     ['Reference seconds', meta.referenceSeconds], ['Rail length', meta.totalDistanceWU],
-    ['Circle density', 'Browser code · rollercoasterField.js'],
+    ['Circle density', 'Browser controls · rollercoasterField.js'],
   ];
   const sourceControls = (meta.controls || []).filter(control => !String(control.binding).startsWith('fog.') && !['fogNear', 'fogFar'].includes(control.key));
   return (
     <div className="rollercoaster-controls__source" data-rollercoaster-source-inspector>
-      <p className="about-scene-parameter-panel__note">Read only · Blender owns surfaces, colour roles, timing and motion. Browser code generates the circles and owns their density.</p>
+      <p className="about-scene-parameter-panel__note">Read only · Blender owns surfaces, colour roles, timing and motion. Browser controls tune the lens, glide, circles, visibility and animation speed.</p>
       <dl>{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl>
       {sourceControls.length ? <>
         <h3>Saved source controls</h3>
@@ -419,7 +419,7 @@ function DockedControls({ document, onDocumentChange, sourceMeta, disabled }) {
     ]);
     report([
       copy.status === 'fulfilled' && copy.value ? 'Copy reloaded.' : `Copy reload failed. ${editor.getSnapshot().message}`,
-      visibility.status === 'fulfilled' ? 'Visibility reloaded.' : `Visibility reload failed. ${visibility.reason.message}`,
+      visibility.status === 'fulfilled' ? 'Scene settings reloaded.' : `Scene settings reload failed. ${visibility.reason.message}`,
     ].join(' '));
     setActionBusy(false);
   };
@@ -439,7 +439,11 @@ function DockedControls({ document, onDocumentChange, sourceMeta, disabled }) {
           : hasDraft ? 'Unsaved' : 'Saved';
 
   return createPortal(
-    <aside ref={panel} hidden={!visible} tabIndex={-1}
+    <>
+    <button type="button" className="rollercoaster-controls-launcher abs-labelled-action"
+      hidden={visible} onClick={() => setVisible(true)} aria-expanded={visible}
+      aria-controls="about-scene-controls">Scene controls</button>
+    <aside id="about-scene-controls" ref={panel} hidden={!visible} tabIndex={-1}
       className="parameterizer-panel about-scene-parameter-panel rollercoaster-controls"
       data-about-rollercoaster-controls data-panel-state={status}
       data-source-sha256={sourceMeta?.source?.sha256 || ''}
@@ -454,12 +458,25 @@ function DockedControls({ document, onDocumentChange, sourceMeta, disabled }) {
           <button type="button" onClick={() => setVisible(false)} aria-label="Close About controls">Close</button>
         </div>
       </header>
-      <p className="about-scene-parameter-panel__note">Scene, copy and typography. Press / to toggle.</p>
+      <p className="about-scene-parameter-panel__note">Preview changes here. Save keeps them after reload. Press / to toggle.</p>
       <div className="parameterizer-scroll">
         <Folder label="Visibility corridor" count={ABOUT_VISIBILITY_CONTROLS.length} open>
           <VisibilityControls appearance={appearance} disabled={disabled || busy} onError={report} />
+          <p className="about-scene-parameter-panel__note">One camera-depth range for every surface, including the end wall. WU = Blender world units.</p>
         </Folder>
-        <Folder label="Copy" count={snapshot.document.tracks.text.fields.length} open>
+        <Folder label="Camera" count={ABOUT_CAMERA_CONTROLS.length}>
+          <VisibilityControls controls={ABOUT_CAMERA_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
+          <p className="about-scene-parameter-panel__note">Wider lens shows more. Longer glide gives a softer stop. The Blender rail stays in place.</p>
+        </Folder>
+        <Folder label="Circles & motion" count={ABOUT_MATERIAL_CONTROLS.length}>
+          <VisibilityControls controls={ABOUT_MATERIAL_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
+          <p className="about-scene-parameter-panel__note">Size is relative to Home. Density is independent, with a shared safety limit. Zero speed pauses the environment.</p>
+        </Folder>
+        <Folder label="Title legibility" count={ABOUT_TITLE_CONTROLS.length}>
+          <VisibilityControls controls={ABOUT_TITLE_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
+          <p className="about-scene-parameter-panel__note">Softens circle contrast behind every active title and its support. Zero keeps the full pattern.</p>
+        </Folder>
+        <Folder label="Copy" count={snapshot.document.tracks.text.fields.length}>
           <CopyControls snapshot={snapshot} editor={editor} disabled={readOnly} />
         </Folder>
         <Folder label="Typography" count={TYPE_CONTROLS.length}>
@@ -477,7 +494,8 @@ function DockedControls({ document, onDocumentChange, sourceMeta, disabled }) {
         <button type="button" disabled={!hasDraft || busy || disabled} onClick={revert}>Revert</button>
         <button type="button" disabled={disabled || !canSave} onClick={save}>Save</button>
       </footer>
-    </aside>, window.document.body,
+    </aside>
+    </>, window.document.body,
   );
 }
 

@@ -24,6 +24,7 @@ import {
 } from '../about-narrative-lab/aboutNarrativeFontReadiness.js';
 import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.js';
 import { createRollercoasterScene } from './rollercoasterScene.js';
+import { getRollercoasterAppearance } from './rollercoasterAppearance.js';
 import { stepRollercoasterCamera } from './rollercoasterCameraMotion.js';
 import { createRollercoasterTitleAnimator, rollercoasterTitleDepth } from './rollercoasterTitles.js';
 import {
@@ -288,7 +289,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     const glyphContext = document.createElement('canvas').getContext('2d');
     const abortController = new AbortController();
     const frame = { progress: 0, beatId: 'departure', beatIndex: 0, localProgress: 0, scrollTop: 0 };
-    const renderFrame = { progress: 0, ambientSeconds: 0, reducedMotion: reducedMotionRef.current };
+    const renderFrame = { progress: 0, ambientSeconds: 0, reducedMotion: reducedMotionRef.current, titleWidth: 0, titleTop: 0, titleBottom: 0, titleOpacity: 0 };
     const cameraMotion = { progress: NaN, velocity: 0 };
     let snapCamera = true;
     let disposed = false;
@@ -369,6 +370,15 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         signalReady();
         return;
       }
+      titleRecords.forEach(record => {
+        const inkHeight = parseFloat(record.node.style.getPropertyValue('--title-ink-height')) || record.ink.offsetHeight;
+        const support = record.support;
+        const supportHeight = support ? Array.from(support.children).reduce((sum, child) =>
+          sum + child.offsetHeight + 16, 0) + 16 : 0;
+        record.quietWidth = Math.max(record.ink.offsetWidth * 1.16, support ? support.offsetWidth : 0);
+        record.quietTop = -inkHeight * 0.6;
+        record.quietBottom = Math.min(root.clientHeight / 2, inkHeight * 0.6 + supportHeight);
+      });
       const readingHeights = Object.fromEntries(readingNodes.map(node => [
         node.dataset.readingBeat, node.getBoundingClientRect().height,
       ]));
@@ -410,23 +420,23 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     function render(now) {
       if (disposed) return;
       const motionReduced = reducedMotionRef.current;
+      const appearance = getRollercoasterAppearance();
       const deltaSeconds = previousTime == null ? 0 : Math.max(0, (now - previousTime) / 1000);
       if (previousTime != null && !document.hidden && entranceStarted && !motionReduced) {
-        renderFrame.ambientSeconds += Math.max(0, (now - previousTime) / 1000);
+        renderFrame.ambientSeconds += Math.min(0.1, deltaSeconds) * appearance.animationSpeed;
       }
       previousTime = document.hidden ? null : now;
       if (layout && measuredReady) {
         sampleRollercoasterScroll(layout, scrollport.scrollTop, frame);
         const cameraTarget = motionReduced ? frame.progress : sampleRollercoasterCameraTarget(layout, frame);
         renderFrame.progress = stepRollercoasterCamera(cameraMotion, cameraTarget, deltaSeconds,
-          snapCamera || motionReduced || document.hidden);
+          snapCamera || motionReduced || document.hidden, appearance.scrollGlideMs);
         snapCamera = false;
         if (import.meta.env.DEV) {
           root.dataset.aboutCameraProgress = String(renderFrame.progress);
           root.dataset.aboutCameraTarget = String(cameraTarget);
         }
         renderFrame.reducedMotion = motionReduced;
-        if (!document.hidden) scene?.render(renderFrame);
         if (frame.progress !== lastPublishedProgress) {
           root.dataset.aboutProgress = String(frame.progress);
           root.dataset.aboutBeat = frame.beatId;
@@ -450,6 +460,11 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
             activeTitle.depth = depth;
           }
         }
+        renderFrame.titleWidth = activeTitle?.quietWidth || 0;
+        renderFrame.titleTop = activeTitle?.quietTop || 0;
+        renderFrame.titleBottom = activeTitle?.quietBottom || 0;
+        renderFrame.titleOpacity = activeTitle?.opacity || 0;
+        if (!document.hidden) scene?.render(renderFrame);
         const progressValue = Math.round(frame.progress * 100);
         if (indicatorRef.current && progressValue !== lastIndicatorValue) {
           const indicator = indicatorRef.current;

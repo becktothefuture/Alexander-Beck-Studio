@@ -6,7 +6,7 @@ export const ABOUT_HOME_BODY_SCALE = 0.5;
 
 export function resolveRollercoasterBodySize(appearance, width, height, focalLengthPx) {
   const radiusPx = resolveHomeSimulationBodyRadius(appearance.homeSimulationBodyRadiusPx,
-    appearance, { cssWidth: width, cssHeight: height }) * ABOUT_HOME_BODY_SCALE;
+    appearance, { cssWidth: width, cssHeight: height }) * (appearance.circleScale ?? ABOUT_HOME_BODY_SCALE);
   return { radiusPx, radiusWU: focalLengthPx > 0 ? radiusPx * HOME_SIZE_REFERENCE_DEPTH_WU / focalLengthPx : 0 };
 }
 

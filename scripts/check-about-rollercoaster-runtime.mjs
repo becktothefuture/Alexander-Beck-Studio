@@ -555,3 +555,25 @@ test('Half the Home size is exact at the reference plane on desktop and mobile, 
     }
   }
 });
+
+
+test('lens, independent circle size/density and camera glide controls affect their intended output', () => {
+  const source = { horizontalFov: 70, portraitVerticalFov: 90 };
+  const base = resolveRollercoasterProjection(source, 1280, 720);
+  assert.ok(resolveRollercoasterProjection(source, 1280, 720, { horizontalFov: 84 }).verticalFov > base.verticalFov);
+  assert.equal(resolveRollercoasterProjection(source, 390, 844, { portraitVerticalFov: 85 }).verticalFov, 85);
+  const appearance = { homeSimulationBodyRadiusPx: 9.79, mobileSimulationBodyScale: 0.8, circleScale: 0.5 };
+  const normal = resolveRollercoasterBodySize(appearance, 1280, 720, base.focalLengthPx);
+  const large = resolveRollercoasterBodySize({ ...appearance, circleScale: 1 }, 1280, 720, base.focalLengthPx);
+  near(large.radiusWU, normal.radiusWU * 2);
+  const dense = resolveRollercoasterSamplingSpacing(0.15, { density: 2 });
+  const sparse = resolveRollercoasterSamplingSpacing(0.15, { density: 0.5 });
+  assert.ok(sparse > dense * 1.8);
+  const fast = { progress: 0, velocity: 0 }, slow = { progress: 0, velocity: 0 };
+  for (let i = 0; i < 30; i += 1) {
+    stepRollercoasterCamera(fast, 1, 1 / 60, false, 200);
+    stepRollercoasterCamera(slow, 1, 1 / 60, false, 1200);
+  }
+  assert.ok(fast.progress > 0.99 && slow.progress < 0.7);
+  assert.equal(stepRollercoasterCamera(slow, 0.3, 1 / 60, true, 1200), 0.3);
+});

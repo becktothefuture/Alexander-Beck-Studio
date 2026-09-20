@@ -59,6 +59,11 @@ const FRAGMENT_SHADER = `
   uniform float uPaletteSlots[6];
   uniform vec4 uVisibility;
   uniform float uDitherVisibility;
+  uniform vec3 uFogColor;
+  uniform vec4 uTitleBox;
+  uniform float uTitleQuiet;
+  uniform float uTitleFeather;
+  uniform float uPixelRatio;
   varying vec2 vCircle;
   varying float vPalette;
   varying float vDepth;
@@ -76,6 +81,11 @@ const FRAGMENT_SHADER = `
     float visibility = corridorVisibility(vDepth);
     // Fully hidden circles must not write depth over visible circles behind them.
     if (visibility <= 0.0) discard;
+    // Soften material contrast only under active editorial titles. The full
+    // surface, circle density, depth writes and shared corridor stay intact.
+    vec2 edge = max(abs(gl_FragCoord.xy / uPixelRatio - uTitleBox.xy) - uTitleBox.zw, 0.0);
+    float quiet = uTitleQuiet * (1.0 - smoothstep(0.0, uTitleFeather, length(edge)));
+    material.rgb = mix(material.rgb, uFogColor, quiet);
     gl_FragColor = vec4(material.rgb, material.a * corridorCoverage(visibility));
     #include <colorspace_fragment>
   }
@@ -146,7 +156,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   let renderRevision = 0, renderedRevision = -1, renderedProgress = -1, renderedTime = -1;
   let drawCount = 0, skippedDrawCount = 0;
   const pose = createRollercoasterCameraPose();
-  const lastFrame = { progress: 0, ambientSeconds: 0, reducedMotion: false };
+  const lastFrame = { progress: 0, ambientSeconds: 0, reducedMotion: false, titleWidth: 0, titleTop: 0, titleBottom: 0, titleOpacity: 0 };
   const fogTarget = new THREE.Color();
   const renderedBackground = new THREE.Color();
   const inspectionIndices = [];
@@ -243,10 +253,6 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     pixelRatio = nextPixelRatio;
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
-    const projection = resolveRollercoasterProjection(meta.camera, width, height);
-    camera.aspect = projection.aspect;
-    camera.fov = projection.verticalFov;
-    camera.updateProjectionMatrix();
     invalidate();
     updateAppearance();
   }
@@ -254,6 +260,17 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   function updateAppearance() {
     if (disposed || !uniforms) return;
     appearance = getRollercoasterAppearance();
+    if (width >= 2 && height >= 2) {
+      const projection = resolveRollercoasterProjection(meta.camera, width, height, {
+        horizontalFov: meta.camera.horizontalFov * appearance.lensWidth,
+        portraitVerticalFov: appearance.portraitFov,
+      });
+      camera.aspect = projection.aspect;
+      camera.fov = projection.verticalFov;
+      camera.updateProjectionMatrix();
+    }
+    uniforms.uTitleFeather.value = appearance.titleFeather;
+    uniforms.uPixelRatio.value = pixelRatio;
     uniforms.uVisibility.value.set(appearance.nearHidden, appearance.nearClear,
       appearance.farClear, appearance.farHidden);
     const size = resolveRollercoasterBodySize(appearance, width, height,
@@ -261,7 +278,9 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     bodyRadiusPx = size.radiusPx;
     uniforms.uRadius.value = size.radiusWU;
     invalidate();
-    scheduleField(size.radiusWU);
+    // Size and density are independent. Sampling uses the fixed half-Home
+    // calibration; the visible radius can change without moving every circle.
+    scheduleField(size.radiusWU * ABOUT_HOME_BODY_SCALE / appearance.circleScale);
   }
 
   function updateInspectionIndices() {
@@ -296,7 +315,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   function scheduleField(radiusWU) {
     if (!sourceGeometry || !field || !mesh) return;
     const nextSpacing = resolveRollercoasterSamplingSpacing(radiusWU, {
-      baseSpacing: samplingOptions.spacing, currentSpacing: field.spacing,
+      baseSpacing: samplingOptions.spacing, currentSpacing: field.spacing, density: appearance.density,
     });
     if (nextSpacing === requestedSpacing && samplingTimer) return;
     requestedSpacing = nextSpacing;
@@ -312,11 +331,20 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     if (hasFrame) render(lastFrame);
   }
 
-  function render({ progress = 0, ambientSeconds = 0, reducedMotion = false } = lastFrame) {
+  function render({ progress = 0, ambientSeconds = 0, reducedMotion = false, titleWidth = 0, titleTop = 0, titleBottom = 0, titleOpacity = 0 } = lastFrame) {
     if (disposed || !renderer || contextLost || shaderError || appearanceError) return false;
     lastFrame.progress = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
     lastFrame.ambientSeconds = Number.isFinite(ambientSeconds) ? Math.max(0, ambientSeconds) : 0;
     lastFrame.reducedMotion = Boolean(reducedMotion);
+    if (lastFrame.titleWidth !== titleWidth || lastFrame.titleTop !== titleTop
+      || lastFrame.titleBottom !== titleBottom || lastFrame.titleOpacity !== titleOpacity) invalidate();
+    lastFrame.titleWidth = titleWidth;
+    lastFrame.titleTop = titleTop;
+    lastFrame.titleBottom = titleBottom;
+    lastFrame.titleOpacity = titleOpacity;
+    uniforms.uTitleQuiet.value = appearance.titleQuiet * titleOpacity;
+    uniforms.uTitleBox.value.set(width / 2, height / 2 - (titleTop + titleBottom) / 2,
+      titleWidth / 2 + appearance.titlePadding, (titleBottom - titleTop) / 2 + appearance.titlePadding);
     const resolvedProgress = resolveRollercoasterProgress(meta, lastFrame.progress, lastFrame.reducedMotion);
     const time = lastFrame.reducedMotion ? 0 : lastFrame.ambientSeconds;
     if (width < 2 || height < 2) return false;
@@ -374,10 +402,12 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       viewport: { width, height, pixelRatio },
       visibilityMode: uniforms.uDitherVisibility.value ? 'screen-door' : 'multisample-coverage',
       canvasAlpha: renderer.getContext().getContextAttributes()?.alpha,
+      appearance: { ...appearance },
+      titleProtection: { strength: uniforms.uTitleQuiet.value, box: uniforms.uTitleBox.value.toArray(), feather: appearance.titleFeather },
       visibilityCorridor: { nearHidden: appearance.nearHidden, nearClear: appearance.nearClear,
         farClear: appearance.farClear, farHidden: appearance.farHidden },
       circleField: { spacing: field.spacing, radius: uniforms.uRadius.value,
-        diameterPxAtReference: bodyRadiusPx * 2, homeSizeScale: ABOUT_HOME_BODY_SCALE, referenceDepthWU: HOME_SIZE_REFERENCE_DEPTH_WU,
+        diameterPxAtReference: bodyRadiusPx * 2, homeSizeScale: appearance.circleScale, density: appearance.density, referenceDepthWU: HOME_SIZE_REFERENCE_DEPTH_WU,
         diameterToPitch: uniforms.uRadius.value * 2 / field.spacing, samplingRevision }, pointCount: field.count,
       field: { ...field, surfaceCounts: { ...field.surfaceCounts }, objectRanges: field.objectRanges.map(range => ({ ...range })) },
       slotColors: [...slotColors], slotIndices: [...uniforms.uPaletteSlots.value], paletteId, paletteGeneration,
@@ -449,6 +479,8 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       uAtlas: { value: null }, uAtlasScale: { value: new THREE.Vector4() }, uAtlasYScale: { value: 1 },
       uPaletteSlots: { value: new Float32Array(6) }, uFogColor: { value: new THREE.Color() },
       uVisibility: { value: new THREE.Vector4() }, uRadius: { value: 0 }, uDitherVisibility: { value: 0 },
+      uTitleBox: { value: new THREE.Vector4() }, uTitleQuiet: { value: 0 },
+      uTitleFeather: { value: 80 }, uPixelRatio: { value: 1 },
     };
     material = new THREE.ShaderMaterial({ vertexShader: VERTEX_SHADER, fragmentShader: FRAGMENT_SHADER, uniforms,
       transparent: false, alphaToCoverage: true, depthTest: true, depthWrite: true, blending: THREE.NoBlending });
