@@ -29,35 +29,35 @@ try {
         && document.querySelector('[data-route-tab="home"]')?.getAttribute('aria-current') === 'page'
       ), null, { timeout: 30_000 })
       : waitForRouteReady(page, RELEASE_SMOKE_ROUTES.find(route => route.id === id), 30_000);
-    async function assertPublished(label) {
+    async function assertHeld(label) {
       await settle('about');
-      await page.locator('[data-about-publication="released"][data-about-scene-ready="true"] #about-route-title').waitFor({ state: 'visible' });
-      assert.ok((await page.locator('#about-route-title').textContent()).trim().length > 0);
-      assert.equal(await page.locator('.about-coming-soon, .about-editor-inspector, .rollercoaster-controls').count(), 0);
+      await page.locator('[data-about-publication="held"] #about-coming-soon-title').waitFor({ state: 'visible' });
+      assert.equal((await page.locator('#about-coming-soon-title').textContent()).replace(/\s+/g, ' ').trim(), 'Coming soon.');
+      assert.equal(await page.locator('.about-narrative-lab, .about-rollercoaster, .about-editor-inspector, .rollercoaster-controls').count(), 0);
       assert.equal(await page.locator('[data-route-tab="about"]').getAttribute('aria-current'), 'page');
       assert.equal(await page.locator('[role="main"]').count(), 1);
-      assert.equal(await page.locator('#simulations').getAttribute('aria-labelledby'), 'about-route-title');
-      assert.equal(requests.some(url => /about-rollercoaster-world/.test(url)), true);
+      assert.equal(await page.locator('#simulations').getAttribute('aria-labelledby'), 'about-coming-soon-title');
+      assert.equal(requests.some(url => /AboutRollercoasterExperience|about-rollercoaster-world/.test(url)), false);
       assert.equal(await page.evaluate(() => '__aboutRollercoaster' in window), false);
       assert.equal(await page.locator('[data-about-runtime-diagnostics]').count(), 0);
       assert.deepEqual(errors, []);
-      results.push({ width, theme, label, url: page.url(), published: true });
+      results.push({ width, theme, label, url: page.url(), held: true });
     }
     for (const path of ['/about.html', '/about', '/about.html?preview=about', '/about?preview=about&edit=1']) {
       await page.goto(new URL(path, base).href);
-      await assertPublished(path);
+      await assertHeld(path);
     }
     await page.screenshot({ path: resolve(output, `${width}-${theme}.png`) });
     await page.goto(new URL('/index.html', base).href);
     await settle('home');
     await page.locator('[data-route-tab="about"]').click();
-    await assertPublished('SPA Home → About');
+    await assertHeld('SPA Home → About');
     await page.locator('[data-route-tab="contact"]').click();
     await settle('contact');
     await page.goBack();
-    await assertPublished('history Contact → About');
+    await assertHeld('history Contact → About');
     await context.close();
-    console.log(`PASS: ${name} ${width} ${theme}; direct, preview query, SPA and history publication.`);
+    console.log(`PASS: ${name} ${width} ${theme}; direct, preview query, SPA and history hold.`);
   }
 } finally { await browser.close(); }
 await writeFile(resolve(output, 'report.json'), `${JSON.stringify(results, null, 2)}\n`);

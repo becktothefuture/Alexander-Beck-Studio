@@ -22,6 +22,10 @@ assert.equal(
   'about',
 );
 assert.equal(
+  RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.identitySelector,
+  '[data-about-publication="held"] #about-coming-soon-title',
+);
+assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.semanticContract.mainSelector,
   '#simulations[role="main"][data-route-content="about"]',
 );

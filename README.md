@@ -71,10 +71,10 @@ The `legacy/` name does not mean unused: it contains the active simulation engin
 | --- | --- | --- |
 | Home (`/index.html`, also `/`) | Interactive simulation wall, identity, expertise, and Daily Simulation | Same route plus local authoring tools |
 | Work (`/portfolio.html`) | **Coming soon.** The full canvas is excluded at build time; URL parameters, browser storage, and case-study access grants cannot enable it. | Spatial catalogue with snippets, protected case studies, an in-window access gate, and a detail drawer |
-| About (`/about.html`) | Complete Blender-authored scroll journey with responsive circles, gates and final grid. | Same journey plus local copy, typography and visibility controls |
+| About (`/about.html`) | Coming soon with the shared separator and description; no URL or storage bypass. | Complete Blender-authored scroll journey plus local copy, typography and visibility controls |
 | Contact (`/contact.html`) | Contact invitation, email-copy feedback, and LinkedIn | Same visitor-facing route |
 
-These are the current source/build contracts, not a claim about the latest deployed site. Work remains held for a separate launch decision. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
+These are the current source/build contracts, not a claim about the latest deployed site. Work and About remain held for separate launch decisions. `/playground.html` is a compatibility entry for Work. The persistent Button Bar owns primary navigation. Route top bars are utility/back surfaces only.
 
 **Fancy Mode is a retained development experiment, not a live-site style.**
 Open `/lab/fancy-mode.html` or `/lab/fancy-home.html` on the development server

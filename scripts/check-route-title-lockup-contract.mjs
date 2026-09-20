@@ -150,12 +150,12 @@ test('bookend palette frames stay fully opaque before their quieter resting endp
   );
 });
 
-test('About readiness waits for the narrative scene root in production and development', () => {
+test('About readiness accepts the production hold and waits for the development scene', () => {
   const readySelector = /\.about-narrative-lab\[data-route-content=["']about["']\]/;
   assert.match(sources.siteApp, readySelector);
   assert.match(sources.routeReadiness, readySelector);
-  assert.doesNotMatch(sources.routeReadiness, /getElementById\('about-coming-soon-title'\)/);
-  assert.match(sources.siteApp, /const waitsForAboutNarrativeScene = routeId === 'about'/);
+  assert.match(sources.routeReadiness, /\[data-about-publication="held"\] #about-coming-soon-title/);
+  assert.match(sources.siteApp, /const waitsForAboutNarrativeScene = routeId === 'about' && import\.meta\.env\.DEV/);
 });
 
 test('Work holds production at Coming soon and prewarms the canvas only in development', () => {
@@ -173,12 +173,14 @@ test('Work holds production at Coming soon and prewarms the canvas only in devel
   assert.match(sources.siteApp, /const isPortfolioWorkCanvas = routeId === 'portfolio' && import\.meta\.env\.DEV/);
 });
 
-test('About prewarms its code-split scene and cannot paint an unstaged opener', () => {
+test('About holds production and prewarms its code-split scene only in development', () => {
   assert.match(sources.aboutRoute, /prewarm: \(\{ stage \} = \{\}\) => \{/);
   assert.match(sources.aboutRoute, /stage === 'data'/);
   assert.match(sources.aboutRoute, /return loadAboutNarrativeExperience\(\)/);
   assert.match(sources.aboutRoute, /import\('\.\.\/about-rollercoaster\/AboutRollercoasterExperience\.jsx'\)/);
-  assert.doesNotMatch(sources.aboutRoute, /AboutComingSoon|if \(!import\.meta\.env\.DEV\)/);
+  assert.match(sources.aboutRoute, /const AboutNarrativeExperience = import\.meta\.env\.DEV \? lazy/);
+  assert.match(sources.aboutRoute, /if \(!import\.meta\.env\.DEV\) return Promise\.resolve\(\)/);
+  assert.match(sources.aboutRoute, /if \(!import\.meta\.env\.DEV\) \{[\s\S]*?secondary: <AboutComingSoon \/>/);
   assert.doesNotMatch(sources.aboutRoute, /searchParams|localStorage|sessionStorage/);
   assert.match(sources.entranceEvents, /routeContent\.dataset\.routeEntranceStarted = 'true'/);
   assert.match(
