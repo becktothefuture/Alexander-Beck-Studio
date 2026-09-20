@@ -106,7 +106,7 @@ body.about-narrative-page .route-simulation-layer {
   top: var(--title-ink-y, 0px);
   box-sizing: border-box;
   width: max-content;
-  max-width: min(calc(100% - 2 * var(--space-lg, 24px)), 18ch);
+  max-width: min(calc((100% - 2 * var(--space-lg, 24px)) * var(--about-title-depth-fit, 1)), 18ch);
   margin: 0;
   padding: 0;
   font-family: var(--abs-font-headline);
@@ -345,7 +345,7 @@ html[data-abs-transition-phase='route-loading'] .rollercoaster-indicator-layer {
   .rollercoaster-reading {
     width: min(86cqw, calc(100% - 2 * (var(--utility-rail-button-size, 32px) + 2 * var(--utility-rail-padding, 6px) + var(--space-md, 16px))));
   }
-  .rollercoaster-title { max-width: calc(100% - 2 * var(--space-md, 16px)); }
+  .rollercoaster-title { max-width: calc((100% - 2 * var(--space-md, 16px)) * var(--about-title-depth-fit, 1)); }
   .rollercoaster-clients {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: calc(var(--space-lg, 24px) * var(--about-client-row-gap-scale)) calc(var(--space-lg, 24px) * var(--about-client-column-gap-scale));

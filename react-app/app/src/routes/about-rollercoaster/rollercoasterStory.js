@@ -35,15 +35,20 @@ export function selectRollercoasterCopy(document) {
 
 /** Allocate native distance, not camera keyframes. A paragraph starts below
  * the viewport and its last line has left before the next authored beat.
- * Larger copy extends only its own reading chamber. */
+ * Larger copy extends only its own reading chamber. Title pacing adds native
+ * distance around the same source boundaries; it never takes tunnel distance. */
 export function createRollercoasterStoryLayout(beats, {
   viewportHeight,
   readingHeights = {},
   clearancePx = 24,
+  titleDurationScale = 1,
 } = {}) {
   if (!Number.isFinite(viewportHeight) || viewportHeight <= 0
     || !Number.isFinite(clearancePx) || clearancePx < 0) {
     throw new TypeError('About layout requires a positive viewport and a finite reading clearance.');
+  }
+  if (!Number.isFinite(titleDurationScale) || titleDurationScale < 1 || titleDurationScale > 4) {
+    throw new TypeError('About title duration scale must be between 1 and 4.');
   }
   validateRollercoasterStoryBeats(beats);
   let cursor = 0;
@@ -54,7 +59,8 @@ export function createRollercoasterStoryLayout(beats, {
     if (!Number.isFinite(copyHeight) || copyHeight < 0) {
       throw new TypeError(`Invalid measured copy height for ${id}.`);
     }
-    const baseDistance = scrollScreens * viewportHeight;
+    const title = beat.kind === 'title' || beat.kind === 'ending';
+    const baseDistance = scrollScreens * viewportHeight * (title ? titleDurationScale : 1);
     const readingDistance = reading ? copyHeight + viewportHeight + (2 * clearancePx) : 0;
     const distance = Math.max(baseDistance, readingDistance);
     const segment = {
@@ -115,11 +121,11 @@ const smoothstep = value => {
 
 export function rollercoasterTitleOpacity(localProgress, {
   index = 0, count = 1, ending = false,
-} = {}) {
+} = {}, motion = {}) {
   const local = (localProgress * count) - index;
   if (local < 0 || local > 1 || (local === 1 && !ending)) return 0;
   // The shared Home glyph reveal owns arrival; scroll owns only departure.
-  const departure = ending ? 1 : smoothstep((1 - local) / 0.18);
+  const departure = ending ? 1 : smoothstep((1 - local) / Math.max(0.01, Number(motion.exitFraction ?? 0.1)));
   return departure;
 }
 

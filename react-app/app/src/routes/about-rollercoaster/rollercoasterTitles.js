@@ -1,14 +1,14 @@
 const clamp = value => Math.max(0, Math.min(1, value));
 const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
 
-// Restores the September 7 About depth track. Keep X/Y at the viewport centre;
+// Keep the authored depth track centred in X/Y;
 // Home's shared entrance owns the separate per-letter colour and movement.
 export function rollercoasterTitleDepth(localProgress, options, elapsedMs, reducedMotion, motion = {}) {
   if (reducedMotion) return 0;
   const progress = clamp(localProgress * options.count - options.index);
-  const entry = Number(motion.entryDepth ?? 100);
-  const exit = Number(motion.exitDepth ?? 70);
-  const arrival = smooth(elapsedMs / 900);
+  const entry = Number(motion.entryDepth ?? 300);
+  const exit = Number(motion.exitDepth ?? 210);
+  const arrival = smooth(elapsedMs / 1400);
   if (options.ending) return -entry * (1 - Math.max(arrival, smooth(progress / 0.5)));
   if (options.opening) return -entry * (1 - arrival) + exit * 0.4 * smooth(progress);
   return -entry + (entry + exit) * progress;

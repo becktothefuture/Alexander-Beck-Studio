@@ -21,19 +21,19 @@ const close = (actual, expected, tolerance = 1e-9) => assert.ok(
   Math.abs(actual - expected) <= tolerance, `${actual} should equal ${expected}`,
 );
 
-test('title depth retraces the historical range and reduced motion stays on the reading plane', () => {
+test('title depth retraces the stronger authored range and reduced motion stays on the reading plane', () => {
   const options = { count: 1, index: 0 };
   const depth = progress => rollercoasterTitleDepth(progress, options, 1000, false);
-  close(depth(0), -100);
-  close(depth(1), 70);
-  close(depth(0.5), -15);
+  close(depth(0), -300);
+  close(depth(1), 210);
+  close(depth(0.5), -45);
   close(rollercoasterTitleDepth(0.75, { count: 2, index: 1 }, 1000, false), depth(0.5));
   for (const opening of [false, true]) for (const ending of [false, true]) {
     const bookend = { ...options, opening, ending };
     close(rollercoasterTitleDepth(0.3, bookend, 400, true), 0);
     if (opening || ending) {
-      close(rollercoasterTitleDepth(0, bookend, 0, false), -100);
-      close(rollercoasterTitleDepth(0, bookend, 900, false), 0);
+      close(rollercoasterTitleDepth(0, bookend, 0, false), -300);
+      close(rollercoasterTitleDepth(0, bookend, 1400, false), 0);
     }
   }
 });
@@ -114,6 +114,31 @@ test('the source supplies the baseline distance, rather than an inherited world 
     assert.equal(segment.start, beats[index].start);
     assert.equal(segment.end, beats[index].end);
   });
+});
+
+test('longer titles preserve every source boundary, reading clearance and tunnel distance', () => {
+  const baseline = create();
+  const longer = create({ titleDurationScale: 1.75 });
+  close(longer.totalScreens, 36.8);
+  longer.segments.forEach((segment, index) => {
+    const original = baseline.segments[index];
+    const title = segment.kind === 'title' || segment.kind === 'ending';
+    close(segment.distancePx, original.distancePx * (title ? 1.75 : 1));
+    close(segment.copyOffsetPx, original.copyOffsetPx);
+    close(segment.start, original.start);
+    close(segment.end, original.end);
+  });
+  for (let step = 0; step <= 1000; step += 1) {
+    const progress = step / 1000;
+    const scroll = rollercoasterProgressToScroll(longer, progress);
+    close(sampleRollercoasterScroll(longer, scroll, {}).progress, progress);
+  }
+  const native = { scrollTop: rollercoasterProgressToScroll(baseline, 0.42) };
+  restoreRollercoasterScrollPosition(native, baseline, longer, 0.42);
+  close(sampleRollercoasterScroll(longer, native.scrollTop, {}).progress, 0.42);
+  for (const invalid of [0, -1, Infinity, NaN, 5]) {
+    assert.throws(() => create({ titleDurationScale: invalid }), /duration scale/);
+  }
 });
 
 test('enlarged copy adds native space only inside its reading beats', () => {
@@ -198,6 +223,9 @@ test('each intermediate title shares the same fade and hold, with no simultaneou
     assert.equal(rollercoasterTitleOpacity(local, { index: 0, count: 2 })
       * rollercoasterTitleOpacity(local, { index: 1, count: 2 }), 0);
   }
+  close(rollercoasterTitleOpacity(0.90), 1);
+  close(rollercoasterTitleOpacity(0.95), 0.5);
+  close(rollercoasterTitleOpacity(0.80, {}, { exitFraction: 0.4 }), 0.5);
   assert.equal(rollercoasterTitleOpacity(0, { opening: true }), 1);
   assert.equal(rollercoasterTitleOpacity(1, { ending: true }), 1);
 });

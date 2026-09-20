@@ -244,7 +244,7 @@ test('every flight title keeps its optical centre while travelling only in depth
   const lifecycleEnd = sources.about.indexOf('        const progressValue', lifecycleStart);
   assert(lifecycleStart >= 0 && lifecycleEnd > lifecycleStart, 'Inspect the actual cached title update loop.');
   const visibleLifecycle = sources.about.slice(lifecycleStart, lifecycleEnd);
-  assert.match(visibleLifecycle, /rollercoasterTitleOpacity\(frame\.localProgress, record\.options\)/);
+  assert.match(visibleLifecycle, /rollercoasterTitleOpacity\(frame\.localProgress, record\.options, textMotionRef\.current\)/);
   assert.match(visibleLifecycle, /applyRollercoasterTitlePresentation\(record, opacity\)/);
   assert.doesNotMatch(visibleLifecycle, /transform|\.style\.(?:top|left)|title-ink/);
 });

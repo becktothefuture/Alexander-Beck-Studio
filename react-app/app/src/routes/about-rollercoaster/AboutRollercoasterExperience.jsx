@@ -246,8 +246,14 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
   }, [reducedMotion]);
 
   useEffect(() => {
-    textMotionRef.current = contentDocument.globals?.textMotion;
-    rootRef.current?.style.setProperty('--about-title-perspective', `${contentDocument.globals?.textMotion?.perspective ?? 1600}px`);
+    const motion = contentDocument.globals?.textMotion;
+    const perspective = Number(motion?.perspective ?? 1600);
+    textMotionRef.current = motion;
+    rootRef.current?.style.setProperty('--about-title-perspective', `${perspective}px`);
+    // Reserve width for the nearest title plane, including narrow screens.
+    rootRef.current?.style.setProperty('--about-title-depth-fit', String(
+      Math.max(0.1, 1 - Number(motion?.exitDepth ?? 210) / perspective),
+    ));
     measureRef.current?.();
   }, [contentDocument]);
 
@@ -370,6 +376,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       try {
         next = createRollercoasterStoryLayout(scene.meta.beats, {
           viewportHeight: scrollport.clientHeight, readingHeights,
+          titleDurationScale: Math.max(1, Number(textMotionRef.current?.durationScale ?? 1)),
         });
       } catch (error) {
         failScene(error);
@@ -424,7 +431,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         let activeTitle = null;
         titleRecords.forEach((record) => {
           const active = record.beatId === frame.beatId;
-          const opacity = active && entranceStarted ? rollercoasterTitleOpacity(frame.localProgress, record.options) : 0;
+          const opacity = active && entranceStarted ? rollercoasterTitleOpacity(frame.localProgress, record.options, textMotionRef.current) : 0;
           if (opacity > 0) activeTitle = record;
           if (record.opacity === opacity) return;
           record.opacity = opacity;

@@ -72,7 +72,7 @@
       "displayMaxWidthCh": 17,
       "standardViewportY": 50,
       "bookendViewportY": 50,
-      "durationScale": 1.45,
+      "durationScale": 1.75,
       "startY": 18,
       "openerStartY": 0,
       "endY": -18,
@@ -86,10 +86,10 @@
       "titleShadowOpacity": 0,
       "titleShadowBlurPx": 0,
       "perspective": 1600,
-      "entryDepth": 100,
-      "exitDepth": 70,
+      "entryDepth": 300,
+      "exitDepth": 210,
       "maxBlur": 0,
-      "exitFraction": 0.18
+      "exitFraction": 0.1
     },
     "storyPacing": {
       "titleToProseGapScreens": 0.06,
