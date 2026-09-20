@@ -19,10 +19,11 @@ An overall perspective render is supplied with the source proof.
 
 | Item | Edit |
 | --- | --- |
-| `FlightRail` | Edit 48 smooth Bézier controls. This single path drives the camera, surface bends, gates and final wall. |
+| `FlightRail` | Edit 23 smooth Bézier controls. This single path drives the camera, surface bends, gates and final wall. |
 | `FlightCamera` | Keep the H70 lens and live constraint. The browser uses the same saved camera with a portrait vertical cap. |
 | `A · …`, `B · …` | Simple hollow walls, round hoops and square/diamond frames. Static surfaces use the shared `Follow FlightRail` binding; moving gates use fixed path anchors. |
-| `Opening · … wing`, `… ribbon` | Paired upright panels beside the camera route. Their names are retained for source identity. Edit the simple mesh pieces; keep the gap between left and right open for prose. |
+| `Opening · floor lane …` | Four adjacent simple floor strips below a straight, level camera. Keep the opening free of walls and gates. |
+| `Canopy · … ribbon`, `Method · … ribbon` | Paired upright panels beside the camera route. Keep the central passage clear for prose. |
 | `… floor release` | Simple strips following the camera route below the lens. They rise into the title/travel sections and create open floor passages. |
 | Rotating controller empties | `amplitude` (radians), `period` (seconds), and `phase` (radians) control the shared ambient equation. Keep their quaternion drivers. Transform the child mesh to change its shape. |
 | `Final wall` | One complete four-corner quad attached to the path endpoint. Its subdivision and wave modifiers are preview-only; the exporter reads its base quad and current world orientation. |
@@ -52,14 +53,25 @@ edit the rail to reshape the route. Moving gates retain their own local shape
 and ambient rotation. Review the complete camera flight after major edits:
 crossing or tightly folded path sections can still make scenery overlap.
 
-### First gallery to round tunnel
+### Floor opening and steady flight
 
-The first gallery has 30 paired panels with a clear central passage. Its final
-panels stop before the downward entrance. Rail controls 5–11 (counting from zero)
-shape this drop and the turn beneath the gallery; the sideways bend comes after
-the entrance. Keep the first part of the drop free of bank so its opening stays
-balanced. The current refinement preserves the full rail length and all later
-controls, keeping the other chapters in place.
+The camera travels straight and level for the first 15% of the journey. Four
+adjacent floor lanes sit 4.2 WU below it, from before the start to the first tunnel.
+A short ramp meets the tunnel floor.
+The first non-floor objects sit at the tunnel threshold. The shared distance
+corridor reveals them as the camera approaches; there are no visibility switches.
+
+The 23 aligned controls describe two broad sweeps, a gentle descent and rise,
+and a straight final approach. The current rail has zero tilt for a stable
+horizon. Keep the first three controls and their handles collinear and level;
+keep the final two collinear. The camera follows the native rail tangent, so
+Blender previews the same orientation that the browser receives.
+
+The source now allocates 23.7 baseline viewport lengths. The retained 1.75 title
+scale makes this 28.5 before measured copy adds any required reading space.
+Travel-only gaps and excess prose budgets are shorter; title holds are unchanged.
+The browser adds a critically damped scroll glide (95% response in about 600 ms).
+Slow frames keep this easing rather than snapping the camera to the target.
 
 ### Assign colours through materials
 

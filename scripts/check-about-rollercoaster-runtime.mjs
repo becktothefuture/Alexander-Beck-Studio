@@ -119,13 +119,20 @@ test('camera inertia is frame-rate independent, settles exactly and does not ove
       assert.ok(next >= previous && next <= 0.3);
       previous = next;
     }
-    assert.ok(state.progress > 0.299 && state.progress < 0.3);
+    assert.ok(state.progress > 0.29 && state.progress < 0.295, 'A scroll impulse retains a visible, gentle tail after half a second.');
     results.push(state.progress);
-    for (let i = 0; i < hz; i += 1) stepRollercoasterCamera(state, 0.3, 1 / hz);
+    for (let i = 0; i < hz * 2; i += 1) stepRollercoasterCamera(state, 0.3, 1 / hz);
     assert.equal(state.progress, 0.3);
     assert.equal(state.velocity, 0);
   }
   vectorNear(results, [results[0], results[0], results[0]]);
+});
+
+test('a slow frame keeps the camera glide bounded instead of jumping to the scroll target', () => {
+  const state = { progress: 0.2, velocity: 0 };
+  const next = stepRollercoasterCamera(state, 0.8, 0.4);
+  assert.ok(next > 0.2 && next < 0.35);
+  assert.ok(state.velocity > 0);
 });
 
 test('camera reversals and endpoint flings remain bounded, while restoration and reduced motion snap', () => {

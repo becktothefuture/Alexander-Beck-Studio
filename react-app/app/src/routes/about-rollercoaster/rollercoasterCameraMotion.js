@@ -1,6 +1,7 @@
 // A critically damped spring adds a short glide to the camera only. Native
 // text scrolling, history and the authored rail remain the source of truth.
-const RESPONSE = 16;
+// About 600 ms to cover 95% of a scroll impulse: a steady glide with a soft stop.
+const RESPONSE = 8;
 const SETTLE_EPSILON = 0.000001;
 
 export function stepRollercoasterCamera(state, target, deltaSeconds, snap = false) {

@@ -41,6 +41,30 @@ let maxAngle = 0;
 let finalAngle = 0;
 const angles = [];
 const positions = samples.map(sample => sample.slice(1, 4));
+// The introduction is a level, straight flight. Bound angular changes across
+// the rest of the saved rail so small course corrections cannot return unnoticed.
+let maxRotationStepDegrees = 0;
+for (let index = 1; index < samples.length; index += 1) {
+  const previous = samples[index - 1];
+  const sample = samples[index];
+  const dot = sample.slice(4).reduce((sum, value, axis) => sum + value * previous[axis + 4], 0);
+  const length = Math.hypot(...sample.slice(4)) * Math.hypot(...previous.slice(4));
+  const angle = 2 * Math.acos(Math.min(1, Math.abs(dot / length))) * 180 / Math.PI;
+  maxRotationStepDegrees = Math.max(maxRotationStepDegrees, angle);
+  assert.ok(angle / (sample[0] - previous[0]) < 1200, 'The camera rail must use broad, gradual turns.');
+  if (sample[0] <= 0.15) {
+    assert.ok(Math.abs(sample[1]) < 1e-4 && Math.abs(sample[2]) < 1e-4, 'The opening stays straight and level.');
+    assert.ok(angle < 0.01, 'The opening camera does not turn.');
+  }
+}
+const openingFloors = bundle.geometry.objects.filter(object => object.id.startsWith('opening-floor-lane-'));
+assert.equal(openingFloors.length, 4, 'The opening has four adjacent floor lanes.');
+for (const floor of openingFloors) {
+  assert.equal(floor.motionGroup, 0);
+  for (let index = 1; index < floor.positions.length; index += 3) {
+    assert.ok(floor.positions[index] < -1.5, 'The opening geometry stays below the camera.');
+  }
+}
 for (let index = 0; index < samples.length; index += 1) {
   const sample = samples[index];
   const before = positions[Math.max(0, index - 1)];
@@ -177,7 +201,7 @@ for (const [width, height] of orientations) {
 const report = {
   source: meta.source, objectCount: bundle.geometry.objects.length, generatedPointCount: field.count,
   field: { spacing: field.spacing, radius: field.radius }, cameraSamples: samples.length,
-  distance, maxForwardAngleDegrees: maxAngle,
+  distance, maxForwardAngleDegrees: maxAngle, maxRotationStepDegrees,
   finalForwardAngleDegrees: finalAngle,
   medianForwardAngleDegrees: angles.sort((a, b) => a - b)[Math.floor(angles.length / 2)],
   endingPoseHeld: true, bundleHashesMatch: true,

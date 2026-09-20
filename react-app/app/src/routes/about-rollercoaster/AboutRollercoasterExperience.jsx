@@ -418,7 +418,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       if (layout && measuredReady) {
         sampleRollercoasterScroll(layout, scrollport.scrollTop, frame);
         renderFrame.progress = stepRollercoasterCamera(cameraMotion, frame.progress, deltaSeconds,
-          snapCamera || motionReduced || document.hidden || deltaSeconds > 0.25);
+          snapCamera || motionReduced || document.hidden);
         snapCamera = false;
         if (import.meta.env.DEV) root.dataset.aboutCameraProgress = String(renderFrame.progress);
         renderFrame.reducedMotion = motionReduced;
