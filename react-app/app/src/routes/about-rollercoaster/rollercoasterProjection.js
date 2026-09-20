@@ -5,7 +5,7 @@ const SAMPLING_BUCKET_RATIO = 1.1;
 // Half-size circles and ~sqrt(2) closer samples double the surface density,
 // while leaving more open space between the full-colour gradients.
 const CIRCLE_PITCH_RATIO = 0.55 / Math.SQRT2;
-export const ROLLERCOASTER_PORTRAIT_MIN_CAP = 105;
+export const ROLLERCOASTER_PORTRAIT_MIN_CAP = 95;
 
 /** One responsive lens for the entire rail. The optional cap supports measured
  * lens comparisons without adding beat-specific camera corrections. */

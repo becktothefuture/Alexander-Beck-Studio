@@ -6,7 +6,7 @@ import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
   ROLLERCOASTER_READING_BEATS, restoreRollercoasterScrollPosition,
   rollercoasterProgressToScroll, rollercoasterTitleOpacity,
-  sampleRollercoasterScroll, selectRollercoasterCopy,
+  sampleRollercoasterCameraTarget, sampleRollercoasterScroll, selectRollercoasterCopy,
 } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterStory.js';
 
 const boundaries = [0, 0.04, 0.16, 0.20, 0.40, 0.44, 0.59, 0.64, 0.72, 0.90, 0.97, 1];
@@ -210,6 +210,39 @@ test('routine measurement never rewrites a native pixel; a real reflow preserves
   assert.equal(restoreRollercoasterScrollPosition(scrollport, layout, reflow, source), true);
   const actual = sampleRollercoasterScroll(reflow, native, {}).progress;
   assert.ok(Math.abs(actual - source) < 1 / reflow.segments[1].distancePx);
+});
+
+test('camera timing joins unequal reading speeds without jumps, overshoot or changing native text progress', () => {
+  for (const readingHeights of [{}, { background: 8000, disciplines: 12000, method: 5000 }]) {
+    const layout = create({ viewportHeight: 746, titleDurationScale: 1.75, readingHeights });
+    const frame = {};
+    const sample = scroll => sampleRollercoasterCameraTarget(layout,
+      sampleRollercoasterScroll(layout, scroll, frame));
+    let previous = -1;
+    for (let index = 0; index <= 10000; index += 1) {
+      const scroll = layout.totalScrollPx * index / 10000;
+      const progress = sample(scroll);
+      const segment = layout.segments[frame.beatIndex];
+      assert.ok(progress >= previous);
+      assert.ok(progress >= segment.start - 1e-12 && progress <= segment.end + 1e-12);
+      close(rollercoasterProgressToScroll(layout, frame.progress), scroll, 1e-8);
+      assert.ok(sample(scroll + 10) >= progress);
+      close(sample(scroll), progress);
+      previous = progress;
+    }
+    const step = 0.01;
+    for (const segment of layout.segments.slice(1)) {
+      const boundary = segment.startPx;
+      close(sample(boundary), segment.start);
+      const incoming = (sample(boundary) - sample(boundary - step)) / step;
+      const outgoing = (sample(boundary + step) - sample(boundary)) / step;
+      close(incoming, outgoing, 1e-8);
+      if (segment.kind === 'ending') assert.ok(incoming < 1e-8, 'The final approach eases to a stop.');
+    }
+    close(sample(0), 0);
+    assert.ok(sample(step) / step < 1e-8, 'The opening begins with gentle acceleration.');
+    close(sample(layout.totalScrollPx), 1);
+  }
 });
 
 test('each intermediate title shares the same fade and hold, with no simultaneous statement title', () => {

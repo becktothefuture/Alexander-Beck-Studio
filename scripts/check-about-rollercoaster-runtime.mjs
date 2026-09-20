@@ -31,7 +31,7 @@ test('one aspect-driven lens retains desktop framing and widens portrait capture
   for (const [width, height] of [[1412, 898], [1252, 618], [362, 742], [292, 466], [816, 288]]) {
     const lens = resolveRollercoasterProjection(source, width, height);
     const authoredVertical = 2 * Math.atan(Math.tan(35 * Math.PI / 180) / (width / height)) * 180 / Math.PI;
-    near(lens.verticalFov, Math.min(105, authoredVertical));
+    near(lens.verticalFov, Math.min(95, authoredVertical));
     if (width >= height) near(lens.verticalFov, Math.min(90, authoredVertical));
     near(lens.focalLengthPx, height / (2 * Math.tan(lens.verticalFov * Math.PI / 360)));
     for (const portraitVerticalFov of [76, 80, 85, 90, 100, 105]) {
@@ -42,10 +42,10 @@ test('one aspect-driven lens retains desktop framing and widens portrait capture
     }
   }
   const phone = resolveRollercoasterProjection(source, 362, 742);
-  const previousPhone = resolveRollercoasterProjection(source, 362, 742, { portraitVerticalFov: 90 });
-  near(phone.verticalFov, 105);
-  assert.ok(phone.focalLengthPx < previousPhone.focalLengthPx,
-    'The reviewed phone lens reveals more of the surrounding gate instead of cropping it further.');
+  const previousPhone = resolveRollercoasterProjection(source, 362, 742, { portraitVerticalFov: 105 });
+  near(phone.verticalFov, 95);
+  assert.ok(phone.focalLengthPx > previousPhone.focalLengthPx,
+    'The reviewed phone lens gives gates more presence while keeping the authored camera pose.');
   const widerSource = resolveRollercoasterProjection({ ...source, portraitVerticalFov: 120 }, 292, 742);
   assert.ok(widerSource.verticalFov > 105 && widerSource.verticalFov <= 120,
     'The browser portrait minimum does not narrow a wider source cap.');

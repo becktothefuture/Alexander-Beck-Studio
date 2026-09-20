@@ -417,8 +417,8 @@
     "tactileNavReleaseDurationMs": 185,
     "aboutVisibilityNearHiddenWU": 2,
     "aboutVisibilityNearClearWU": 7,
-    "aboutVisibilityFarClearWU": 8,
-    "aboutVisibilityFarHiddenWU": 24
+    "aboutVisibilityFarClearWU": 12,
+    "aboutVisibilityFarHiddenWU": 38
   },
   "shell": {
     "theme": {

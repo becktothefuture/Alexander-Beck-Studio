@@ -268,8 +268,8 @@ test('visibility defaults use four canonical keys and the existing Home sizing n
   assert.deepEqual(ABOUT_VISIBILITY_CONTROLS.map(control => [control.id, control.runtimeKey, control.min, control.max, control.defaultValue]), [
     ['nearHidden', 'aboutVisibilityNearHiddenWU', 0, 8, 2],
     ['nearClear', 'aboutVisibilityNearClearWU', 0.1, 12, 7],
-    ['farClear', 'aboutVisibilityFarClearWU', 3, 60, 8],
-    ['farHidden', 'aboutVisibilityFarHiddenWU', 4, 120, 24],
+    ['farClear', 'aboutVisibilityFarClearWU', 3, 60, 12],
+    ['farHidden', 'aboutVisibilityFarHiddenWU', 4, 120, 38],
   ]);
   const loaded = await loadRollercoasterAppearance({ forceReload: true });
   assert.equal(loaded, getRollercoasterAppearance(), 'Renderer snapshots are stable between changes.');

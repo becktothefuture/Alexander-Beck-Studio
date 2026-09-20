@@ -6,8 +6,8 @@ import { withAboutLoadDeadline } from './rollercoasterLoading.js';
 export const ABOUT_VISIBILITY_CONTROLS = Object.freeze([
   { id: 'nearHidden', runtimeKey: 'aboutVisibilityNearHiddenWU', label: 'Near hidden', min: 0, max: 8, defaultValue: 2 },
   { id: 'nearClear', runtimeKey: 'aboutVisibilityNearClearWU', label: 'Near clear', min: 0.1, max: 12, defaultValue: 7 },
-  { id: 'farClear', runtimeKey: 'aboutVisibilityFarClearWU', label: 'Far clear', min: 3, max: 60, defaultValue: 8 },
-  { id: 'farHidden', runtimeKey: 'aboutVisibilityFarHiddenWU', label: 'Far hidden', min: 4, max: 120, defaultValue: 24 },
+  { id: 'farClear', runtimeKey: 'aboutVisibilityFarClearWU', label: 'Far clear', min: 3, max: 60, defaultValue: 12 },
+  { id: 'farHidden', runtimeKey: 'aboutVisibilityFarHiddenWU', label: 'Far hidden', min: 4, max: 120, defaultValue: 38 },
 ].map(control => Object.freeze({ ...control, step: 0.05, unit: 'WU' })));
 
 const HOME_KEYS = ['homeSimulationBodyRadiusPx', 'mobileSimulationBodyScale'];

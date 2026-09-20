@@ -73,6 +73,20 @@ export function createRollercoasterStoryLayout(beats, {
     cursor += distance;
     return segment;
   });
+  // Join unequal reading/travel budgets with one speed at each boundary.
+  // Harmonic means stay below twice either secant, so each cubic is monotone.
+  // The opening and the held final camera arrive with zero speed.
+  const slopes = segments.map(segment => (segment.end - segment.start) / segment.distancePx);
+  const speedAt = index => {
+    if (index === 0 || index === segments.length || segments[index].kind === 'ending') return 0;
+    const before = slopes[index - 1];
+    const after = slopes[index];
+    return (2 * before * after) / (before + after);
+  };
+  segments.forEach((segment, index) => {
+    segment.cameraStartTangent = speedAt(index) * segment.distancePx;
+    segment.cameraEndTangent = speedAt(index + 1) * segment.distancePx;
+  });
   return {
     viewportHeight, clearancePx, segments,
     totalScrollPx: cursor, contentHeightPx: cursor + viewportHeight,
@@ -93,6 +107,19 @@ export function sampleRollercoasterScroll(layout, scrollTop, target) {
   target.localProgress = localProgress;
   target.scrollTop = position;
   return target;
+}
+
+/** Camera-only Hermite timing. Text, history and layout retain native progress;
+ * every authored boundary stays exact and reversing scroll retraces the curve. */
+export function sampleRollercoasterCameraTarget(layout, frame) {
+  const segment = layout.segments[frame.beatIndex];
+  const t = frame.localProgress;
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return ((2 * t3 - 3 * t2 + 1) * segment.start)
+    + ((t3 - 2 * t2 + t) * segment.cameraStartTangent)
+    + ((-2 * t3 + 3 * t2) * segment.end)
+    + ((t3 - t2) * segment.cameraEndTangent);
 }
 
 export function rollercoasterProgressToScroll(layout, progress) {

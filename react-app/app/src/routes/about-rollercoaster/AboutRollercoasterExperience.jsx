@@ -29,7 +29,7 @@ import { createRollercoasterTitleAnimator, rollercoasterTitleDepth } from './rol
 import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
   ROLLERCOASTER_READING_BEATS, restoreRollercoasterScrollPosition,
-  rollercoasterTitleOpacity, sampleRollercoasterScroll, selectRollercoasterCopy,
+  rollercoasterTitleOpacity, sampleRollercoasterCameraTarget, sampleRollercoasterScroll, selectRollercoasterCopy,
 } from './rollercoasterStory.js';
 import './about-rollercoaster.css';
 
@@ -417,10 +417,14 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       previousTime = document.hidden ? null : now;
       if (layout && measuredReady) {
         sampleRollercoasterScroll(layout, scrollport.scrollTop, frame);
-        renderFrame.progress = stepRollercoasterCamera(cameraMotion, frame.progress, deltaSeconds,
+        const cameraTarget = motionReduced ? frame.progress : sampleRollercoasterCameraTarget(layout, frame);
+        renderFrame.progress = stepRollercoasterCamera(cameraMotion, cameraTarget, deltaSeconds,
           snapCamera || motionReduced || document.hidden);
         snapCamera = false;
-        if (import.meta.env.DEV) root.dataset.aboutCameraProgress = String(renderFrame.progress);
+        if (import.meta.env.DEV) {
+          root.dataset.aboutCameraProgress = String(renderFrame.progress);
+          root.dataset.aboutCameraTarget = String(cameraTarget);
+        }
         renderFrame.reducedMotion = motionReduced;
         if (!document.hidden) scene?.render(renderFrame);
         if (frame.progress !== lastPublishedProgress) {
