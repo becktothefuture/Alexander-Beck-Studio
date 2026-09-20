@@ -10,7 +10,9 @@ This document is an index, not a duplicate copy deck. Edit the source named belo
 | Home footer edge/social content | `public/config/contents-home.json` → `SiteFooter.jsx` |
 | Contact title, description, email, copied feedback | `contents-home.json.contact` → `ContactRouteContent.jsx` |
 | Portfolio gate text | `contents-home.json.gates.portfolio` |
-| Portfolio route blurb | `contents-home.json.portfolio` |
+| Work spatial route intro | `contents-portfolio.json.title` and `.description` |
+| Legacy Portfolio route blurb | `contents-home.json.portfolio` |
+| Work and About Coming soon copy | `src/routes/portfolio/PortfolioComingSoon.jsx` and `src/routes/about/AboutComingSoon.jsx` |
 | Portfolio projects and media | `public/config/contents-portfolio.json` |
 | About Me narrative copy, timing, and labels | `public/config/contents-about.json` |
 | About Me contact destinations | `contents-home.json.contact` and `contents-home.json.socials` |

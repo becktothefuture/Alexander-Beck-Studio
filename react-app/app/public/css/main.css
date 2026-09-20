@@ -6954,6 +6954,11 @@ body.portfolio-page--locked #simulations {
   position: relative;
 }
 
+/* Keep the Coming soon descender clear of the shared separator rule. */
+:is([data-work-publication='held'], [data-about-publication='held']) .route-centered-page__title {
+  padding-bottom: var(--route-title-rule-offset);
+}
+
 .route-title-lockup__rule {
   display: block;
   flex: 0 0 auto;

@@ -2,7 +2,7 @@ export function PortfolioComingSoon() {
   return (
     <div className="route-centered-page" data-route-content="portfolio" data-work-publication="held">
       <section
-        className="route-centered-page__inner"
+        className="route-centered-page__inner route-title-lockup"
         aria-labelledby="portfolio-coming-soon-title"
       >
         <h1
@@ -17,6 +17,10 @@ export function PortfolioComingSoon() {
         >
           Coming soon.
         </h1>
+        <span className="route-title-lockup__rule" aria-hidden="true" />
+        <p className="route-centered-page__description route-intro-description" data-route-enter="context" data-route-enter-variant="bookend-description">
+          A few projects to show you. Just tidying up.
+        </p>
       </section>
     </div>
   );

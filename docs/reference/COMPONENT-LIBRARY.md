@@ -83,6 +83,8 @@ Work, About, and Contact pair this title with `.route-centered-page__description
 
 Contact applies one intentional responsive override: its centred description uses 75% of the shared intro measure, capped at `37.8ch`. Its short title rule also uses a fluid optical offset that compensates for the Instrument Serif title's lower whitespace, keeping the rule visually midway between title and description from phone through desktop.
 
+The Work and About Coming soon components use `.route-title-lockup` with the same short separator rule and a brief route description. They follow the shared title, rule, then description entrance. Route configuration controls whether each placeholder is shown.
+
 ## Work item and presentation
 
 The full Work experience is currently development-only. The default production route is **Coming soon.**; see the [route availability table](../../README.md#routes). These component patterns do not authorize changing that boundary.
