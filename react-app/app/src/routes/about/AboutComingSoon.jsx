@@ -16,7 +16,7 @@ export function AboutComingSoon() {
         </h1>
         <span className="route-title-lockup__rule" aria-hidden="true" />
         <p className="route-centered-page__description route-intro-description" data-route-enter="context" data-route-enter-variant="bookend-description">
-          Still deciding what to say about myself.
+          A proper introduction is on its way.
         </p>
       </section>
     </div>
