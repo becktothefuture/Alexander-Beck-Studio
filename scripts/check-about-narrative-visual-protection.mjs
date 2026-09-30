@@ -240,6 +240,14 @@ async function collectState({
         getClientRects() { return node.painted; },
       };
     },
+    createTreeWalker(node) {
+      let emitted = false;
+      return { nextNode() {
+        if (emitted) return null;
+        emitted = true;
+        return { textContent: node.textContent, parentElement: node, painted: node.painted };
+      } };
+    },
   };
   const getComputedStyle = (node) => ({
     opacity: String(node.alpha), visibility: 'visible', display: 'block', clipPath: node.clipPath,
@@ -255,8 +263,8 @@ async function collectState({
     } },
   });
   const window = { __aboutNarrativeRuntime: { getMetrics: diagnostics, getDiagnosticsSnapshot: diagnostics } };
-  const getState = new Function('document', 'HTMLElement', 'getComputedStyle', 'window',
-    `${helperBody}\nreturn getAboutSurfelState;`)(document, Element, getComputedStyle, window);
+  const getState = new Function('document', 'HTMLElement', 'getComputedStyle', 'window', 'NodeFilter',
+    `${helperBody}\nreturn getAboutSurfelState;`)(document, Element, getComputedStyle, window, { SHOW_TEXT: 4 });
   return getState({ evaluate: (callback, input) => callback(input) }, { fieldId: field.dataset.textFieldId });
 }
 

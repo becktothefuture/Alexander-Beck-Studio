@@ -8,6 +8,7 @@ import {
   markGateAccess,
 } from '../../lib/access-gates.js';
 import { triggerHaptic } from '../../lib/haptics.js';
+import { CV_ACCESS_EVENTS } from '../../lib/cv-download.js';
 import { playInteractionSound } from '../../legacy/modules/audio/sound-engine.js';
 import {
   dismissGateBackdrop,
@@ -18,6 +19,11 @@ import {
 
 const GATE_ID = 'portfolio';
 const ACCEPT_CONFIRMATION_MS = 180;
+const WORK_ACCESS_EVENTS = Object.freeze({
+  request: 'abs:portfolio:request-access',
+  granted: 'abs:portfolio:access-granted',
+  dismissed: 'abs:portfolio:access-dismissed',
+});
 
 function getFocusableElements(container) {
   if (!container) return [];
@@ -30,11 +36,16 @@ function clampGateCloseDuration(durationMs) {
   return Math.max(180, Math.min(420, Number(durationMs) || 220));
 }
 
-export function PortfolioGateRoute() {
+export function PortfolioGateRoute({ purpose = 'portfolio' }) {
+  const isCv = purpose === 'cv';
+  const events = isCv ? CV_ACCESS_EVENTS : WORK_ACCESS_EVENTS;
   const gateCopy = homeContent.gates?.portfolio || {};
-  const title = gateCopy.title || 'View Work';
-  const description = gateCopy.description
-    || 'Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.';
+  const title = isCv ? 'Download CV' : (gateCopy.title || 'View Work');
+  const description = isCv
+    ? 'Enter the access code to download my CV.'
+    : (gateCopy.description
+      || 'Good work deserves good context. Many of my projects across finance, automotive, and digital innovation startups are NDA-protected, so access is code-gated.');
+  const accessLabel = isCv ? 'CV' : 'Work';
   const codeLength = getGateCodeLength(GATE_ID) || 6;
   const [phase, setPhase] = useState('hidden');
   const [digits, setDigits] = useState(() => Array.from({ length: codeLength }, () => ''));
@@ -72,17 +83,16 @@ export function PortfolioGateRoute() {
     setDigits(Array.from({ length: codeLength }, () => ''));
     setStatusMessage('');
     window.dispatchEvent(new CustomEvent(
-      outcome === 'granted'
-        ? 'abs:portfolio:access-granted'
-        : 'abs:portfolio:access-dismissed',
+      outcome === 'granted' ? events.granted : events.dismissed,
       {
         detail: {
           gateId: GATE_ID,
           projectId: request?.projectId || '',
+          requestId: request?.requestId || '',
         },
       }
     ));
-  }, [clearTimer, codeLength]);
+  }, [clearTimer, codeLength, events]);
 
   const beginClose = useCallback((outcome) => {
     if (phaseRef.current === 'hidden' || phaseRef.current === 'closing') return;
@@ -130,11 +140,13 @@ export function PortfolioGateRoute() {
 
     phaseRef.current = 'accepted';
     setPhase('accepted');
-    setStatusMessage('Access accepted. Opening your project.');
+    setStatusMessage(isCv
+      ? 'Access accepted. Starting your CV download.'
+      : 'Access accepted. Opening your project.');
     triggerHaptic('success');
     clearTimer();
     timerRef.current = window.setTimeout(() => beginClose('granted'), ACCEPT_CONFIRMATION_MS);
-  }, [beginClose, clearTimer, codeLength, rejectCode]);
+  }, [beginClose, clearTimer, codeLength, isCv, rejectCode]);
 
   useEffect(() => {
     // Consume supported invite-code URL parameters even though Portfolio itself
@@ -146,6 +158,7 @@ export function PortfolioGateRoute() {
       if (phaseRef.current !== 'hidden') return;
       requestRef.current = {
         projectId: event?.detail?.projectId || '',
+        requestId: event?.detail?.requestId || '',
       };
       setDigits(Array.from({ length: codeLength }, () => ''));
       setStatusMessage('');
@@ -153,9 +166,9 @@ export function PortfolioGateRoute() {
       setPhase('opening');
     };
 
-    window.addEventListener('abs:portfolio:request-access', handleAccessRequest);
-    return () => window.removeEventListener('abs:portfolio:request-access', handleAccessRequest);
-  }, [codeLength]);
+    window.addEventListener(events.request, handleAccessRequest);
+    return () => window.removeEventListener(events.request, handleAccessRequest);
+  }, [codeLength, events]);
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -274,6 +287,7 @@ export function PortfolioGateRoute() {
       ref={modalRef}
       className={className}
       data-portfolio-access-gate
+      data-access-purpose={purpose}
       data-phase={phase}
       role="dialog"
       aria-modal="true"
@@ -285,7 +299,7 @@ export function PortfolioGateRoute() {
       <ActionButton
         variant="icon"
         className="portfolio-access-gate__close"
-        aria-label="Close Work access prompt"
+        aria-label={`Close ${accessLabel} access prompt`}
         data-sound-action="manual"
         data-sound-source="portfolio-gate-close"
         disabled={accepted || phase === 'closing'}
@@ -300,13 +314,13 @@ export function PortfolioGateRoute() {
       </ActionButton>
 
       <section className="route-centered-page__inner portfolio-access-gate__inner">
-        <p className="route-kicker">Private case study</p>
+        <p className="route-kicker">{isCv ? 'Curriculum vitae' : 'Private case study'}</p>
         <h1 id="portfolio-access-gate-title" className="route-centered-page__title">{title}</h1>
         <p id="portfolio-access-gate-description" className="route-centered-page__description">{description}</p>
         <div
           className={`portfolio-gate-inputs portfolio-access-gate__inputs${statusMessage && !accepted ? ' is-error' : ''}${accepted ? ' pulse-energy' : ''}`}
           role="group"
-          aria-label="Work access code"
+          aria-label={`${accessLabel} access code`}
         >
           {digits.map((digit, index) => (
             <input
@@ -320,7 +334,7 @@ export function PortfolioGateRoute() {
               inputMode="numeric"
               pattern="[0-9]"
               data-index={index}
-              aria-label={`Work access code digit ${index + 1} of ${codeLength}`}
+              aria-label={`${accessLabel} access code digit ${index + 1} of ${codeLength}`}
               autoComplete="off"
               value={digit}
               disabled={accepted || phase === 'closing'}

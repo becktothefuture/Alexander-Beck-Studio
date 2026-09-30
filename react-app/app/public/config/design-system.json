@@ -104,14 +104,14 @@
       },
       {
         "roleId": "experience-design",
-        "label": "Experience Design",
+        "label": "Design Strategy",
         "colorIndex": 3,
         "weight": 13,
         "distributionIndex": 1
       },
       {
         "roleId": "art-direction",
-        "label": "Art Direction",
+        "label": "Creative Direction",
         "colorIndex": 2,
         "weight": 16,
         "distributionIndex": 2
@@ -125,14 +125,14 @@
       },
       {
         "roleId": "creative-engineering",
-        "label": "Creative Engineering",
+        "label": "Creative Technology",
         "colorIndex": 7,
         "weight": 10,
         "distributionIndex": 4
       },
       {
         "roleId": "parametric-systems",
-        "label": "Parametric Systems",
+        "label": "Brand Identity",
         "colorIndex": 5,
         "weight": 10,
         "distributionIndex": 5
@@ -422,12 +422,27 @@
     "aboutCameraLensWidth": 1,
     "aboutCameraPortraitFov": 95,
     "aboutCameraScrollGlideMs": 600,
+    "aboutCameraLeanAmount": 1,
+    "aboutCameraLeanWeightMs": 850,
     "aboutCircleHomeScale": 0.5,
     "aboutCircleDensity": 1,
-    "aboutEnvironmentSpeed": 1,
+    "aboutCircleColorMix": 0.9,
+    "aboutCircleScatter": 0.85,
+    "aboutCircleDrift": 0.45,
+    "aboutCircleDriftSpeed": 0.65,
+    "aboutParticleDensity": 0.1,
+    "aboutParticleSize": 1.05,
+    "aboutParticleDrift": 2,
+    "aboutParticleOpacity": 1,
     "aboutTitleQuietStrength": 0.9,
     "aboutTitleQuietPaddingPx": 24,
-    "aboutTitleQuietFeatherPx": 80
+    "aboutTitleQuietFeatherPx": 80,
+    "aboutBoardTextFaintOpacity": 0.1,
+    "aboutBoardTextFocusOpacity": 1,
+    "aboutBoardTextDrawViewport": 0.3,
+    "aboutArchitectureStaticLight": "#d3d3d3",
+    "aboutArchitectureStaticDark": "#424242",
+    "aboutArchitectureMoving": "#ffffff"
   },
   "shell": {
     "theme": {

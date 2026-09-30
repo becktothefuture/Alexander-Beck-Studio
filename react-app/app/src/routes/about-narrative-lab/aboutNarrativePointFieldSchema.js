@@ -1254,6 +1254,12 @@ function normalizeCameraLane(keys) {
 
 export function normalizeAboutNarrativePointFieldDocument(input) {
   const source = clone(input);
+  // Bookends consume Contact's shared type. Retired overrides must not return
+  // through old editor drafts or source serialization.
+  if (source.globals?.typography) {
+    delete source.globals.typography.mainTitleSizeScale;
+    delete source.globals.typography.mainTitleLineHeightScale;
+  }
   return {
     schemaVersion: ABOUT_NARRATIVE_POINT_FIELD_SCHEMA_VERSION,
     globals: source.globals,

@@ -1,14 +1,18 @@
 import { lazy, Suspense } from 'react';
 import { AboutComingSoon } from './AboutComingSoon.jsx';
 import { AboutNarrativeLoadingFrame } from './AboutNarrativeLoadingFrame.jsx';
+import { PortfolioGateRoute } from '../portfolio/PortfolioGateRoute.jsx';
 
+// A separate local build exercises the complete journey without changing the
+// production publication decision or adding a URL/storage bypass.
+const FULL_JOURNEY = import.meta.env.DEV || import.meta.env.MODE === 'certification';
 let aboutNarrativeExperiencePromise = null;
 
 function loadAboutNarrativeExperience() {
-  if (!import.meta.env.DEV) return Promise.resolve();
+  if (!FULL_JOURNEY) return Promise.resolve();
   if (!aboutNarrativeExperiencePromise) {
-    aboutNarrativeExperiencePromise = import('../about-rollercoaster/AboutRollercoasterExperience.jsx')
-      .then((module) => ({ default: module.AboutRollercoasterExperience }))
+    aboutNarrativeExperiencePromise = import('../about-game-board/AboutGameBoardExperience.jsx')
+      .then((module) => ({ default: module.AboutGameBoardExperience }))
       .catch((error) => {
         aboutNarrativeExperiencePromise = null;
         throw error;
@@ -17,12 +21,12 @@ function loadAboutNarrativeExperience() {
   return aboutNarrativeExperiencePromise;
 }
 
-const AboutNarrativeExperience = import.meta.env.DEV ? lazy(loadAboutNarrativeExperience) : null;
+const AboutNarrativeExperience = FULL_JOURNEY ? lazy(loadAboutNarrativeExperience) : null;
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
   prewarm: ({ stage } = {}) => {
-    if (!import.meta.env.DEV) return Promise.resolve();
+    if (!FULL_JOURNEY) return Promise.resolve();
     if (stage === 'data') return true;
     return loadAboutNarrativeExperience();
   },
@@ -30,7 +34,7 @@ export const ABOUT_ROUTE_RUNTIME = {
 
 export function getAboutRouteView() {
   // Like Work, publication is decided at build time. No URL or storage bypass.
-  if (!import.meta.env.DEV) {
+  if (!FULL_JOURNEY) {
     return {
       bodyClass: 'body about-page',
       mainLandmarkHeadingId: 'about-coming-soon-title',
@@ -55,11 +59,12 @@ export function getAboutRouteView() {
     routeRenderKey: 'about-narrative',
     contentRenderKey: 'about-narrative',
     studioWindowClassName: 'about-simulation route-page-window w-embed',
+    // The purpose key discards an unfinished Work prompt on a route change.
+    windowOverlayContent: <PortfolioGateRoute key="cv" purpose="cv" />,
     simulationLayer: (
       <Suspense fallback={<AboutNarrativeLoadingFrame />}>
         <AboutNarrativeExperience
           routeContentId="about"
-          showIndicator
         />
       </Suspense>
     ),

@@ -55,6 +55,7 @@ import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadDesignSystemConfig } from '../../legacy/modules/utils/design-config.js';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
+import { applyWallFrameLayout } from '../../legacy/modules/visual/wall-frame.js';
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
 import { initNoiseSystem } from '../../legacy/modules/visual/noise-system.js';
 import { initLinkCursorHop } from '../../legacy/modules/ui/link-cursor-hop.js';
@@ -66,7 +67,12 @@ import { isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getRouteById, SHELL_ROUTE_TABS } from '../../lib/routes.js';
 import { createEntranceSequence } from '../../lib/motion/entrance-sequence.js';
 import { dispatchRouteEntranceStart } from '../../lib/motion/route-entrance-events.js';
-import { waitForObservedRouteReady } from '../../lib/motion/route-transition-readiness.js';
+import { isAboutSceneReady, waitForObservedRouteReady } from '../../lib/motion/route-transition-readiness.js';
+import {
+  addStableEventListener,
+  cancelStableAnimationFrame,
+  requestStableAnimationFrame,
+} from '../../lib/legacy-runtime-scope.js';
 
 function defineRouteDescriptor(routeId, definition) {
   const route = getRouteById(routeId);
@@ -176,6 +182,27 @@ function syncSharedShellRuntimeState() {
   return sharedShellRuntimeSyncPromise;
 }
 
+function subscribeSharedShellLayoutResize() {
+  let frameId = null;
+  const syncLayout = () => {
+    frameId = null;
+    applyWallFrameLayout();
+  };
+  const scheduleLayout = () => {
+    if (frameId === null) frameId = requestStableAnimationFrame(syncLayout);
+  };
+  const visualViewport = window.visualViewport;
+  const removeWindowListener = addStableEventListener(window, 'resize', scheduleLayout);
+  const removeViewportListener = visualViewport
+    ? addStableEventListener(visualViewport, 'resize', scheduleLayout) : null;
+  scheduleLayout();
+  return () => {
+    removeWindowListener();
+    removeViewportListener?.();
+    if (frameId !== null) cancelStableAnimationFrame(frameId);
+  };
+}
+
 function getSearchFromHref(href) {
   if (!href) return '';
   try {
@@ -275,13 +302,8 @@ const ABOUT_SCENE_READY_EVENT = 'abs:about-scene-ready';
 const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
 const PLAYGROUND_ROUTE_READY_TIMEOUT_MS = 3200;
 
-function isAboutNarrativeSceneReady() {
-  return document.querySelector('.about-narrative-lab[data-route-content="about"]')
-    ?.dataset.aboutSceneReady === 'true';
-}
-
-function waitForAboutNarrativeSceneReady(isCancelled) {
-  if (isAboutNarrativeSceneReady()) return Promise.resolve(true);
+function waitForAboutSceneReady(isCancelled) {
+  if (isAboutSceneReady()) return Promise.resolve(true);
   return new Promise((resolve) => {
     let settled = false;
     let timeoutId = 0;
@@ -337,9 +359,9 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   // Work owns its direct-load release because its measured
   // card geometry and authored entrance must be ready before the boot overlay leaves.
   const isAboutRoute = routeId === 'about';
-  const waitsForAboutNarrativeScene = routeId === 'about' && import.meta.env.DEV;
-  if (waitsForAboutNarrativeScene) {
-    await waitForAboutNarrativeSceneReady(options.isCancelled);
+  const waitsForAboutScene = routeId === 'about' && import.meta.env.DEV;
+  if (waitsForAboutScene) {
+    await waitForAboutSceneReady(options.isCancelled);
     if (options.isCancelled?.()) return;
   }
   if (isPortfolioWorkCanvas) {
@@ -536,6 +558,12 @@ export function SiteApp() {
       cancelled = true;
     };
   }, [isStandaloneRoute]);
+
+  useEffect(() => {
+    if (!shellRuntimeReady || isStandaloneRoute) return undefined;
+    // Pixel layout aliases also belong to routes without a Home canvas.
+    return subscribeSharedShellLayoutResize();
+  }, [isStandaloneRoute, shellRuntimeReady]);
 
   useEffect(() => {
     const nextTitle = getRouteDescriptor(routeState.route.id).title;

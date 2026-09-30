@@ -308,6 +308,13 @@ def planar_convex(points):
 def export(source):
     before=sha(source); bpy.ops.wm.open_mainfile(filepath=str(source))
     scene=bpy.context.scene
+    director = None
+    director_report = None
+    if scene.get('about_director_version'):
+        sys.path.insert(0, str(REPO/'scripts/about-rollercoaster'))
+        import about_director as director
+        director.register()
+        director_report = director.validate(scene)
     if scene.get("about_schema")!=SCHEMA: raise ValueError("Expected the simple-surface v2 source")
     normalized_world=scene.get("about_track_binding")=="normalized-world-v1"
     controls=bpy.data.objects["About World Controls"];camera=bpy.data.objects["FlightCamera"];rail=bpy.data.objects["FlightRail"]
@@ -318,10 +325,20 @@ def export(source):
         camera.data.sensor_fit!="HORIZONTAL" or abs(math.degrees(camera.data.angle_x)-70)>.01 or
         abs(camera.data.shift_x)+abs(camera.data.shift_y)>1e-7):
         raise ValueError("FlightCamera must retain the active, unshifted H70 perspective lens")
-    if len([c for c in camera.constraints if c.type=="FOLLOW_PATH" and c.target==rail and c.use_curve_follow])!=1:
+    carrier = camera.parent if director else camera
+    if not carrier or len([c for c in carrier.constraints if c.type=="FOLLOW_PATH" and c.target==rail and c.use_curve_follow])!=1:
         raise ValueError("FlightCamera must be driven by its live FlightRail")
     update_scene(scene, controls)
+    if director:
+        for owner in (camera, carrier, scene.objects['FlightCamera look ahead']):
+            if any(not curve.driver.is_valid or curve.mute for curve in owner.animation_data.drivers):
+                raise ValueError('Camera steering or optical roll has an inactive driver; reload About Director before exporting')
     groups=json.loads(scene["motionGroups"]);rotations={};bound_surfaces=[];waves=[];anchors={}
+    if director:
+        for group in groups:
+            if group['kind']=='wave':
+                for key in ('amplitude','period','phase'):
+                    group[key]=float(controls['wave_'+key])
     if [g["id"] for g in groups]!=list(range(len(groups))) or groups[0]["kind"]!="static":
         raise ValueError("Motion identities must be contiguous and start with static")
     for group in groups:
@@ -347,9 +364,15 @@ def export(source):
         if obj.constraints or obj.animation_data or obj.data.shape_keys: raise ValueError("Use a supported motion owner; direct animated surface transforms are not exported")
         binding=obj.get("about_track_binding")
         surface_binding=binding==SURFACE_BINDING
-        if binding is not None and not surface_binding and not (binding=="normalized-endpoint-v1" and group["kind"]=="wave"):
+        gate_binding=binding=="normalized-gate-v1"
+        if gate_binding:
+            if not director or group['kind']!='static' or obj.modifiers or not obj.get('about_gate_family'):
+                raise ValueError('A rigid gate needs a Director family, static motion and no modifiers')
+            fixed_anchor(obj.parent,rail)
+            anchors[obj.parent]=evaluated_matrix(obj.parent)
+        if binding is not None and not surface_binding and not gate_binding and not (binding=="normalized-endpoint-v1" and group["kind"]=="wave"):
             raise ValueError("Unsupported surface track binding")
-        if normalized_world and group["kind"]=="static" and not surface_binding:
+        if normalized_world and group["kind"]=="static" and not (surface_binding or gate_binding):
             raise ValueError("Every normalized-world static surface needs its track binding")
         if surface_binding:
             if group["kind"]!="static" or obj.parent: raise ValueError("Only unparented static surfaces may use the track-deformation graph")
@@ -369,7 +392,7 @@ def export(source):
                 obj.modifiers[0].subdivision_type!="SIMPLE" or obj.modifiers[0].levels!=obj.modifiers[0].render_levels):
                 raise ValueError("The wall needs the enabled matching simple subdivision and wave preview")
             waves.append((obj,group))
-        elif obj.parent:
+        elif obj.parent and not gate_binding:
             parent=obj.parent
             while parent:
                 if parent.animation_data or parent.constraints or parent.get("motion_group",0):
@@ -418,6 +441,13 @@ def export(source):
         progress=index/2000;controls["progress"]=progress;controls.update_tag();scene.frame_set(1);bpy.context.view_layer.update()
         matrix=SITE@camera.evaluated_get(bpy.context.evaluated_depsgraph_get()).matrix_world
         quat=matrix.to_quaternion().normalized()
+        if director:
+            # Keep the unrolled rail frame and scalar cue separately. Slerping
+            # wrapped quaternions alone would erase narrow/full revolutions.
+            roll=director.roll_degrees(progress,scene)
+            if abs(camera.rotation_euler.z+math.radians(roll))>1e-5:
+                raise ValueError('Optical roll driver differs from the cue equation')
+            quat=(quat@Quaternion((0,0,1),math.radians(roll))).normalized()
         if previous and previous.dot(quat)<0: quat.negate()
         previous=quat.copy();samples.append([progress,*matrix.translation,quat.x,quat.y,quat.z,quat.w])
     max_angle=0.;final_angle=0.;distance=0.
@@ -447,7 +477,11 @@ def export(source):
     for group in groups:
         for key in ("axis","pivot","origin","uAxis","vAxis"):
             if key in group: group[key]=list(SITE.to_3x3()@Vector(group[key]))
-    geometry_bytes=json_bytes(dict(objects=objects));camera_bytes=json_bytes(dict(samples=samples))
+    camera_payload=dict(samples=samples)
+    if director_report:
+        camera_payload['rollCues']=director_report['rollCues']
+        camera_payload['curveBank']=director_report['curveBank']
+    geometry_bytes=json_bytes(dict(objects=objects));camera_bytes=json_bytes(camera_payload)
     meta=dict(schema=SCHEMA,source=dict(file=source.relative_to(REPO).as_posix(),sha256=before),
               camera=dict(file="camera.json",horizontalFov=70,portraitVerticalFov=90),cameraSha256=hashlib.sha256(camera_bytes).hexdigest(),
               geometry=dict(file="geometry.json",sha256=hashlib.sha256(geometry_bytes).hexdigest(),objectCount=len(objects)),
@@ -455,6 +489,11 @@ def export(source):
               regions=json.loads(scene["regions"]),finalGrid=final,totalDistanceWU=distance,referenceSeconds=controls["referenceSeconds"],
               controls=source_control_definitions(scene))
     if scene.get("readingProtection"): meta["readingProtection"]=json.loads(scene["readingProtection"])
+    if director_report:
+        meta['director']=dict(version=scene['about_director_version'],gateFamilies=director_report['gateFamilies'],
+                              steadycam=director_report['steadycam'],
+                              rollOwner='camera.json',frameMapping='1 + progress * referenceSeconds * 30',
+                              arrivalHoldStart=float(controls['arrivalHoldStart']))
     if sha(source)!=before: raise ValueError("Source changed during export")
     report=dict(source=meta["source"],objects=len(objects),vertices=sum(len(o["positions"])/3 for o in objects),
                 faces=sum(len(o["faces"]) for o in objects),materialRoles=sorted({o["paletteRole"] for o in objects}),
@@ -464,6 +503,7 @@ def export(source):
                 maxRotationMatrixError=max_matrix_error,normalizedSurfaceCount=len(bound_surfaces),
                 normalizedAnchorCount=len(anchors),bindingVertexClockChecks=binding_checks,
                 waveVertexPhaseChecks=wave_checks,maxWavePhaseErrorWU=max_wave_error)
+    if director_report: report['director']=director_report
     return {"geometry.json":geometry_bytes,"camera.json":camera_bytes,"meta.json":json_bytes(meta)},report
 
 
@@ -472,7 +512,8 @@ def main():
     parser.add_argument("--report");parser.add_argument("--staging-only",action="store_true")
     args=parser.parse_args(sys.argv[sys.argv.index("--")+1:])
     source,output,report_path=output_paths(args.source,args.output,args.report,args.staging_only)
-    publisher=REPO/"scripts/lib/about-rollercoaster-publish.mjs";node=shutil.which("node")
+    publisher=REPO/"scripts/lib/about-rollercoaster-publish.mjs"
+    node=shutil.which("node") or next((p for p in ("/usr/local/bin/node","/opt/homebrew/bin/node") if os.access(p,os.X_OK)),None)
     if not args.staging_only:
         if not node: raise ValueError("Project Node is needed for validated publication")
         subprocess.run([node,str(publisher),"--check-contract",SCHEMA],check=True)

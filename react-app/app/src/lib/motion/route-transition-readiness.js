@@ -67,6 +67,13 @@ export function isDailyLabRouteId(routeId) {
   return DAILY_LAB_ROUTE_IDS.has(routeId);
 }
 
+/** The active About renderer owns readiness; shell navigation must not depend
+ * on a retired renderer's CSS class or report ready before its first paint. */
+export function isAboutSceneReady() {
+  return document.querySelector('[data-route-content="about"]')
+    ?.dataset.aboutSceneReady === 'true';
+}
+
 function readRouteReadySnapshot(routeId) {
   if (routeId === 'portfolio') {
     return {
@@ -148,12 +155,9 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
 
   if (routeId === 'about') {
     const comingSoonTitle = document.querySelector('[data-about-publication="held"] #about-coming-soon-title');
-    const aboutRoute = document.querySelector(
-      '.about-narrative-lab[data-route-content="about"]',
-    );
     return Boolean(
       body.classList.contains('about-page')
-      && (comingSoonTitle || aboutRoute?.dataset.aboutSceneReady === 'true')
+      && (comingSoonTitle || isAboutSceneReady())
     );
   }
 

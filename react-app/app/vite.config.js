@@ -104,6 +104,11 @@ export default defineConfig(({ mode }) => {
   ],
   resolve: {
     alias: {
+      'virtual:about-rollercoaster-sampling-worker': resolve(
+        __dirname,
+        'src/routes/about-rollercoaster',
+        mode === 'production' ? 'rollercoasterSamplingFactory.production.js' : 'rollercoasterSamplingFactory.js',
+      ),
       'virtual:about-narrative-resource-tools': resolve(
         __dirname,
         'src/routes/about-narrative-lab',

@@ -89,17 +89,22 @@ test('a retired entrance callback cannot leave invisible letters behind', () => 
   animator.dispose();
 });
 
-test('every published copy field is retained by identity, including the full career and client list', async () => {
+test('every published copy field is retained in the approved story order, including clients and disciplines', async () => {
   const document = JSON.parse(await readFile(new URL('../react-app/app/public/config/contents-about.json', import.meta.url)));
   const copy = selectRollercoasterCopy(document);
   const retained = Object.values(copy).flat();
   assert.equal(retained.length, 10);
   assert.equal(new Set(retained.map(field => field.id)).size, 10);
   for (const field of document.tracks.text.fields) assert.ok(retained.includes(field));
-  assert.equal(copy.background[0].block.modules.find(module => module.kind === 'career-sequence').items.length, 5);
-  assert.equal(copy.disciplines[1].block.modules[0].items.length, 15);
-  assert.equal(copy.statements.length, 2);
-  assert.equal(copy.ending[0].description, 'Tell me what you’re trying to make possible.');
+  assert.deepEqual(copy.background[0].block.modules.map(module => module.kind), ['prose', 'prose', 'logo-grid']);
+  assert.equal(copy.background[0].block.modules[2].items.length, 15);
+  assert.deepEqual(copy.disciplines.map(field => field.id), ['text-background-unit', 'text-discipline-labels']);
+  assert.deepEqual(copy.disciplines[0].block.modules.map(module => module.kind), ['prose', 'prose', 'prose']);
+  assert.ok(copy.disciplines[0].block.modules.every(module => module.text.trim().length > 0));
+  assert.equal(copy.disciplines[1].block.items.length, 6);
+  assert.deepEqual([...copy.curiosity, ...copy.release].map(field => field.text), ['I follow ideas…', '…across disciplines.']);
+  assert.deepEqual(copy.statements.map(field => field.text), ['Design direction.', 'Hands-on delivery.']);
+  assert.equal(copy.ending[0].description, 'Get in touch to discuss a project or collaboration.');
 });
 
 test('the source supplies the baseline distance, rather than an inherited world duration', () => {

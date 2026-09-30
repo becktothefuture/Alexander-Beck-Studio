@@ -9,8 +9,8 @@ export function rollercoasterTitleDepth(localProgress, options, elapsedMs, reduc
   const entry = Number(motion.entryDepth ?? 300);
   const exit = Number(motion.exitDepth ?? 210);
   const arrival = smooth(elapsedMs / 1400);
-  if (options.ending) return -entry * (1 - Math.max(arrival, smooth(progress / 0.5)));
-  if (options.opening) return -entry * (1 - arrival) + exit * 0.4 * smooth(progress);
+  // Bookends share Contact's settled reading plane at every scroll position.
+  if (options.opening || options.ending) return -entry * (1 - arrival);
   return -entry + (entry + exit) * progress;
 }
 

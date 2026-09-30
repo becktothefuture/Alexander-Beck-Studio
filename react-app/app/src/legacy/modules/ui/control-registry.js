@@ -39,6 +39,10 @@ import {
   formatUtilityRailControlValue,
 } from '../../../lib/utilityRailControls.js';
 import { CUBE_3D_DEFAULTS, CUBE_3D_LIMITS } from '../modes/cube3d-config.js';
+import {
+  DEFAULT_BALL_DYNAMICS,
+  publishBallDynamicsChange,
+} from '../../../lib/ballDynamics.js';
 // The color-distribution leaf owns configureSimulationPalette publication.
 import { bindColorDistributionControl, generateColorDistributionControlHTML } from './color-distribution-control.js';
 import {
@@ -65,6 +69,14 @@ export {
 let applyVisualCSSVars = null;
 export function setApplyVisualCSSVars(fn) {
   applyVisualCSSVars = fn;
+}
+
+function publishGlobalBallDynamics(g) {
+  publishBallDynamicsChange({
+    massKg: g.ballMassKg,
+    restitution: g.REST,
+    friction: g.FRICTION,
+  });
 }
 
 function getUiDocument(uiDocument) {
@@ -902,10 +914,10 @@ export const CONTROL_SECTIONS = {
         stateKey: 'ballMassKg',
         type: 'range',
         min: 20, max: 400, step: 1,
-        default: 91,
+        default: DEFAULT_BALL_DYNAMICS.massKg,
         format: v => `${Math.round(v)} kg`,
         parse: v => parseInt(v, 10),
-        hint: 'Heavier = snooker feel (more inertia, less jitter).',
+        hint: 'Sets ball mass and contact momentum without changing gravity.',
         onChange: (g, val) => {
           // Apply immediately to existing balls
           const m = Number(val);
@@ -916,6 +928,7 @@ export const CONTROL_SECTIONS = {
               if (b) b.m = m;
             }
           }
+          publishGlobalBallDynamics(g);
         }
       },
       {
@@ -924,10 +937,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'REST',
         type: 'range',
         min: 0, max: 1, step: 0.01,
-        default: 0.42,
+        default: DEFAULT_BALL_DYNAMICS.restitution,
         format: v => v.toFixed(2),
         parse: parseFloat,
-        hint: 'Global bounciness for collisions (modes may override).'
+        hint: 'Global bounciness for collisions (modes may override).',
+        onChange: publishGlobalBallDynamics,
       },
       {
         id: 'FRICTION',
@@ -935,10 +949,11 @@ export const CONTROL_SECTIONS = {
         stateKey: 'FRICTION',
         type: 'range',
         min: 0, max: 1, step: 0.001,
-        default: 0.018,
+        default: DEFAULT_BALL_DYNAMICS.friction,
         format: v => v.toFixed(3),
         parse: parseFloat,
-        hint: 'Global drag/energy loss (modes may override).'
+        hint: 'Global drag/energy loss (modes may override).',
+        onChange: publishGlobalBallDynamics,
       },
 
       // Performance + stability controls
@@ -2486,11 +2501,11 @@ export const CONTROL_SECTIONS = {
         // Labels are fixed; you assign which palette slot + weight each label gets.
         labels: [
           'Product Design',
-          'Experience Design',
-          'Art Direction',
+          'Design Strategy',
+          'Creative Direction',
           'Motion & 3D',
-          'Creative Engineering',
-          'Parametric Systems'
+          'Creative Technology',
+          'Brand Identity'
         ],
         hint: 'Assign each discipline to a palette color, then set weights that sum to 100%. Used for all ball spawns across modes.'
       }

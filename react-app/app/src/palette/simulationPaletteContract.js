@@ -7,11 +7,11 @@ export const FALLBACK_SIMULATION_PALETTE_COLORS = LONDON_PALETTE_COLORS.silverto
 
 export const DEFAULT_SIMULATION_COLOR_DISTRIBUTION = Object.freeze([
   Object.freeze({ roleId: 'product-design', label: 'Product Design', colorIndex: 0, weight: 31 }),
-  Object.freeze({ roleId: 'experience-design', label: 'Experience Design', colorIndex: 3, weight: 13 }),
-  Object.freeze({ roleId: 'art-direction', label: 'Art Direction', colorIndex: 2, weight: 16 }),
+  Object.freeze({ roleId: 'experience-design', label: 'Design Strategy', colorIndex: 3, weight: 13 }),
+  Object.freeze({ roleId: 'art-direction', label: 'Creative Direction', colorIndex: 2, weight: 16 }),
   Object.freeze({ roleId: 'motion-3d', label: 'Motion & 3D', colorIndex: 6, weight: 20 }),
-  Object.freeze({ roleId: 'creative-engineering', label: 'Creative Engineering', colorIndex: 7, weight: 10 }),
-  Object.freeze({ roleId: 'parametric-systems', label: 'Parametric Systems', colorIndex: 5, weight: 10 }),
+  Object.freeze({ roleId: 'creative-engineering', label: 'Creative Technology', colorIndex: 7, weight: 10 }),
+  Object.freeze({ roleId: 'parametric-systems', label: 'Brand Identity', colorIndex: 5, weight: 10 }),
 ]);
 
 const HEX_COLOR_PATTERN = /^#[\da-f]{6}$/i;

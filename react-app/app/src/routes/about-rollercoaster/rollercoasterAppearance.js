@@ -2,6 +2,7 @@ import { withBasePath } from '../../lib/base-path.js';
 import { normalizeHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.js';
 import { normalizeMobileSimulationBodyScale } from '../../lib/mobileSimulationSizing.js';
 import { withAboutLoadDeadline } from './rollercoasterLoading.js';
+import { ROLLERCOASTER_LEAN_DEFAULTS } from './rollercoasterCameraLean.js';
 
 export const ABOUT_VISIBILITY_CONTROLS = Object.freeze([
   { id: 'nearHidden', runtimeKey: 'aboutVisibilityNearHiddenWU', label: 'Near hidden', min: 0, max: 8, defaultValue: 2 },
@@ -14,19 +15,31 @@ export const ABOUT_CAMERA_CONTROLS = Object.freeze([
   { id: 'lensWidth', runtimeKey: 'aboutCameraLensWidth', label: 'Lens width', min: 0.75, max: 1.3, step: 0.01, unit: '×', defaultValue: 1 },
   { id: 'portraitFov', runtimeKey: 'aboutCameraPortraitFov', label: 'Mobile lens cap', min: 75, max: 115, step: 1, unit: '°', defaultValue: 95 },
   { id: 'scrollGlideMs', runtimeKey: 'aboutCameraScrollGlideMs', label: 'Scroll glide', min: 200, max: 1200, step: 25, unit: 'ms', defaultValue: 600 },
+  { id: 'leanAmount', runtimeKey: 'aboutCameraLeanAmount', label: 'Lean amount', min: 0, max: 1, step: 0.05, unit: '×', defaultValue: ROLLERCOASTER_LEAN_DEFAULTS.leanAmount },
+  { id: 'leanWeightMs', runtimeKey: 'aboutCameraLeanWeightMs', label: 'Lean weight', min: 250, max: 1400, step: 25, unit: 'ms', defaultValue: ROLLERCOASTER_LEAN_DEFAULTS.leanWeightMs },
 ].map(Object.freeze));
 export const ABOUT_MATERIAL_CONTROLS = Object.freeze([
   { id: 'circleScale', runtimeKey: 'aboutCircleHomeScale', label: 'Circle size', min: 0.25, max: 1, step: 0.01, unit: '×', defaultValue: 0.5 },
   { id: 'density', runtimeKey: 'aboutCircleDensity', label: 'Circle density', min: 0.5, max: 2, step: 0.05, unit: '×', defaultValue: 1 },
-  { id: 'animationSpeed', runtimeKey: 'aboutEnvironmentSpeed', label: 'Animation speed', min: 0, max: 2, step: 0.05, unit: '×', defaultValue: 1 },
+  { id: 'colorMix', runtimeKey: 'aboutCircleColorMix', label: 'Colour mix', min: 0, max: 1, step: 0.05, unit: '×', defaultValue: 0.9 },
+  { id: 'scatter', runtimeKey: 'aboutCircleScatter', label: 'Scatter', min: 0, max: 1.5, step: 0.05, unit: '×', defaultValue: 0.85 },
+  { id: 'dotDrift', runtimeKey: 'aboutCircleDrift', label: 'Drift', min: 0, max: 1, step: 0.05, unit: '×', defaultValue: 0.45 },
+  { id: 'dotDriftSpeed', runtimeKey: 'aboutCircleDriftSpeed', label: 'Drift speed', min: 0, max: 2, step: 0.05, unit: '×', defaultValue: 0.65 },
 ].map(Object.freeze));
 export const ABOUT_TITLE_CONTROLS = Object.freeze([
   { id: 'titleQuiet', runtimeKey: 'aboutTitleQuietStrength', label: 'Title contrast', min: 0, max: 0.98, step: 0.01, unit: '', defaultValue: 0.9 },
   { id: 'titlePadding', runtimeKey: 'aboutTitleQuietPaddingPx', label: 'Clearance', min: 0, max: 80, step: 2, unit: 'px', defaultValue: 24 },
   { id: 'titleFeather', runtimeKey: 'aboutTitleQuietFeatherPx', label: 'Soft edge', min: 20, max: 180, step: 5, unit: 'px', defaultValue: 80 },
 ].map(Object.freeze));
+export const ABOUT_PARTICLE_CONTROLS = Object.freeze([
+  { id: 'particleDensity', runtimeKey: 'aboutParticleDensity', label: 'Density', min: 0, max: 2, step: 0.05, unit: '×', defaultValue: 1 },
+  { id: 'particleSize', runtimeKey: 'aboutParticleSize', label: 'Size', min: 0.3, max: 2, step: 0.05, unit: '×', defaultValue: 1 },
+  { id: 'particleDrift', runtimeKey: 'aboutParticleDrift', label: 'Drift', min: 0, max: 2, step: 0.05, unit: '×', defaultValue: 0.7 },
+  { id: 'particleOpacity', runtimeKey: 'aboutParticleOpacity', label: 'Opacity', min: 0.1, max: 1, step: 0.05, unit: '', defaultValue: 0.65 },
+].map(Object.freeze));
 export const ABOUT_APPEARANCE_CONTROLS = Object.freeze([
   ...ABOUT_VISIBILITY_CONTROLS, ...ABOUT_CAMERA_CONTROLS, ...ABOUT_MATERIAL_CONTROLS, ...ABOUT_TITLE_CONTROLS,
+  ...ABOUT_PARTICLE_CONTROLS,
 ]);
 
 const HOME_KEYS = ['homeSimulationBodyRadiusPx', 'mobileSimulationBodyScale'];
@@ -170,6 +183,7 @@ export async function saveRollercoasterAppearance() {
         throw error;
       }
       const runtime = { ...current.runtime };
+      delete runtime.aboutEnvironmentSpeed; // Authored periods belong to Blender.
       ABOUT_APPEARANCE_CONTROLS.forEach(control => { runtime[control.runtimeKey] = submitted[control.id]; });
       const response = await fetch('/api/design-system/config', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

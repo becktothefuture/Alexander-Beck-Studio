@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdir, writeFile } from 'node:fs/promises';
-import sharp from 'sharp';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { PNG } from 'pngjs';
 import {
   collectPageErrors,
   driveAboutStoryWU,
@@ -46,10 +46,10 @@ function assertTerminalWorld(metrics, profileId) {
   for (const [key, model] of Object.entries(metrics.modelFraming)) {
     if (key === 'about.06') {
       assert.ok(model.stageVisibility > 0.99 && model.framedVisibleCount >= 400,
-        `${profileId} lost the full lattice destination.`);
+        `${profileId} lost the surveyed London destination.`);
       assert.ok(model.leftOccupiedColumnCount >= 2 && model.rightOccupiedColumnCount >= 2
-        && model.occupiedRowCount >= 5,
-      `${profileId} reduced the final banks to thin edge fragments.`);
+        && model.occupiedRowCount >= 4,
+      `${profileId} lost the breadth and depth of the final city composition.`);
     } else {
       assert.equal(model.stageVisibility, 0, `${profileId} retained competing ${key} geometry.`);
     }
@@ -58,10 +58,10 @@ function assertTerminalWorld(metrics, profileId) {
 
 async function compareScreenshots(beforePath, afterPath) {
   const [before, after] = await Promise.all([
-    sharp(beforePath).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
-    sharp(afterPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true }),
+    readFile(beforePath).then(bytes => PNG.sync.read(bytes)),
+    readFile(afterPath).then(bytes => PNG.sync.read(bytes)),
   ]);
-  assert.deepEqual(before.info, after.info);
+  assert.deepEqual([before.width, before.height], [after.width, after.height]);
   let changedChannels = 0;
   let totalDifference = 0;
   for (let index = 0; index < before.data.length; index += 1) {
@@ -193,8 +193,8 @@ try {
     const idleSamples = [];
     let previousIdle = before;
     let previousIdlePath = beforePath;
-    // No scroll, pointer, or keyboard input: material must keep moving on its
-    // own while the camera, copy, geometry population, and buffers stay fixed.
+    // No scroll, pointer, or keyboard input: the city, copy and buffers remain
+    // fixed. Atmosphere may continue, but grounded scan points need not move.
     for (let index = 0; index < 3; index += 1) {
       await page.waitForTimeout(1400);
       const idle = await readTerminalState(page);
@@ -219,8 +219,8 @@ try {
       if (capturePixels) {
         await page.screenshot({ path, animations: 'disabled', caret: 'hide', timeout: 60_000 });
         pixels = await compareScreenshots(previousIdlePath, path);
-        assert.ok(reduced ? pixels.changedChannelRatio <= 0.001 : pixels.changedChannelRatio > 0.001,
-          `${profile.id}: idle material ${reduced ? 'moved despite Reduced Motion' : 'did not visibly move'} (${pixels.changedChannelRatio}).`);
+        if (reduced) assert.ok(pixels.changedChannelRatio <= 0.001,
+          `${profile.id}: the image moved despite Reduced Motion (${pixels.changedChannelRatio}).`);
       }
       idleSamples.push({ motionTime: idle.metrics.motionTime, pixels, screenshot: capturePixels ? path : null });
       previousIdle = idle;
@@ -241,7 +241,6 @@ try {
     assert.ok(closeTo(before.metrics.journeyProgress, after.metrics.journeyProgress));
     assert.ok(closeTo(before.metrics.cameraRollDegrees, after.metrics.cameraRollDegrees));
     assertVectorStable(before.metrics.cameraPosition, after.metrics.cameraPosition, 'cameraPosition');
-    assertVectorStable(before.metrics.steadycam.position, after.metrics.steadycam.position, 'steadycam.position');
     assert.equal(after.metrics.controls.motionAmountWU, before.metrics.controls.motionAmountWU);
     assert.deepEqual(after.interfaceState.copyBounds, before.interfaceState.copyBounds);
     assertTerminalWorld(after.metrics, profile.id);

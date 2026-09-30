@@ -35,6 +35,7 @@ async function copyToClipboard(text) {
 export function CopyEmailAction({
   copyText = {},
   email = 'alexander@beck.fyi',
+  label = 'Copy email',
   onActivate = null,
   soundSource = 'copy-email',
   statusId = 'copy-email-status',
@@ -81,13 +82,13 @@ export function CopyEmailAction({
         data-copy-presentation="label"
         data-sound-action="manual"
         data-sound-source={soundSource}
-        aria-label={copyText.buttonAriaLabel || 'Copy email address'}
+        aria-label={label === email ? `Copy ${email}` : (copyText.buttonAriaLabel || 'Copy email address')}
         aria-describedby={statusId}
         onClick={handleCopy}
       >
         <span className="contact-email-label-window" aria-hidden="true">
           <span className="contact-email-label contact-email-label--idle">
-            <span className="contact-email-text"><ActionLabel>Copy email</ActionLabel></span>
+            <span className="contact-email-text"><ActionLabel>{label}</ActionLabel></span>
             <span className="contact-email-copy">
               <i className="ti ti-copy" aria-hidden="true" />
             </span>

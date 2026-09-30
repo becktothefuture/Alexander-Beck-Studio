@@ -10,7 +10,7 @@ import {
   validateAboutNarrativePointFieldDocument,
 } from '../about-narrative-lab/aboutNarrativePointFieldSchema.js';
 import {
-  ABOUT_VISIBILITY_CONTROLS, ABOUT_CAMERA_CONTROLS, ABOUT_MATERIAL_CONTROLS, ABOUT_TITLE_CONTROLS,
+  ABOUT_VISIBILITY_CONTROLS, ABOUT_CAMERA_CONTROLS, ABOUT_MATERIAL_CONTROLS, ABOUT_TITLE_CONTROLS, ABOUT_PARTICLE_CONTROLS,
   getRollercoasterAppearanceState,
   getRollercoasterVisibilityBounds,
   loadRollercoasterAppearance,
@@ -335,7 +335,7 @@ function SourceInspector({ meta }) {
   const sourceControls = (meta.controls || []).filter(control => !String(control.binding).startsWith('fog.') && !['fogNear', 'fogFar'].includes(control.key));
   return (
     <div className="rollercoaster-controls__source" data-rollercoaster-source-inspector>
-      <p className="about-scene-parameter-panel__note">Read only · Blender owns surfaces, colour roles, timing and motion. Browser controls tune the lens, glide, circles, visibility and animation speed.</p>
+      <p className="about-scene-parameter-panel__note">Read only · Blender owns the rail, turn cues, surfaces and their motion. Browser controls tune the lens, glide, lean response, circles and visibility.</p>
       <dl>{values.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value ?? 'Not supplied'}</dd></div>)}</dl>
       {sourceControls.length ? <>
         <h3>Saved source controls</h3>
@@ -466,20 +466,25 @@ function DockedControls({ document, onDocumentChange, sourceMeta, disabled }) {
         </Folder>
         <Folder label="Camera" count={ABOUT_CAMERA_CONTROLS.length}>
           <VisibilityControls controls={ABOUT_CAMERA_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
-          <p className="about-scene-parameter-panel__note">Wider lens shows more. Longer glide gives a softer stop. The Blender rail stays in place.</p>
+          <p className="about-scene-parameter-panel__note">Scroll glide softens travel. Lean loads into curves as you move; more weight slows its build and recovery. Amount scales Blender’s maximum lean. Tunnel turns keep their held angle.</p>
         </Folder>
-        <Folder label="Circles & motion" count={ABOUT_MATERIAL_CONTROLS.length}>
+        <Folder label="Surface circles" count={ABOUT_MATERIAL_CONTROLS.length}>
           <VisibilityControls controls={ABOUT_MATERIAL_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
-          <p className="about-scene-parameter-panel__note">Size is relative to Home. Density is independent, with a shared safety limit. Zero speed pauses the environment.</p>
+          <p className="about-scene-parameter-panel__note">Colour mix groups Home’s colours into small regions with scattered accents. Scatter loosens the grid in dot spacings; 0 restores alignment. Nearby dots drift together with a little individual variation; speed 0 freezes them. Size is relative to Home.</p>
+        </Folder>
+        <Folder label="Floating particles" count={ABOUT_PARTICLE_CONTROLS.length} open>
+          <VisibilityControls controls={ABOUT_PARTICLE_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
+          <p className="about-scene-parameter-panel__note">Uneven circles throughout the journey, using Home’s colours. Density 0 turns them off. Drift 0 keeps them still as you travel past.</p>
         </Folder>
         <Folder label="Title legibility" count={ABOUT_TITLE_CONTROLS.length}>
           <VisibilityControls controls={ABOUT_TITLE_CONTROLS} appearance={appearance} disabled={disabled || busy} onError={report} />
-          <p className="about-scene-parameter-panel__note">Softens circle contrast behind every active title and its support. Zero keeps the full pattern.</p>
+          <p className="about-scene-parameter-panel__note">The ending uses an empty circular opening; Clearance sets its breathing room. Contrast and Soft edge apply to the other titles.</p>
         </Folder>
         <Folder label="Copy" count={snapshot.document.tracks.text.fields.length}>
           <CopyControls snapshot={snapshot} editor={editor} disabled={readOnly} />
         </Folder>
         <Folder label="Typography" count={TYPE_CONTROLS.length}>
+          <p className="about-scene-parameter-panel__note">Opening and ending use Contact’s shared bookend type. These controls apply to prose and intermediate titles.</p>
           <TypeControls snapshot={snapshot} editor={editor} disabled={readOnly} />
         </Folder>
         <Folder label="Blender source" count="Read only">

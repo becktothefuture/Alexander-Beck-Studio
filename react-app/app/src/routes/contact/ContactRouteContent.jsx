@@ -42,6 +42,7 @@ export function ContactRouteContent() {
             <CopyEmailAction
               copyText={copyText}
               email={email}
+              label={email}
               onActivate={handleActivate}
               soundSource="contact-copy-email"
               statusId="contact-copy-status"

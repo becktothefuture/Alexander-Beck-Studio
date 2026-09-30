@@ -2,11 +2,11 @@
 // boundary. These names only connect that data to the authored scene.
 export const ROLLERCOASTER_COPY_FIELDS = Object.freeze({
   departure: ['text-promise-main'],
-  background: ['text-background-unit'],
+  background: ['text-selected-clients'],
   curiosity: ['text-complexity-curiosity'],
   'tunnel-a': [],
   release: ['text-complexity-listen'],
-  disciplines: ['text-discipline-labels', 'text-selected-clients'],
+  disciplines: ['text-background-unit', 'text-discipline-labels'],
   statements: ['text-disciplines-title', 'text-life-momentum'],
   method: ['text-life-character'],
   'tunnel-b': [],

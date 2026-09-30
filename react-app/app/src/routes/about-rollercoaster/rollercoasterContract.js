@@ -1,5 +1,6 @@
 import { ROLLERCOASTER_SURFACE_LIMITS, sampleRollercoasterField, validateRollercoasterGeometry } from './rollercoasterField.js';
 import { withAboutLoadDeadline } from './rollercoasterLoading.js';
+import { applyRollercoasterRoll, sampleRollercoasterBank, sampleRollercoasterRoll, validateRollercoasterBank, validateRollercoasterRoll } from './rollercoasterRoll.js';
 export { validateRollercoasterGeometry } from './rollercoasterField.js';
 
 export const ROLLERCOASTER_SCHEMA = 'about-rollercoaster-world/v2';
@@ -100,6 +101,8 @@ export function validateRollercoasterMeta(meta) {
 }
 
 export function validateRollercoasterCamera(camera) {
+  validateRollercoasterRoll(camera?.rollCues);
+  validateRollercoasterBank(camera?.curveBank);
   ensure(Array.isArray(camera?.samples) && camera.samples.length >= 2, 'camera needs at least two samples.');
   let previous = -1;
   camera.samples.forEach((sample) => {
@@ -132,6 +135,7 @@ export async function validateRollercoasterBundle({ meta, cameraBytes, geometryB
   ensure(cameraHash.toLowerCase() === meta.cameraSha256.toLowerCase(), 'camera hash mismatch.');
   ensure(geometryHash.toLowerCase() === meta.geometry.sha256.toLowerCase(), 'geometry hash mismatch.');
   const camera = validateRollercoasterCamera(JSON.parse(new TextDecoder().decode(cameraView)));
+  validateRollercoasterRoll(camera.rollCues, meta.beats, meta.regions);
   const geometry = validateRollercoasterGeometry(JSON.parse(new TextDecoder().decode(geometryView)), meta);
   return { meta, camera, geometry };
 }
@@ -153,7 +157,8 @@ function waitForExport(milliseconds, signal) {
 }
 
 /** A source save may replace data before the manifest; retry only transient reads. */
-export async function loadRollercoasterBundle({ assetRoot, signal, fetchImpl = globalThis.fetch, retryDelayMs = 150, samplingSettings, timeoutMs }) {
+export async function loadRollercoasterBundle({ assetRoot, signal, fetchImpl = globalThis.fetch, retryDelayMs = 150,
+  samplingSettings, sampleField = sampleRollercoasterField, timeoutMs }) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     signal?.throwIfAborted();
     let failure;
@@ -183,9 +188,11 @@ export async function loadRollercoasterBundle({ assetRoot, signal, fetchImpl = g
         return validateRollercoasterBundle({ meta, cameraBytes, geometryBytes });
       }, { signal, timeoutMs });
       signal?.throwIfAborted();
-      const sampled = sampleRollercoasterField(bundle.geometry,
+      const samplingStarted = performance.now();
+      const sampled = await sampleField(bundle.geometry,
         typeof samplingSettings === 'function' ? samplingSettings(bundle.meta) : samplingSettings);
-      return { ...bundle, ...sampled, loadAttempts: attempt + 1 };
+      signal?.throwIfAborted();
+      return { ...bundle, ...sampled, samplingMs: sampled.samplingMs ?? performance.now() - samplingStarted, loadAttempts: attempt + 1 };
     } catch (error) {
       failure = error;
     }
@@ -197,10 +204,10 @@ export async function loadRollercoasterBundle({ assetRoot, signal, fetchImpl = g
 }
 
 export function createRollercoasterCameraPose() {
-  return { progress: 0, position: [0, 0, 0], quaternion: [0, 0, 0, 1] };
+  return { progress: 0, rollDegrees: 0, bankDegrees: 0, turnDegrees: 0, position: [0, 0, 0], quaternion: [0, 0, 0, 1] };
 }
 
-export function sampleRollercoasterCamera(track, progress, target = createRollercoasterCameraPose()) {
+export function sampleRollercoasterCamera(track, progress, target = createRollercoasterCameraPose(), reducedMotion = false) {
   const samples = track.samples, p = clampProgress(progress);
   let low = 0, high = samples.length - 1;
   while (high - low > 1) {
@@ -224,6 +231,10 @@ export function sampleRollercoasterCamera(track, progress, target = createRoller
   for (let axis = 0; axis < 4; axis += 1) q[axis] = a[axis + 4] * from + b[axis + 4] * to * sign;
   const length = Math.hypot(q[0], q[1], q[2], q[3]);
   for (let axis = 0; axis < 4; axis += 1) q[axis] /= length;
+  target.bankDegrees = reducedMotion ? 0 : sampleRollercoasterBank(track.curveBank, p);
+  target.turnDegrees = reducedMotion ? 0 : sampleRollercoasterRoll(track.rollCues, p);
+  target.rollDegrees = target.turnDegrees + target.bankDegrees;
+  applyRollercoasterRoll(q, target.rollDegrees);
   return target;
 }
 

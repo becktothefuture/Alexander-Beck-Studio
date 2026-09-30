@@ -37,18 +37,18 @@
     "entrance"
   ],
   "controlCount": 298,
-  "descriptorDigest": "0da8b5971ec7d0766eda8586d77385f4a81b0b99134aa9e1fa6b02212a6e4747",
+  "descriptorDigest": "b1b86be7a2dee19880d9c8ed117af47fd158bd0e5d7edd32d71797ad9a895443",
   "renderedControlCount": 274,
   "renderedIdDigest": "29717426a8430b437f376b9c2cca24e4c77f15dd7020e937da46a43a91331e5f",
-  "generatedMarkupDigest": "2b86260b268acb3905cbe4dabfa27a4e902bd3e63d86afdad6f4a48160f09c54",
-  "parseFormatDigest": "0a0d3c912721e054aaaeb45a21566895531dd78ecba0366acf65985424d51f82",
+  "generatedMarkupDigest": "767ddaf38fbe4be991a6e7fa584e87cd8bc14c7f1ca75b713fa64655a38f6fb1",
+  "parseFormatDigest": "96104f53e1d57a6a9822a155b885ff8324175c1713a34cc2dc12fe9fbb5ec4cd",
   "sentinels": [
     {
       "id": "ballMassKg",
       "label": "Ball Mass",
       "labels": null,
       "type": "range",
-      "default": 91,
+      "default": 240,
       "min": 20,
       "max": 400,
       "step": 1,
@@ -57,7 +57,7 @@
       "cssVar": null,
       "designScope": null,
       "group": null,
-      "hint": "Heavier = snooker feel (more inertia, less jitter).",
+      "hint": "Sets ball mass and contact momentum without changing gravity.",
       "section": "Material World",
       "behavior": {
         "parse": true,
@@ -72,7 +72,7 @@
       "label": "Restitution",
       "labels": null,
       "type": "range",
-      "default": 0.42,
+      "default": 0.18,
       "min": 0,
       "max": 1,
       "step": 0.01,
@@ -86,7 +86,7 @@
       "behavior": {
         "parse": true,
         "format": true,
-        "onChange": false,
+        "onChange": true,
         "otherCallbacks": [],
         "reinitMode": false
       }

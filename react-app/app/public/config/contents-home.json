@@ -16,34 +16,34 @@
     "ariaLabel": "Areas of expertise",
     "items": [
       {
-        "colorClass": "bg-ball-1",
-        "label": "Product Design",
-        "tooltip": "I turn ambiguous product problems into interfaces teams can build, test, and improve."
-      },
-      {
         "colorClass": "bg-ball-4",
-        "label": "Experience Design",
-        "tooltip": "I connect user needs, product priorities, and the decisions that shape the journey."
+        "label": "Design Strategy",
+        "tooltip": "Understanding the challenge, identifying worthwhile opportunities and helping a team decide where to focus."
       },
       {
         "colorClass": "bg-ball-3",
-        "label": "Art Direction",
-        "tooltip": "I define the visual point of view that gives the work character, clarity, and intent."
+        "label": "Creative Direction",
+        "tooltip": "Giving the work a clear point of view and guiding the people and decisions that shape it."
+      },
+      {
+        "colorClass": "bg-ball-1",
+        "label": "Product Design",
+        "tooltip": "Connecting user needs with business priorities, then developing products that make sense for both."
+      },
+      {
+        "colorClass": "bg-ball-6",
+        "label": "Brand Identity",
+        "tooltip": "Creating a recognisable identity and defining how it comes through in products, services and communications."
+      },
+      {
+        "colorClass": "bg-ball-8",
+        "label": "Creative Technology",
+        "tooltip": "Exploring what code, AI and generative systems can offer, then building working prototypes to test their value."
       },
       {
         "colorClass": "bg-ball-7",
         "label": "Motion & 3D",
-        "tooltip": "I use motion and spatial prototypes to clarify ideas, interactions, and product stories."
-      },
-      {
-        "colorClass": "bg-ball-8",
-        "label": "Creative Engineering",
-        "tooltip": "I prototype with code and AI to move decisions from discussion into working form."
-      },
-      {
-        "colorClass": "bg-ball-6",
-        "label": "Parametric Systems",
-        "tooltip": "I build systems of tokens, rules, and patterns that scale without losing character."
+        "tooltip": "Using movement, space and timing to explain ideas and give digital experiences character."
       }
     ]
   },
@@ -62,7 +62,6 @@
         "screenReaderText": "Apple Music",
         "url": "https://music.apple.com/profile/beckandeggs"
       },
-
       "linkedin": {
         "ariaLabel": "LinkedIn",
         "screenReaderText": "LinkedIn",
@@ -72,7 +71,7 @@
   },
   "contact": {
     "title": "Let's talk",
-    "description": "If you’re building a product, service or experience that needs design, technology and AI to move together, send me a note.",
+    "description": "If you\u2019re building a product, service or experience that needs design, technology and AI to move together, send me a note.",
     "email": "alexander@beck.fyi",
     "copy": {
       "buttonAriaLabel": "Copy email address",

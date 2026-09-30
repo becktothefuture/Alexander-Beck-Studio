@@ -1,0 +1,512 @@
+body.about-narrative-page .shell-wall-slot,
+body.about-narrative-page .shell-wall-route-root,
+body.about-narrative-page .route-simulation-layer { width: 100%; height: 100%; }
+
+.about-game-board {
+  --about-board-max-width: 2400px;
+  --about-board-side-shade: 3%;
+  --about-board-side-bg: color-mix(in srgb, var(--studio-window-bg), #000 var(--about-board-side-shade));
+  /* Two authored materials: all fixed structure is one quiet neutral;
+   * moving mechanisms are white. The legacy SVG roles alias these owners. */
+  --about-architecture-static-light: #d3d3d3;
+  --about-architecture-static-dark: #424242;
+  --about-architecture-moving: #ffffff;
+  --about-architecture-static: var(--about-architecture-static-light);
+  --about-architecture-fixture: var(--about-architecture-static);
+  --about-architecture-wall: var(--about-architecture-static);
+  --about-architecture-action: var(--about-architecture-moving);
+  --about-board-copy-weight: 400;
+  --about-board-copy-leading: 1.5;
+  --about-board-copy-tracking: -.01em;
+  --about-board-paragraph-gap: 1.5em;
+  --about-board-heading-gap: .375em;
+  --about-board-discipline-row-gap: 3em;
+  --about-board-discipline-column-gap: 24.0227193%;
+  --about-board-utility-size: 14px;
+  --about-board-utility-leading: 20px;
+  --about-board-cue-gap: 14px;
+  --about-board-type-title: clamp(5.125rem, 11.5cqw, 10.375rem);
+  --about-board-type-main: clamp(1.4375rem, 2cqw, 1.75rem);
+  /* One reading size matches the selected-client introduction. Bookend
+   * titles keep their separate role; line length is capped independently. */
+  --about-board-copy-measure: 32ch;
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--about-board-side-bg);
+  font-family: var(--abs-font-sans);
+  container-type: size;
+  pointer-events: auto;
+}
+.about-board-scrollport {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  scrollbar-width: none;
+  touch-action: pan-y;
+}
+.about-board-scrollport::-webkit-scrollbar { display: none; }
+.about-board-content {
+  /* One width owner for text, SVG, balls and the spatial ending. Keep the
+   * scrollport full width so wheel/touch input also works over the side areas.
+   * cqw follows this width; cqh still follows the full-height route container. */
+  position: relative;
+  display: flow-root;
+  width: 100%;
+  max-width: var(--about-board-max-width);
+  min-height: 100%;
+  margin-inline: auto;
+  container-type: inline-size;
+  background: var(--studio-window-bg);
+}
+.about-board-viewport-measure {
+  position: absolute;
+  width: 0;
+  height: 100svh;
+  visibility: hidden;
+  pointer-events: none;
+}
+.about-board-intro {
+  position: relative;
+  display: block;
+  padding: clamp(80px, 6.8675cqw, 108px) 0 0;
+  box-sizing: border-box;
+}
+.about-board-intro__copy {
+  position: relative;
+  width: min(var(--about-board-copy-measure), 76%);
+  font-size: var(--about-board-type-main);
+}
+.about-board-entry-cue {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--about-board-cue-gap);
+  margin: 117.125px 5% 0;
+  font-size: var(--about-board-utility-size);
+  line-height: var(--about-board-utility-leading);
+}
+.about-board-entry-cue > span { font: inherit; }
+.about-board-intro h1 {
+  margin: 0 0 calc(var(--about-board-type-main) * 1.5);
+  font-family: var(--abs-font-headline);
+  font-size: var(--about-board-type-title);
+  font-weight: 400;
+  line-height: .9;
+  letter-spacing: -.0046em;
+}
+.about-board-intro p {
+  margin: 0;
+  max-width: var(--about-board-copy-measure);
+  font-size: var(--about-board-type-main);
+  font-weight: var(--about-board-copy-weight);
+  line-height: var(--about-board-copy-leading);
+  letter-spacing: var(--about-board-copy-tracking);
+  text-wrap: wrap;
+  max-width: none;
+}
+.about-board-reader.is-hidden { display: none; }
+.about-board-reader {
+  display: grid;
+  gap: clamp(32px, 8vw, 90px);
+  padding: clamp(24px, 8vw, 120px);
+  box-sizing: border-box;
+}
+.about-board-reader .about-board-text {
+  position: static;
+  transform: none;
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--about-board-copy-measure);
+  font-size: var(--about-board-type-main);
+  line-height: var(--about-board-copy-leading);
+}
+.about-board-world {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  aspect-ratio: 960 / 14140;
+  min-height: 1px;
+  overflow: hidden;
+}
+.about-board-art { position: absolute; inset: 0; overflow: hidden; }
+.about-board-art { z-index: 1; }
+.about-board-art,
+.about-board-art svg { display: block; width: 100%; }
+.about-board-art svg { height: auto; }
+.about-board-art svg { overflow: visible; }
+.about-board-drum__casing { stroke: var(--about-architecture-wall); }
+.about-board-drum__carrier { fill: var(--about-architecture-wall); }
+.about-board-drum__hub {
+  fill: var(--about-architecture-wall);
+  stroke: var(--about-architecture-wall);
+  stroke-width: 1.3333;
+}
+/* Source paint aliases retain the two approved architecture materials. */
+.about-board-art :is(
+  [fill='#D0D4CC'], [fill='#D2D5CF'], [fill='#D5D8D1']
+) { fill: var(--about-architecture-fixture); }
+.about-board-art :is(
+  [stroke='#D0D4CC'], [stroke='#D2D5CF'], [stroke='#D5D8D1']
+) { stroke: var(--about-architecture-fixture); }
+.about-board-art :is(
+  [fill='#B4C0AC'], [fill='#B7C1B0'], [fill='#BFC5BA'],
+  [fill='#CBD0C6'], [fill='#CBD1C6'], [fill='#CDD1C9']
+) { fill: var(--about-architecture-wall); }
+.about-board-art :is(
+  [stroke='#B4C0AC'], [stroke='#B7C1B0'], [stroke='#BFC5BA'],
+  [stroke='#CBD0C6'], [stroke='#CBD1C6'], [stroke='#CDD1C9']
+) { stroke: var(--about-architecture-wall); }
+.about-board-art [fill='#FAFBF8'] { fill: var(--about-architecture-action); }
+.about-board-art [stroke='#FAFBF8'] { stroke: var(--about-architecture-action); }
+.about-board-art :is(
+  [id^='geometry-pinball-bumper'] [fill='#FAFBF8'],
+  #Vector_162, #Vector_166, #Vector_167, #Vector_171
+) { fill: var(--about-architecture-static); }
+.about-board-art :is(#Vector_161, #Vector_164, #Vector_165) {
+  stroke: var(--about-architecture-action);
+}
+.about-board-socket--flat,
+.about-board-socket--bent { opacity: 0; }
+/* The canvas and SVG strips share native compositor scrolling. */
+#simulations .about-board-balls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  touch-action: pan-y;
+  will-change: auto;
+}
+.about-board-text {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(var(--about-board-copy-measure), 76%);
+  font-size: var(--about-board-type-main);
+  font-weight: var(--about-board-copy-weight);
+  line-height: var(--about-board-copy-leading);
+  letter-spacing: var(--about-board-copy-tracking);
+  text-align: left;
+}
+.about-board-text p { margin: 0; text-wrap: wrap; }
+.about-board-paired-title {
+  margin: 0;
+  font: inherit;
+  line-height: 1.25;
+  letter-spacing: inherit;
+  text-wrap: balance;
+}
+.about-board-text.about-board-discipline-section {
+  width: min(66ch, 76%);
+}
+.about-board-discipline-section > h2 {
+  width: min(var(--about-board-copy-measure), 100%);
+  margin: 0 auto 2.25em;
+}
+.about-board-disciplines {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--about-board-discipline-row-gap) var(--about-board-discipline-column-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about-board-disciplines h3 {
+  position: relative;
+  margin: 0 0 var(--about-board-heading-gap);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: inherit;
+}
+.about-board-discipline-dot {
+  display: inline-block;
+  position: absolute;
+  left: -1.05em;
+  top: .375em;
+  width: .5em;
+  height: .5em;
+  border-radius: 50%;
+}
+html.abs-corner-shape-squircle .about-board-discipline-dot { corner-shape: round; }
+.about-board-disciplines p { margin-inline-start: 0; }
+.about-board-centered { text-align: center; }
+.about-board-text.about-board-prose > * + * { margin-top: var(--about-board-paragraph-gap); }
+.about-board-experience {
+  width: 48.6111111%;
+  margin-inline: auto;
+}
+.about-board-experience > p + p { margin-top: .75em; }
+.about-board-grid-guide {
+  position: absolute;
+  inset: 0;
+  max-width: var(--about-board-max-width);
+  margin-inline: auto;
+  z-index: 4;
+  pointer-events: none;
+}
+.about-board-grid-guide > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+  border-inline: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+  box-sizing: border-box;
+}
+.about-board-reader .about-board-discipline-section {
+  max-width: 66ch;
+}
+.about-board-text.about-board-instruction {
+  width: 76%;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-align: center;
+}
+.about-board-client-logos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 22px 24px;
+  width: 100%;
+  margin: 32px auto 0;
+  padding: 0;
+  list-style: none;
+}
+.about-board-client-logos li {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  height: 6cqw;
+}
+.about-board-client-logos li:last-child { height: 6.4cqw; }
+.about-board-client-logos img {
+  display: block;
+  width: var(--about-client-width);
+  height: 5cqw;
+  max-width: 100%;
+  /* Client assets use a shared padded 2:1 plate. Cover removes only that
+   * normalised vertical breathing room, so the marks read consistently
+   * without enlarging their grid cells. */
+  object-fit: cover;
+  opacity: .72;
+  filter: grayscale(1) contrast(1.05);
+}
+.about-board-three-stage {
+  position: relative;
+  z-index: 2;
+  height: 460cqh;
+  margin-top: calc(-1 * var(--about-board-grid-overlap));
+  background: transparent;
+}
+#simulations .about-board-three-viewport {
+  position: sticky;
+  top: 0;
+  left: auto;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100cqh;
+  background: var(--studio-window-bg);
+  pointer-events: none;
+  touch-action: pan-y;
+  overflow: hidden;
+}
+.about-board-three-stage:not([data-spatial-cover='true']) .about-board-three-viewport {
+  visibility: hidden;
+}
+#simulations .about-board-three-canvas {
+  --about-board-layer-opacity: 1;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: var(--about-board-layer-opacity);
+  background: var(--studio-window-bg);
+  pointer-events: none;
+}
+.about-board-three-canvas--authored { --about-board-layer-opacity: 0; }
+.about-board-three-stage[data-authored-ending-failed='true'] .about-board-ending {
+  background: var(--studio-window-bg);
+}
+.about-board-ending {
+  --about-board-ending-reveal: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 5vw, 80px);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+.about-board-ending::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 10cqh;
+  pointer-events: none;
+  opacity: var(--about-board-ending-reveal);
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0), rgb(255 255 255 / .3));
+}
+.about-board-ending > div {
+  position: relative;
+  z-index: 1;
+  width: min(55cqw, 42rem);
+  opacity: var(--about-board-ending-reveal);
+  transform: scale(calc(.96 + .04 * var(--about-board-ending-reveal)));
+  will-change: transform, opacity;
+  text-align: center;
+}
+.about-board-ending h2 {
+  margin: 0 0 .25em;
+  font-family: var(--abs-font-headline);
+  font-size: var(--about-board-type-title);
+  font-weight: 400;
+  line-height: .88;
+  letter-spacing: var(--abs-font-headline-letter-spacing, -.025em);
+}
+.about-board-ending p {
+  max-width: 30ch;
+  margin: 0 auto 1.15em;
+  font-size: var(--about-board-type-main);
+  line-height: var(--about-board-copy-leading);
+  text-wrap: pretty;
+}
+.about-board-ending__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.about-board-scroll-ui {
+  --about-board-progress: 0;
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+}
+.about-board-scroll-indicator {
+  position: absolute;
+  top: 50%;
+  /* Keep the marker in the gutter, clear of the narrow drum-side copy. */
+  left: -3px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: clamp(176px, 32cqh, 280px);
+}
+.about-board-scroll-indicator__track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  width: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 8%, transparent);
+}
+.about-board-scroll-indicator__track::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: .72;
+  transform: scaleY(var(--about-board-progress));
+  transform-origin: 50% 0;
+}
+.about-board-scroll-indicator__ball {
+  position: absolute;
+  top: calc((100% - 14px) * var(--about-board-progress));
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 3px solid var(--studio-window-bg);
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 2px 8px color-mix(in srgb, currentColor 28%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .about-board-scroll-indicator__track::after,
+  .about-board-scroll-indicator__ball { transition: none; }
+}
+.about-board-error { position: absolute; z-index: 5; inset: 0; padding: 3rem; background: var(--studio-window-bg); }
+
+/* Dark mode preserves the fixed grey / moving white material roles. */
+:root[data-abs-theme='dark'] .about-game-board {
+  --about-board-side-shade: 30%;
+  --about-architecture-static: var(--about-architecture-static-dark);
+}
+:root[data-abs-theme='dark'] .about-board-client-logos img { filter: grayscale(1) invert(1) contrast(1.05); }
+:root[data-abs-theme='dark'] .about-board-ending::after {
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0), rgb(255 255 255 / .15));
+}
+
+@media (max-width: 760px) {
+  .about-game-board {
+    --about-board-type-title: clamp(4.4375rem, 19cqw, 6.5rem);
+    --about-board-type-main: 1.25rem;
+    --about-board-copy-tracking: -.005em;
+    --about-board-discipline-row-gap: 2em;
+    --about-board-utility-size: 12px;
+    --about-board-utility-leading: 18px;
+    --about-board-cue-gap: 12px;
+  }
+  .about-board-intro { padding: 85px 0 0; }
+  .about-board-text.about-board-discipline-section { width: 76%; }
+  .about-board-disciplines { grid-template-columns: minmax(0, 1fr); }
+  .about-board-discipline-section > h2 { margin-bottom: 2em; }
+  .about-board-experience { width: 82.8703704%; }
+  .about-board-entry-cue { margin-top: 74.296875px; }
+  .about-board-text.about-board-instruction { font-size: 10px; }
+  .about-board-client-logos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin-top: 28px; }
+  .about-board-client-logos li { height: 73.25px; }
+  .about-board-client-logos li:last-child { height: 70.59px; }
+  .about-board-client-logos img { width: 83.615%; height: 71.25px; transform: scale(var(--about-client-scale, 1)); }
+  .about-board-ending { padding: 6vw; }
+  .about-board-ending > div {
+    width: min(86cqw, 22rem);
+    box-sizing: border-box;
+    padding: 28px 18px;
+  }
+  .about-board-ending__actions {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: .5rem;
+  }
+  .about-board-ending__actions > button:nth-of-type(2) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: center;
+  }
+  .about-board-ending__actions > a { grid-column: 2; grid-row: 1; }
+}
+
+/* Keep the underlying invitation from ghosting through WebKit's gate blur.
+ * The shared gate and the surrounding 3D material keep their normal finish. */
+html.portfolio-access-gate-open .about-board-ending,
+html.portfolio-access-gate-closing .about-board-ending {
+  visibility: hidden;
+}

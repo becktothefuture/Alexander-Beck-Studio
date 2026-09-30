@@ -892,7 +892,7 @@ test('About readiness supports the production hold and still waits for the devel
     assert.equal(ready(), true);
     harness.selectors.delete(holdSelector);
     const scene = createFakeElement({ dataset: { aboutSceneReady: 'false' } });
-    harness.selectors.set('.about-narrative-lab[data-route-content="about"]', scene);
+    harness.selectors.set('[data-route-content="about"]', scene);
     assert.equal(ready(), false);
     scene.dataset.aboutSceneReady = 'true';
     assert.equal(ready(), true);

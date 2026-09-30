@@ -5,6 +5,10 @@ import {
   preflightRollercoasterField, resolveRollercoasterPaletteRole, sampleRollercoasterField, validateRollercoasterGeometry,
 } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterField.js';
 import { resolveRollercoasterSamplingSpacing } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterProjection.js';
+import {
+  createRollercoasterDotSeeds, createRollercoasterDotDrift, advanceRollercoasterDotDrift,
+  sampleRollercoasterDotOffset, resolveRollercoasterDotPalette,
+} from '../react-app/app/src/routes/about-rollercoaster/rollercoasterDotStyle.js';
 
 function quad({ id = 'wall', x = 0, y = 0, z = 0, width = 2.3, height = 2.3, role = 6, group = 0 } = {}) {
   return { id, name: id, positions: [x, y, z, x + width, y, z, x + width, y + height, z, x, y + height, z],
@@ -18,6 +22,131 @@ function rows(points) {
   return result;
 }
 const sortedRows = points => rows(points).map(row => row.map(value => Math.round(value * 1e5) / 1e5).join(',')).sort();
+
+test('dot seeds preserve anchors and identity across colour changes and point ordering in eight bytes per dot', () => {
+  const { points } = sample(quad({ width: 12, height: 12 }));
+  const original = points.slice();
+  const seeds = createRollercoasterDotSeeds(points);
+  assert.deepEqual(points, original);
+  assert.equal(seeds.byteLength, points.length / 6 * 8);
+  const reversed = Float32Array.from(rows(points).reverse().flat());
+  for (let offset = 4; offset < reversed.length; offset += 6) reversed[offset] = 5;
+  const reversedSeeds = createRollercoasterDotSeeds(reversed);
+  for (let index = 0; index < points.length / 6; index += 1) {
+    const other = seeds.length - (index + 1) * 4;
+    assert.deepEqual(seeds.subarray(index * 4, index * 4 + 4), reversedSeeds.subarray(other, other + 4));
+  }
+  assert.equal(new Set(Array.from({ length: seeds.length / 4 }, (_, index) => seeds.subarray(index * 4, index * 4 + 4).join(','))).size,
+    seeds.length / 4, 'Adjacent grid points have distinct stable identities.');
+});
+
+test('colour regions retain all six slots and monotone mixing while zero restores every source role', () => {
+  const { points } = sample(quad({ width: 30, height: 30 }));
+  const seeds = createRollercoasterDotSeeds(points);
+  const counts = Array(6).fill(0);
+  let changed = 0;
+  for (let index = 3; index < seeds.length; index += 4) {
+    const seed = seeds[index];
+    for (let role = 0; role < 6; role += 1) assert.equal(resolveRollercoasterDotPalette(seed, role, 0), role);
+    const mixed = resolveRollercoasterDotPalette(seed, 0, 1);
+    assert.ok(Number.isInteger(mixed) && mixed >= 0 && mixed <= 5);
+    counts[mixed] += 1;
+    if (resolveRollercoasterDotPalette(seed, 0, 0.6) !== 0) {
+      changed += 1;
+      assert.equal(resolveRollercoasterDotPalette(seed, 0, 0.9), mixed, 'Increasing mix retains already mixed identities.');
+    }
+  }
+  const total = seeds.length / 4;
+  // Regions intentionally give colours unequal local prominence; none of the
+  // existing slots may vanish or dominate the whole field.
+  for (const count of counts) assert.ok(count / total > 0.1 && count / total < 0.25);
+  assert.ok(Math.abs(changed / total - 0.6 * (1 - counts[0] / total)) < 0.02);
+  for (const seed of [0, 65535]) assert.ok(resolveRollercoasterDotPalette(seed, 2, 1) <= 5);
+});
+
+test('nearby dots share colour and drift while distant regions keep independent character', () => {
+  const points = [];
+  for (let y = -12; y < 12; y += 0.6) for (let x = -12; x < 12; x += 0.6) {
+    for (const shift of [0, 0.216, 11.7]) points.push(x + shift, y, -17.3, 0.1, 0, 0);
+  }
+  const seeds = createRollercoasterDotSeeds(Float32Array.from(points));
+  let nearColours = 0, farColours = 0, nearMotionDifference = 0, farMotionDifference = 0;
+  const pairs = points.length / 18;
+  const movement = (index) => {
+    const start = sampleRollercoasterDotOffset(seeds, index, 1, 1, [0, 1, 0, 1]);
+    const end = sampleRollercoasterDotOffset(seeds, index, 1, 1, [1, 0, 0.7, 0.7]);
+    return end.map((value, axis) => value - start[axis]);
+  };
+  for (let pair = 0; pair < pairs; pair += 1) {
+    const index = pair * 3;
+    const colour = offset => resolveRollercoasterDotPalette(seeds[(index + offset) * 4 + 3], 0, 1);
+    nearColours += Number(colour(0) === colour(1));
+    farColours += Number(colour(0) === colour(2));
+    const here = movement(index), near = movement(index + 1), far = movement(index + 2);
+    for (let axis = 0; axis < 3; axis += 1) {
+      nearMotionDifference += (here[axis] - near[axis]) ** 2;
+      farMotionDifference += (here[axis] - far[axis]) ** 2;
+    }
+  }
+  assert.ok(nearColours / pairs > 0.5, 'Adjacent dots read as small colour groups.');
+  assert.ok(nearColours > farColours * 2, 'The grouping belongs to a region, not the whole scene.');
+  assert.ok(nearMotionDifference > 0, 'Some individual variation remains.');
+  assert.ok(farMotionDifference > nearMotionDifference * 3, 'Neighbouring dots have a shared drift direction.');
+});
+
+test('static scatter and gentle drift stay inside the requested distance at every phase, including extreme seeds', () => {
+  const { points } = sample(quad({ width: 5, height: 5 }));
+  const source = createRollercoasterDotSeeds(points);
+  const seeds = new Uint16Array(source.length + 8 * 4);
+  seeds.set(source);
+  for (let corner = 0; corner < 8; corner += 1) for (let axis = 0; axis < 3; axis += 1) {
+    seeds[source.length + corner * 4 + axis] = corner & (1 << axis) ? 65535 : 0;
+  }
+  const output = [0, 0, 0];
+  let movingDots = 0;
+  for (let index = 0; index < seeds.length / 4; index += 1) {
+    const start = sampleRollercoasterDotOffset(seeds, index, 0.216 * 1.5, 0.45, [0, 1, 0, 1]);
+    for (let phase = 0; phase < 30; phase += 1) {
+      const waves = [Math.sin(phase), Math.cos(phase), Math.sin(phase * 0.731), Math.cos(phase * 0.731)];
+      for (const distance of [0, 0.216 * 0.85, 0.216 * 1.5]) for (const drift of [0, 0.45, 1]) {
+        sampleRollercoasterDotOffset(seeds, index, distance, drift, waves, output);
+        assert.ok(Math.hypot(...output) <= distance + 1e-12, 'The scatter envelope also contains all drift.');
+        if (!distance) assert.ok(output.every(value => value === 0), 'Zero scatter exactly restores the aligned anchor.');
+        if (!drift) assert.deepEqual(output, sampleRollercoasterDotOffset(seeds, index, distance, 0, [0, 1, 0, 1]));
+      }
+    }
+    const end = sampleRollercoasterDotOffset(seeds, index, 0.216 * 1.5, 0.45, [1, 0, 0.7, 0.7]);
+    if (end.some((value, axis) => Math.abs(value - start[axis]) > 0.001)) movingDots += 1;
+  }
+  assert.ok(movingDots > seeds.length / 4 * 0.98, 'Dots visibly move rather than staying on a static remap.');
+});
+
+test('drift integrates speed at the same rate across frame cadences and freezes without phase jumps', () => {
+  function run(fps) {
+    const state = createRollercoasterDotDrift();
+    for (let frame = 0; frame <= fps * 30; frame += 1) advanceRollercoasterDotDrift(state, frame / fps, 0.65);
+    return state;
+  }
+  const reference = run(60);
+  for (const fps of [30, 144]) {
+    const state = run(fps);
+    assert.ok(Math.abs(state.phaseA - reference.phaseA) < 1e-10);
+    assert.ok(Math.abs(state.phaseB - reference.phaseB) < 1e-10);
+  }
+  const frozen = Array.from(reference.waves);
+  advanceRollercoasterDotDrift(reference, 30, 2);
+  advanceRollercoasterDotDrift(reference, 30.1, 0);
+  advanceRollercoasterDotDrift(reference, 30.2, 2, true);
+  advanceRollercoasterDotDrift(reference, 300, 2);
+  assert.deepEqual(Array.from(reference.waves), frozen, 'Duplicate renders, speed zero, reduced motion and suspended tabs freeze phase.');
+  const phase = reference.phaseA;
+  advanceRollercoasterDotDrift(reference, 300.1, 2);
+  assert.ok(Math.abs(reference.phaseA - phase - 0.1 * 2 * Math.PI * 2 / 12) < 1e-10, 'Resuming advances only the new frame.');
+  advanceRollercoasterDotDrift(reference, 1, 2);
+  const restored = reference.phaseA;
+  advanceRollercoasterDotDrift(reference, 1.1, 0.5);
+  assert.ok(Math.abs(reference.phaseA - restored - 0.1 * 0.5 * Math.PI * 2 / 12) < 1e-10);
+});
 function subdividedQuad(divisions = 10) {
   const object = quad(); object.positions = []; object.faces = [];
   for (let row = 0; row <= divisions; row += 1) for (let column = 0; column <= divisions; column += 1) {

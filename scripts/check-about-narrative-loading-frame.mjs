@@ -180,13 +180,6 @@ test('same-route URL changes keep saving but a destination route is protected', 
   assert.deepEqual(win.history.state, { routeId: 'contact' });
 });
 
-test('About uses the shared moving two-tick progress instrument', () => {
-  assert.match(experienceSource, /resolveScrollProgressIndicatorState\(frame\.progress/);
-  assert.match(experienceSource, /index >= state\.activeStartIndex/);
-  assert.match(experienceSource, /state\.activeTickCount/);
-  assert.doesNotMatch(experienceSource, /index <= resolvedActiveIndex/);
-});
-
 // Exercise the new route's actual native writer. The integer setter models
 // WebKit flooring, so a needless progress round-trip is observable.
 function createFlightScrollFixture({ scrollTop = 1726, maximum = 13031, integerScroll = false } = {}) {

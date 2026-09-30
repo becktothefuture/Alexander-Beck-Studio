@@ -14,8 +14,8 @@ import { createEntranceSequence, prepareBookendTitleGlyphs } from '../../lib/mot
 import { registerRouteTransitionParticipant } from '../../lib/motion/route-transition-participants.js';
 import { resolveRouteFromPathname } from '../../lib/routes.js';
 import {
-  resolveScrollProgressIndicatorState, SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
-} from '../../lib/scroll-progress-indicator.js';
+  createSmoothScroll, createSmoothScrollMediaQueries, shouldUseNativeSmoothScroll,
+} from '../../lib/smooth-scroll.js';
 import {
   readAboutNarrativeHistoryProgress, writeAboutNarrativeHistoryProgress,
 } from '../about/aboutNarrativeScrollRestoration.js';
@@ -26,6 +26,7 @@ import { playContactRippleMotif } from '../../legacy/modules/audio/sound-engine.
 import { createRollercoasterScene } from './rollercoasterScene.js';
 import { getRollercoasterAppearance } from './rollercoasterAppearance.js';
 import { stepRollercoasterCamera } from './rollercoasterCameraMotion.js';
+import { measureRollercoasterEndingCircle } from './rollercoasterEnding.js';
 import { createRollercoasterTitleAnimator, rollercoasterTitleDepth } from './rollercoasterTitles.js';
 import {
   applyRollercoasterTitlePresentation, createRollercoasterStoryLayout, ROLLERCOASTER_BEAT_IDS,
@@ -36,12 +37,13 @@ import './about-rollercoaster.css';
 
 const Controls = import.meta.env.DEV
   ? lazy(() => import('./AboutRollercoasterControls.jsx')) : null;
+const INSPECTABLE = import.meta.env.DEV || import.meta.env.MODE === 'certification';
 const CONTACT = Object.freeze({
   email: homeContent.contact?.email || 'alexander@beck.fyi',
   linkedin: homeContent.socials?.items?.linkedin?.url || 'https://www.linkedin.com/in/thisisbeck/',
 });
-const TYPE_ROLES = ['body', 'smallBody', 'eyebrow', 'mainTitle', 'inbetweenTitle'];
-const TYPE_CSS_NAMES = ['body', 'small-body', 'eyebrow', 'main-title', 'inbetween-title'];
+const TYPE_ROLES = ['body', 'smallBody', 'eyebrow', 'inbetweenTitle'];
+const TYPE_CSS_NAMES = ['body', 'small-body', 'eyebrow', 'inbetween-title'];
 
 function contentStyle(document) {
   const type = document.globals?.typography || {};
@@ -126,7 +128,7 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
       <div className="rollercoaster-title-anchor">
         <Heading
           id={opening ? 'about-route-title' : field.id}
-          className="rollercoaster-title route-centered-page__title"
+          className={`rollercoaster-title route-centered-page__title${opening || ending ? ' route-bookend-title' : ''}`}
           data-title-ink
           aria-label={field.text}
         >
@@ -135,7 +137,7 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
       </div>
       {field.description || ending ? (
         <div
-          className="rollercoaster-title-support"
+          className="rollercoaster-title-support route-title-lockup"
           data-title-support
           role={ending ? 'region' : undefined}
           aria-label={ending ? 'Get in touch' : undefined}
@@ -143,19 +145,17 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
         >
           <span className="route-title-lockup__rule" aria-hidden="true" />
           {field.description ? <p className="route-centered-page__description route-intro-description">{field.description}</p> : null}
+          {opening ? <p className="rollercoaster-scroll-cue">Scroll to explore</p> : null}
           {ending ? (
-            <div className="rollercoaster-contact-actions contact-action-stack" data-ending-actions inert>
-              <div className="contact-action-stack__primary">
-                <CopyEmailAction
-                  email={CONTACT.email}
-                  onActivate={() => { void playContactRippleMotif({ unlockIfNeeded: false }); }}
-                  soundSource="about-copy-email"
-                  statusId="about-copy-status"
-                />
-              </div>
-              <div className="contact-action-stack__secondary">
-                <LinkedInAction href={CONTACT.linkedin} soundSource="about-linkedin" />
-              </div>
+            <div className="rollercoaster-contact-actions" data-ending-actions inert>
+              <CopyEmailAction
+                email={CONTACT.email}
+                label={CONTACT.email}
+                onActivate={() => { void playContactRippleMotif({ unlockIfNeeded: false }); }}
+                soundSource="about-copy-email"
+                statusId="about-copy-status"
+              />
+              <LinkedInAction href={CONTACT.linkedin} soundSource="about-linkedin" iconPosition="trailing" />
             </div>
           ) : null}
         </div>
@@ -204,27 +204,7 @@ function centreTitleInk(title, context) {
   title.closest('[data-title-field]').style.setProperty('--title-ink-height', `${maxY - minY}px`);
 }
 
-function ScrollIndicator({ indicatorRef }) {
-  return (
-    <div className="rollercoaster-indicator-layer">
-      <div
-        ref={indicatorRef}
-        className="rollercoaster-indicator"
-        role="progressbar"
-        aria-label="About page scroll progress"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={0}
-      >
-        {Array.from({ length: SCROLL_PROGRESS_INDICATOR_TICK_COUNT }, (_, index) => (
-          <span className="rollercoaster-indicator__line" key={index} aria-hidden="true" />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function AboutRollercoasterExperience({ routeContentId = 'about', showIndicator = true }) {
+export function AboutRollercoasterExperience({ routeContentId = 'about' }) {
   const [contentDocument, setContentDocument] = useState(aboutContent);
   const [sourceMeta, setSourceMeta] = useState(null);
   const [sceneFailed, setSceneFailed] = useState(false);
@@ -233,14 +213,12 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
   const canvasRef = useRef(null);
   const scrollportRef = useRef(null);
   const contentRef = useRef(null);
-  const indicatorRef = useRef(null);
   const measureRef = useRef(null);
   const reducedMotionRef = useRef(reducedMotion);
   const textMotionRef = useRef(contentDocument.globals?.textMotion);
   const motionOverrideRef = useRef(false);
   const fields = selectRollercoasterCopy(contentDocument);
   const utilityHost = document.getElementById('shell-route-utility-slot');
-  const indicatorHost = document.getElementById('shell-persistent-route-ui-host');
 
   useEffect(() => {
     reducedMotionRef.current = reducedMotion;
@@ -278,6 +256,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       },
     }));
     const titleAnimator = createRollercoasterTitleAnimator(createEntranceSequence);
+    const endingTitle = titleRecords.find(record => record.options.ending);
     // Also clean the former whole-field gate when this component is replaced
     // through hot reload. There is one semantic title, never a hidden clone.
     titles.forEach(node => {
@@ -286,11 +265,14 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       node.style.removeProperty('visibility');
     });
     const readingNodes = Array.from(content.querySelectorAll('[data-reading-beat]'));
+    const readingWidths = {};
     const glyphContext = document.createElement('canvas').getContext('2d');
     const abortController = new AbortController();
     const frame = { progress: 0, beatId: 'departure', beatIndex: 0, localProgress: 0, scrollTop: 0 };
     const renderFrame = { progress: 0, ambientSeconds: 0, reducedMotion: reducedMotionRef.current, titleWidth: 0, titleTop: 0, titleBottom: 0, titleOpacity: 0 };
     const cameraMotion = { progress: NaN, velocity: 0 };
+    const scrollMediaQueries = createSmoothScrollMediaQueries();
+    let smoothScroll = null;
     let snapCamera = true;
     let disposed = false;
     let scene = null;
@@ -303,7 +285,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     let measurementFrame = 0;
     let historyTimer = 0;
     let previousTime = null;
-    let lastIndicatorValue = -1;
+    let lastScrollCueOpacity = -1;
     let lastPublishedProgress = -1;
     let lastDiagnosticTime = -Infinity;
     let restoredProgress = readAboutNarrativeHistoryProgress();
@@ -367,6 +349,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         if (glyphContext) centreTitleInk(field.querySelector('[data-title-ink]'), glyphContext);
       });
       if (!scene) {
+        smoothScroll?.resize();
         signalReady();
         return;
       }
@@ -378,10 +361,25 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         record.quietWidth = Math.max(record.ink.offsetWidth * 1.16, support ? support.offsetWidth : 0);
         record.quietTop = -inkHeight * 0.6;
         record.quietBottom = Math.min(root.clientHeight / 2, inkHeight * 0.6 + supportHeight);
+        if (record.options.ending) {
+          // Fit the settled heading even when a reflow happens during its depth reveal.
+          const depth = record.ink.style.getPropertyValue('--title-depth');
+          record.ink.style.setProperty('--title-depth', '0px');
+          const origin = record.node.getBoundingClientRect();
+          record.opening = measureRollercoasterEndingCircle([record.ink, ...support.children].map(node => {
+            const box = node.getBoundingClientRect();
+            return { left: box.left - origin.left, right: box.right - origin.left,
+              top: box.top - origin.top, bottom: box.bottom - origin.top };
+          }));
+          if (depth) record.ink.style.setProperty('--title-depth', depth);
+          else record.ink.style.removeProperty('--title-depth');
+        }
       });
-      const readingHeights = Object.fromEntries(readingNodes.map(node => [
-        node.dataset.readingBeat, node.getBoundingClientRect().height,
-      ]));
+      const readingHeights = Object.fromEntries(readingNodes.map(node => {
+        const bounds = node.getBoundingClientRect();
+        readingWidths[node.dataset.readingBeat] = bounds.width;
+        return [node.dataset.readingBeat, bounds.height];
+      }));
       let next;
       try {
         next = createRollercoasterStoryLayout(scene.meta.beats, {
@@ -406,7 +404,12 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       });
       // A no-op measurement must never round-trip an unchanged native pixel.
       // Changed reading budgets restore the same authored source position.
-      restoreRollercoasterScrollPosition(scrollport, previous, next, preservedProgress, !restored);
+      const scrollRestored = restoreRollercoasterScrollPosition(scrollport, previous, next, preservedProgress, !restored);
+      if (scrollRestored || next.contentHeightPx !== previous?.contentHeightPx
+        || next.viewportHeight !== previous?.viewportHeight) {
+        smoothScroll?.resize();
+        smoothScroll?.reset();
+      }
       if (!restored) snapCamera = true;
       restored = true;
       measuredReady = true;
@@ -420,19 +423,36 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
     function render(now) {
       if (disposed) return;
       const motionReduced = reducedMotionRef.current;
+      if (motionReduced || shouldUseNativeSmoothScroll(scrollMediaQueries)) {
+        smoothScroll?.destroy();
+        smoothScroll = null;
+      } else if (!smoothScroll) {
+        smoothScroll = createSmoothScroll({
+          wrapper: scrollport, content, autoResize: false, allowNestedScroll: true,
+        });
+      }
+      // Use the project drawer's easing in this same frame, before text and camera
+      // read the native position. The existing measurement owns scroll bounds.
+      smoothScroll?.raf(now);
       const appearance = getRollercoasterAppearance();
       const deltaSeconds = previousTime == null ? 0 : Math.max(0, (now - previousTime) / 1000);
       if (previousTime != null && !document.hidden && entranceStarted && !motionReduced) {
-        renderFrame.ambientSeconds += Math.min(0.1, deltaSeconds) * appearance.animationSpeed;
+        renderFrame.ambientSeconds += Math.min(0.1, deltaSeconds);
       }
       previousTime = document.hidden ? null : now;
       if (layout && measuredReady) {
         sampleRollercoasterScroll(layout, scrollport.scrollTop, frame);
+        const readingSegment = layout.segments[frame.beatIndex];
+        renderFrame.readingWidth = readingWidths[frame.beatId] || 0;
+        renderFrame.readingTop = readingSegment.startPx + readingSegment.copyOffsetPx - frame.scrollTop;
+        renderFrame.readingBottom = renderFrame.readingTop + readingSegment.copyHeightPx;
         const cameraTarget = motionReduced ? frame.progress : sampleRollercoasterCameraTarget(layout, frame);
+        renderFrame.cameraTimeSeconds = now / 1000;
+        renderFrame.resetCameraMotion = snapCamera || motionReduced || document.hidden;
         renderFrame.progress = stepRollercoasterCamera(cameraMotion, cameraTarget, deltaSeconds,
-          snapCamera || motionReduced || document.hidden, appearance.scrollGlideMs);
+          renderFrame.resetCameraMotion, appearance.scrollGlideMs);
         snapCamera = false;
-        if (import.meta.env.DEV) {
+        if (INSPECTABLE) {
           root.dataset.aboutCameraProgress = String(renderFrame.progress);
           root.dataset.aboutCameraTarget = String(cameraTarget);
         }
@@ -464,25 +484,18 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         renderFrame.titleTop = activeTitle?.quietTop || 0;
         renderFrame.titleBottom = activeTitle?.quietBottom || 0;
         renderFrame.titleOpacity = activeTitle?.opacity || 0;
+        renderFrame.endingTitleActive = Boolean(activeTitle?.options.ending);
+        renderFrame.endingOpening = endingTitle?.opening || null;
         if (!document.hidden) scene?.render(renderFrame);
-        const progressValue = Math.round(frame.progress * 100);
-        if (indicatorRef.current && progressValue !== lastIndicatorValue) {
-          const indicator = indicatorRef.current;
-          const state = resolveScrollProgressIndicatorState(frame.progress, {
-            tickCount: SCROLL_PROGRESS_INDICATOR_TICK_COUNT,
-          });
-          indicator.setAttribute('aria-valuenow', String(state.progressValue));
-          indicator.setAttribute('aria-valuetext', `${state.progressValue}% through the About story`);
-          Array.from(indicator.children).forEach((line, index) => {
-            line.classList.toggle('is-active', index >= state.activeStartIndex
-              && index < state.activeStartIndex + state.activeTickCount);
-          });
-          lastIndicatorValue = progressValue;
+        const cueOpacity = Math.max(0, 1 - frame.scrollTop / (layout.viewportHeight * 0.25));
+        if (cueOpacity !== lastScrollCueOpacity) {
+          root.style.setProperty('--about-scroll-cue-opacity', String(cueOpacity));
+          lastScrollCueOpacity = cueOpacity;
         }
       }
       // Bounded, read-only DOM diagnostics also work in the native browser's
       // isolated inspection world. They never alter the scene or its clocks.
-      if (import.meta.env.DEV && now - lastDiagnosticTime >= 500) {
+      if (INSPECTABLE && now - lastDiagnosticTime >= 500) {
         root.dataset.aboutRuntimeDiagnostics = JSON.stringify({
           ready: root.dataset.aboutSceneReady === 'true', layoutReady: measuredReady,
           fontState: fontState.status, progress: frame.progress, beat: frame.beatId,
@@ -494,7 +507,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       animationFrame = requestStableAnimationFrame(render);
     }
 
-    const inspection = import.meta.env.DEV ? Object.freeze({
+    const inspection = INSPECTABLE ? Object.freeze({
       inspect: () => ({
         ready: root.dataset.aboutSceneReady === 'true',
         layoutReady: measuredReady, fontState: structuredClone(fontState),
@@ -506,7 +519,7 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
         scene: scene?.inspect() || null, error: sceneError,
       }),
     }) : null;
-    if (import.meta.env.DEV) window.__aboutRollercoaster = inspection;
+    if (INSPECTABLE) window.__aboutRollercoaster = inspection;
     const restoreHistory = () => {
       if (!currentRouteIsAbout()) return;
       restoredProgress = readAboutNarrativeHistoryProgress();
@@ -523,11 +536,17 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       addStableEventListener(window, ROUTE_ENTRANCE_START_EVENT, startEntrance),
       addStableEventListener(scrollport, 'scroll', scheduleHistory, { passive: true }),
       addStableEventListener(scrollport, 'scrollend', flushHistory, { passive: true }),
+      addStableEventListener(scrollport, 'keydown', event => {
+        if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) {
+          smoothScroll?.reset();
+        }
+      }),
       addStableEventListener(window, 'resize', scheduleMeasure, { passive: true }),
       addStableEventListener(window, 'pagehide', flushHistory),
       addStableEventListener(window, 'pageshow', event => { if (event.persisted) restoreHistory(); }),
       addStableEventListener(window, 'popstate', restoreHistory),
       addStableEventListener(document, 'visibilitychange', () => {
+        smoothScroll?.reset();
         previousTime = null;
         snapCamera = true;
         if (document.hidden) flushHistory();
@@ -591,11 +610,12 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
       measureRef.current = null;
       observer.disconnect();
       fontReadiness.destroy();
+      smoothScroll?.destroy();
       cleanupEvents.forEach(cleanup => cleanup());
       unregister();
       titleAnimator.dispose();
       scene?.dispose();
-      if (import.meta.env.DEV && window.__aboutRollercoaster === inspection) delete window.__aboutRollercoaster;
+      if (INSPECTABLE && window.__aboutRollercoaster === inspection) delete window.__aboutRollercoaster;
     };
   }, [routeContentId]);
 
@@ -644,7 +664,6 @@ export function AboutRollercoasterExperience({ routeContentId = 'about', showInd
           ))}
         </div>
       </div>
-      {showIndicator && indicatorHost ? createPortal(<ScrollIndicator indicatorRef={indicatorRef} />, indicatorHost) : null}
       {utilityHost ? createPortal(
         <button
           type="button"

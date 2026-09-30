@@ -177,19 +177,38 @@ function analyseSamples(profile, direction, samples) {
 async function recordJourney(page, direction) {
   return page.evaluate(async ({ requestedDirection, requestedDurationMs }) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
+    if (scrollport.classList.contains('lenis')) throw new Error(
+      'Motion fixture cannot directly position an active Lenis owner. Use the authored zero-smoothing source or real wheel input.',
+    );
     const maximum = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
     const startTop = requestedDirection > 0 ? 0 : maximum;
     const endTop = requestedDirection > 0 ? maximum : 0;
+    const targetStoryWU = requestedDirection > 0 ? 0 : Math.max(...Array.from(
+      document.querySelectorAll('[data-render-span-id]'), node => Number(node.dataset.storyEndWu),
+    ));
+    const initialRuntime = window.__aboutNarrativeRuntime;
+    // One native write followed by observations. Repeated initial pinning
+    // could conceal a competing owner or an unexpected restoration reset.
     scrollport.scrollTop = startTop;
     scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
-    await new Promise((resolve) => {
-      let frames = 8;
-      const hold = () => {
-        scrollport.scrollTop = startTop;
-        frames -= 1;
-        if (frames <= 0) resolve(); else requestAnimationFrame(hold);
+    await new Promise((resolve, reject) => {
+      let settledFrames = 0;
+      const deadline = performance.now() + 10000;
+      const hold = time => {
+        if (initialRuntime !== window.__aboutNarrativeRuntime || document.hidden) {
+          reject(new Error('Motion fixture lost its active runtime while positioning.')); return;
+        }
+        const actual = initialRuntime.getMotionSnapshot();
+        const settled = Math.abs(scrollport.scrollTop - startTop) <= 1
+          && Math.abs(actual.storyWU - targetStoryWU) <= 0.035;
+        settledFrames = settled ? settledFrames + 1 : 0;
+        if (settledFrames >= 8) { resolve(); return; }
+        if (time > deadline) {
+          reject(new Error(`Single-write motion fixture did not settle: scroll=${scrollport.scrollTop}/${startTop}, story=${actual.storyWU}/${targetStoryWU}.`)); return;
+        }
+        requestAnimationFrame(hold);
       };
-      hold();
+      requestAnimationFrame(hold);
     });
     const samples = [];
     const startedAt = performance.now();

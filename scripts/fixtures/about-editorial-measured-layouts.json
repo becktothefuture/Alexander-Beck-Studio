@@ -1,0 +1,478 @@
+{
+  "schema": "about-editorial-measured-layout-fixture/v1",
+  "source": "Eight actual Chromium Metal DOM layouts on 2026-09-15: normal and exact 200% desktop, tablet, mobile and short landscape. Centered editorial corridor and shared opening entrance repair; affected mobile layouts recaptured after utility inset and long-word wrapping corrections. Evidence: output/about-gates-thames-20260915/blackfriars/editorial-v3/measurements-final.json",
+  "layouts": [
+    {
+      "id": "desktop",
+      "profileId": "desktop",
+      "textScale": 1,
+      "inlineSize": 1412,
+      "blockSize": 898,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 177,
+          "protectedHeightPx": 177,
+          "viewportHeightPx": 898
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 1698.203125,
+          "protectedHeightPx": 1698.203125,
+          "viewportHeightPx": 898
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 83.9562,
+          "protectedHeightPx": 119,
+          "viewportHeightPx": 898
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 167.95620000000002,
+          "protectedHeightPx": 203,
+          "viewportHeightPx": 898
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 1239,
+          "protectedHeightPx": 1239,
+          "viewportHeightPx": 898
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 1023,
+          "protectedHeightPx": 1023,
+          "viewportHeightPx": 898
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 167.95620000000002,
+          "protectedHeightPx": 203,
+          "viewportHeightPx": 898
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 83.9562,
+          "protectedHeightPx": 119,
+          "viewportHeightPx": 898
+        },
+        "text-life-character": {
+          "measuredHeightPx": 414.046875,
+          "protectedHeightPx": 414.046875,
+          "viewportHeightPx": 898
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 84,
+          "protectedHeightPx": 84,
+          "viewportHeightPx": 898
+        }
+      }
+    },
+    {
+      "id": "tablet",
+      "profileId": "tablet",
+      "textScale": 1,
+      "inlineSize": 996,
+      "blockSize": 666,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 172,
+          "protectedHeightPx": 172,
+          "viewportHeightPx": 666
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 1741,
+          "protectedHeightPx": 1741,
+          "viewportHeightPx": 666
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 60.07999999999999,
+          "protectedHeightPx": 85,
+          "viewportHeightPx": 666
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 120.07999999999998,
+          "protectedHeightPx": 145,
+          "viewportHeightPx": 666
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 1190,
+          "protectedHeightPx": 1190,
+          "viewportHeightPx": 666
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 1255,
+          "protectedHeightPx": 1255,
+          "viewportHeightPx": 666
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 120.07999999999998,
+          "protectedHeightPx": 145,
+          "viewportHeightPx": 666
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 60.07999999999999,
+          "protectedHeightPx": 85,
+          "viewportHeightPx": 666
+        },
+        "text-life-character": {
+          "measuredHeightPx": 432.234375,
+          "protectedHeightPx": 432.234375,
+          "viewportHeightPx": 666
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 84,
+          "protectedHeightPx": 84,
+          "viewportHeightPx": 666
+        }
+      }
+    },
+    {
+      "id": "mobile",
+      "profileId": "mobile",
+      "textScale": 1,
+      "inlineSize": 370,
+      "blockSize": 746,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 113,
+          "protectedHeightPx": 113,
+          "viewportHeightPx": 746
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 1971.296875,
+          "protectedHeightPx": 1971.296875,
+          "viewportHeightPx": 746
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 44.049099999999996,
+          "protectedHeightPx": 62,
+          "viewportHeightPx": 746
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 88.04910000000001,
+          "protectedHeightPx": 106,
+          "viewportHeightPx": 746
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 1247,
+          "protectedHeightPx": 1247,
+          "viewportHeightPx": 746
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 953,
+          "protectedHeightPx": 953,
+          "viewportHeightPx": 746
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 88.04910000000001,
+          "protectedHeightPx": 106,
+          "viewportHeightPx": 746
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 44.049099999999996,
+          "protectedHeightPx": 62,
+          "viewportHeightPx": 746
+        },
+        "text-life-character": {
+          "measuredHeightPx": 519,
+          "protectedHeightPx": 519,
+          "viewportHeightPx": 746
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 51,
+          "protectedHeightPx": 51,
+          "viewportHeightPx": 746
+        }
+      }
+    },
+    {
+      "id": "short-landscape",
+      "profileId": "mobile",
+      "textScale": 1,
+      "inlineSize": 818.3125,
+      "blockSize": 289.15625,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 126,
+          "protectedHeightPx": 126,
+          "viewportHeightPx": 289
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 1468,
+          "protectedHeightPx": 1468,
+          "viewportHeightPx": 289
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 46.28,
+          "protectedHeightPx": 65,
+          "viewportHeightPx": 289
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 91.28,
+          "protectedHeightPx": 110,
+          "viewportHeightPx": 289
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 857.109375,
+          "protectedHeightPx": 857.109375,
+          "viewportHeightPx": 289
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 740,
+          "protectedHeightPx": 740,
+          "viewportHeightPx": 289
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 91.28,
+          "protectedHeightPx": 110,
+          "viewportHeightPx": 289
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 46.28,
+          "protectedHeightPx": 65,
+          "viewportHeightPx": 289
+        },
+        "text-life-character": {
+          "measuredHeightPx": 353,
+          "protectedHeightPx": 353,
+          "viewportHeightPx": 289
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 26,
+          "protectedHeightPx": 26,
+          "viewportHeightPx": 289
+        }
+      }
+    },
+    {
+      "id": "desktop-200",
+      "profileId": "desktop",
+      "textScale": 2,
+      "inlineSize": 1412,
+      "blockSize": 898,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 526,
+          "protectedHeightPx": 526,
+          "viewportHeightPx": 898
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 4239.21875,
+          "protectedHeightPx": 4239.21875,
+          "viewportHeightPx": 898
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 335.91240000000005,
+          "protectedHeightPx": 406,
+          "viewportHeightPx": 898
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 335.91240000000005,
+          "protectedHeightPx": 406,
+          "viewportHeightPx": 898
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 2349.4375,
+          "protectedHeightPx": 2349.4375,
+          "viewportHeightPx": 898
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 1041,
+          "protectedHeightPx": 1041,
+          "viewportHeightPx": 898
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 504.9124,
+          "protectedHeightPx": 575,
+          "viewportHeightPx": 898
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 167.9124,
+          "protectedHeightPx": 238,
+          "viewportHeightPx": 898
+        },
+        "text-life-character": {
+          "measuredHeightPx": 969.34375,
+          "protectedHeightPx": 969.34375,
+          "viewportHeightPx": 898
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 169,
+          "protectedHeightPx": 169,
+          "viewportHeightPx": 898
+        }
+      }
+    },
+    {
+      "id": "mobile-200",
+      "profileId": "mobile",
+      "textScale": 2,
+      "inlineSize": 370,
+      "blockSize": 746,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 378,
+          "protectedHeightPx": 378,
+          "viewportHeightPx": 746
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 5974.46875,
+          "protectedHeightPx": 5974.46875,
+          "viewportHeightPx": 746
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 176.09820000000002,
+          "protectedHeightPx": 212,
+          "viewportHeightPx": 746
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 176.09820000000002,
+          "protectedHeightPx": 212,
+          "viewportHeightPx": 746
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 4167,
+          "protectedHeightPx": 4167,
+          "viewportHeightPx": 746
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 1006,
+          "protectedHeightPx": 1006,
+          "viewportHeightPx": 746
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 264.0982,
+          "protectedHeightPx": 300,
+          "viewportHeightPx": 746
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 176.09820000000002,
+          "protectedHeightPx": 212,
+          "viewportHeightPx": 746
+        },
+        "text-life-character": {
+          "measuredHeightPx": 1943,
+          "protectedHeightPx": 1943,
+          "viewportHeightPx": 746
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 204,
+          "protectedHeightPx": 204,
+          "viewportHeightPx": 746
+        }
+      }
+    },
+    {
+      "id": "tablet-200",
+      "profileId": "tablet",
+      "textScale": 2,
+      "inlineSize": 996,
+      "blockSize": 666,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 519,
+          "protectedHeightPx": 519,
+          "viewportHeightPx": 666
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 4822,
+          "protectedHeightPx": 4822,
+          "viewportHeightPx": 666
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 119.1598,
+          "protectedHeightPx": 169,
+          "viewportHeightPx": 666
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 239.15980000000002,
+          "protectedHeightPx": 289,
+          "viewportHeightPx": 666
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 2690,
+          "protectedHeightPx": 2690,
+          "viewportHeightPx": 666
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 1274,
+          "protectedHeightPx": 1274,
+          "viewportHeightPx": 666
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 239.15980000000002,
+          "protectedHeightPx": 289,
+          "viewportHeightPx": 666
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 119.1598,
+          "protectedHeightPx": 169,
+          "viewportHeightPx": 666
+        },
+        "text-life-character": {
+          "measuredHeightPx": 1247,
+          "protectedHeightPx": 1247,
+          "viewportHeightPx": 666
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 169,
+          "protectedHeightPx": 169,
+          "viewportHeightPx": 666
+        }
+      }
+    },
+    {
+      "id": "short-landscape-200",
+      "profileId": "mobile",
+      "textScale": 2,
+      "inlineSize": 818.3125,
+      "blockSize": 289.15625,
+      "measurements": {
+        "text-promise-main": {
+          "measuredHeightPx": 227,
+          "protectedHeightPx": 227,
+          "viewportHeightPx": 289
+        },
+        "text-background-unit": {
+          "measuredHeightPx": 3607,
+          "protectedHeightPx": 3607,
+          "viewportHeightPx": 289
+        },
+        "text-complexity-curiosity": {
+          "measuredHeightPx": 91.56,
+          "protectedHeightPx": 129,
+          "viewportHeightPx": 289
+        },
+        "text-complexity-listen": {
+          "measuredHeightPx": 183.56,
+          "protectedHeightPx": 221,
+          "viewportHeightPx": 289
+        },
+        "text-discipline-labels": {
+          "measuredHeightPx": 2133,
+          "protectedHeightPx": 2133,
+          "viewportHeightPx": 289
+        },
+        "text-selected-clients": {
+          "measuredHeightPx": 757,
+          "protectedHeightPx": 757,
+          "viewportHeightPx": 289
+        },
+        "text-disciplines-title": {
+          "measuredHeightPx": 183.56,
+          "protectedHeightPx": 221,
+          "viewportHeightPx": 289
+        },
+        "text-life-momentum": {
+          "measuredHeightPx": 91.56,
+          "protectedHeightPx": 129,
+          "viewportHeightPx": 289
+        },
+        "text-life-character": {
+          "measuredHeightPx": 1058,
+          "protectedHeightPx": 1058,
+          "viewportHeightPx": 289
+        },
+        "text-epilogue-invitation": {
+          "measuredHeightPx": 52,
+          "protectedHeightPx": 52,
+          "viewportHeightPx": 289
+        }
+      }
+    }
+  ]
+}

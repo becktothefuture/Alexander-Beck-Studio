@@ -531,7 +531,9 @@ export function getSimulationBodyMaterialAtlas(colors, options = {}) {
     uvScale: detail / canvas.width,
     slotByColor,
     getSlot(color) {
-      return slotByRgbKey.get(parseCssColour(color).key) ?? 0;
+      // Palette colours were resolved when this atlas was baked. Most draws
+      // can use that exact lookup; unfamiliar CSS aliases retain the parser.
+      return slotByColor.get(color) ?? slotByRgbKey.get(parseCssColour(color).key) ?? 0;
     },
   });
   atlasCache.set(atlasKey, atlas);

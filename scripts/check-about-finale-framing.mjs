@@ -1,144 +1,135 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import test from 'node:test';
 import * as THREE from '../react-app/app/node_modules/three/build/three.module.js';
 import { createAboutFinaleFraming } from '../react-app/app/src/routes/about-narrative-lab/aboutFinaleFraming.js';
-import { resolveResponsiveVerticalFovFromHorizontalFov } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraProjection.js';
+import { resolveAboutSceneProjection, resolveResponsiveVerticalFovFromHorizontalFov } from '../react-app/app/src/routes/about-narrative-lab/aboutNarrativeCameraProjection.js';
 
-const ASSETS = new URL('../react-app/app/public/models/about-v2-edited-world/', import.meta.url);
+const ASSETS = pathToFileURL(path.resolve(process.env.ABS_ABOUT_ASSET_DIR || 'react-app/app/public/models/about-v2-edited-world') + '/');
 const [metadata, track, binary] = await Promise.all([
   readFile(new URL('meta.json', ASSETS), 'utf8').then(JSON.parse),
   readFile(new URL('camera-track.json', ASSETS), 'utf8').then(JSON.parse),
   readFile(new URL('surfels.bin', ASSETS)),
 ]);
+const VIEWPORTS = [
+  ['desktop', 1440, 900], ['desktop', 1280, 720], ['desktop', 834, 1112],
+  ['mobile', 390, 844], ['mobile', 320, 568], ['mobile', 844, 390],
+];
 
-function decodeFinale(profile) {
-  const positions = [];
-  const modelRanges = metadata.models.map((model) => {
-    const start = positions.length / 3;
-    const count = ['about.05', 'about.06'].includes(model.key) ? model.profileCounts[profile] : 0;
-    for (let index = 0; index < count; index += 1) {
-      const offset = (model.surfelRange.offset + index) * 32;
-      positions.push(binary.readFloatLE(offset), binary.readFloatLE(offset + 4), binary.readFloatLE(offset + 8));
-    }
-    return { start, count };
-  });
-  return { positions: new Float32Array(positions), modelRanges };
-}
-
-function terminalCamera(width, height, sourceTrack = track) {
-  const fov = resolveResponsiveVerticalFovFromHorizontalFov(
-    sourceTrack.projection?.horizontalFov || 85, width / height,
-    sourceTrack.projection?.portraitMaxVerticalFov || 115,
-  );
-  const camera = new THREE.PerspectiveCamera(fov, width / height, 0.1, 20000);
-  camera.position.fromArray(sourceTrack.samples.at(-1));
-  camera.quaternion.fromArray(sourceTrack.samples.at(-1), 3).normalize();
-  camera.updateMatrixWorld(true);
-  return camera;
-}
-
-function projectedEnvelope(camera, decoded, meta, turnScale, canvas) {
-  const bounds = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
-  const point = new THREE.Vector3();
-  const pivot = new THREE.Vector3();
-  const axis = new THREE.Vector3();
-  const rotation = new THREE.Quaternion();
-  for (let modelIndex = 0; modelIndex < meta.models.length; modelIndex += 1) {
-    const model = meta.models[modelIndex];
-    const range = decoded.modelRanges[modelIndex];
-    if (!range?.count) continue;
-    const motion = meta.motionGroups.find((group) => group.key === model.motionKey)?.motion;
-    // Verification uses every point and 33 phases, independently of fit sampling.
-    const steps = motion?.behavior === 'bounded-rotation' ? 32 : 0;
-    for (let step = 0; step <= steps; step += 1) {
-      if (steps) {
-        pivot.fromArray(motion.pivotWU); axis.fromArray(motion.axis).normalize();
-        rotation.setFromAxisAngle(axis, (step / steps * 2 - 1) * motion.amplitudeRadians * turnScale);
-      }
-      for (let index = range.start; index < range.start + range.count; index += 1) {
-        point.fromArray(decoded.positions, index * 3);
-        if (steps) point.sub(pivot).applyQuaternion(rotation).add(pivot);
-        point.project(camera);
-        const x = canvas.left + (point.x + 1) * canvas.width * 0.5;
-        const y = canvas.top + (1 - point.y) * canvas.height * 0.5;
-        bounds.left = Math.min(bounds.left, x); bounds.right = Math.max(bounds.right, x);
-        bounds.top = Math.min(bounds.top, y); bounds.bottom = Math.max(bounds.bottom, y);
-      }
-    }
-  }
-  return bounds;
-}
-
-function assertFits(bounds, slot) {
-  const width = slot.right - slot.left;
-  const height = slot.bottom - slot.top;
-  assert(bounds.left >= slot.left && bounds.right <= slot.right, 'The full turning silhouette stays inside the image slot horizontally.');
-  assert(bounds.top >= slot.top && bounds.bottom <= slot.bottom, 'The bust and grounded platform stay above the protected copy.');
-  const coverage = Math.max((bounds.right - bounds.left) / width, (bounds.bottom - bounds.top) / height);
-  assert(coverage >= 0.89 && coverage <= 0.93, `Fit should fill the limiting dimension near 90%, received ${coverage}.`);
-  assert(Math.abs((bounds.left + bounds.right - slot.left - slot.right) * 0.5) < width * 0.015);
-  assert(Math.abs((bounds.top + bounds.bottom - slot.top - slot.bottom) * 0.5) < height * 0.015);
-}
-
-test('a rotated grounded sculpture fills the image slot without using empty AABB corners or capping zoom', () => {
-  const points = [];
-  for (let angle = 0; angle < 360; angle += 1) {
-    const radians = angle * Math.PI / 180;
-    for (const y of [-0.15, 0]) points.push(Math.cos(radians) * 2, y, Math.sin(radians) * 2);
-  }
-  const baseCount = points.length / 3;
-  for (let y = 0; y <= 3; y += 0.05) {
-    const radius = y < 1 ? 0.85 : 0.45;
-    for (let angle = 0; angle < 360; angle += 6) {
-      const radians = angle * Math.PI / 180;
-      points.push(Math.cos(radians) * radius, y, Math.sin(radians) * radius * 0.65);
-    }
-  }
-  const meta = {
-    models: [{ key: 'about.05' }, { key: 'about.06', motionKey: 'bust' }],
-    motionGroups: [{ key: 'bust', motion: { behavior: 'bounded-rotation', pivotWU: [0, 0, 0], axis: [0, 1, 0], amplitudeRadians: Math.PI / 22.5 } }],
-    source: { objects: [{ objectKey: 'director.finale-platform', bounds: { min: [-200, -100, -200], max: [200, 100, 200] } }] },
-  };
-  const decoded = { positions: new Float32Array(points), modelRanges: [{ start: 0, count: baseCount }, { start: baseCount, count: points.length / 3 - baseCount }] };
-  const canvas = { left: 10, top: 20, width: 1440, height: 1000 };
-  const slot = { left: 370, right: 1090, top: 45, bottom: 505, height: 460 };
-  const camera = new THREE.PerspectiveCamera(65, 1.44, 0.1, 1000);
-  camera.position.set(30, 10, 25); camera.lookAt(0, 1.4, 0); camera.updateMatrixWorld(true);
-  const sourceTrack = { samples: [[...camera.position.toArray(), ...camera.quaternion.toArray()]] };
-  const framing = createAboutFinaleFraming();
-  framing.configure(camera, sourceTrack, meta, canvas, slot, decoded);
-  const originalPosition = camera.position.clone();
-  framing.apply(camera, 1, 6);
-  assert(framing.snapshot().scale > 1.5, 'No arbitrary zoom cap may keep the sculpture tiny.');
-  assertFits(projectedEnvelope(camera, decoded, meta, 6, canvas), slot);
-  assert.deepEqual(camera.position, originalPosition, 'Only projection changes; the authored camera path stays intact.');
-});
-
-for (const [profile, width, height] of [['desktop', 1440, 1000], ['mobile', 390, 844]]) {
-  test(`${profile} source sculpture fits at default and maximum bounded turn without repeated measurement`, () => {
-    const decoded = decodeFinale(profile);
-    const canvas = { left: 24, top: 12, width, height };
-    const slotWidth = Math.min(width * 0.9, 768);
-    const slot = {
-      left: canvas.left + (width - slotWidth) / 2,
-      right: canvas.left + (width + slotWidth) / 2,
-      top: canvas.top + 18,
-      bottom: canvas.top + height * 0.53,
-      height: height * 0.53 - 18,
-    };
-    const camera = terminalCamera(width, height);
-    const originalProjection = camera.projectionMatrix.clone();
+for (const [profile, width, height] of VIEWPORTS) {
+  test(`${width}×${height}: every authored camera pose retains one responsive lens`, () => {
+    const lens = resolveAboutSceneProjection(track.projection, width / height, width, height);
+    const camera = new THREE.PerspectiveCamera(lens.verticalFov, width / height, 0.1, 600);
+    camera.projectionMatrix.elements[9] += lens.verticalOffsetNdc;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    const projection = camera.projectionMatrix.clone();
     const framing = createAboutFinaleFraming();
-    framing.configure(camera, track, metadata, canvas, slot, decoded);
-    for (const turnScale of [1, 6, 0]) {
-      framing.apply(camera, 1, turnScale);
-      assertFits(projectedEnvelope(camera, decoded, metadata, turnScale, canvas), slot);
-      const revision = framing.snapshot().fitRevision;
-      for (let index = 0; index < 120; index += 1) framing.apply(camera, index / 120, turnScale);
-      assert.equal(framing.snapshot().fitRevision, revision, 'Steady controls never rescan points during animation.');
+    framing.configure(camera, track, metadata);
+    // Exercise the whole sampled rail in both directions, including every
+    // editorial checkpoint and the endpoint; no extra finale lens may appear.
+    const samples = [...track.samples, ...track.samples.toReversed()];
+    for (let index = 0; index < samples.length; index += 1) {
+      const pose = samples[index];
+      camera.position.fromArray(pose);
+      camera.quaternion.fromArray(pose, 3).normalize();
+      const position = camera.position.clone(), rotation = camera.quaternion.clone();
+      assert.equal(framing.apply(camera, index / (samples.length - 1)), 1);
+      assert.deepEqual(camera.projectionMatrix.elements, projection.elements);
+      assert.deepEqual(camera.position, position);
+      assert.deepEqual(camera.quaternion.toArray(), rotation.toArray());
     }
-    framing.apply(camera, 0, 1);
-    assert.deepEqual(camera.projectionMatrix.elements, originalProjection.elements, 'Reverse travel restores the authored base projection.');
+    const identity = camera.projectionMatrix.clone().multiply(camera.projectionMatrixInverse);
+    assert.ok(identity.elements.every((value, index) => Math.abs(value - (index % 5 === 0 ? 1 : 0)) < 1e-9));
+    assert.equal(framing.snapshot().mode, 'fixed-authored-lens');
+    assert.equal(framing.snapshot().fitRevision, 1);
+    assert.equal(framing.snapshot().scale, 1);
+    assert.equal(framing.snapshot().offsetY, 0);
+  });
+
+  test(`${width}×${height}: enlarged invitation measurements cannot reframe or alter authored world points`, () => {
+    const lens = resolveAboutSceneProjection(track.projection, width / height, width, height);
+    const camera = new THREE.PerspectiveCamera(lens.verticalFov, width / height, 0.1, 600);
+    camera.projectionMatrix.elements[9] += lens.verticalOffsetNdc;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    camera.position.fromArray(track.samples.at(-1));
+    camera.quaternion.fromArray(track.samples.at(-1), 3).normalize();
+    camera.updateMatrixWorld(true);
+    const projection = camera.projectionMatrix.clone();
+    const position = camera.position.clone(), rotation = camera.quaternion.clone();
+    const model = metadata.source.worldType === 'connected-circle-world-v1'
+      ? metadata.models.find(model => model.key === 'world.connected')
+      : metadata.models.find(model => model.renderingProfile === 'scan');
+    assert.ok(model, 'The final scene must retain its authored source geometry.');
+    const count = model.profileCounts[profile];
+    assert.ok(count > 0);
+    const positions = new Float32Array(count * 3);
+    for (let index = 0; index < count; index += 1) for (let axis = 0; axis < 3; axis += 1) {
+      positions[index * 3 + axis] = binary.readFloatLE((model.surfelRange.offset + index) * 32 + axis * 4);
+    }
+    const sourcePositions = positions.slice();
+    const modelRanges = []; modelRanges[model.id] = { start: 0, count };
+    const framing = createAboutFinaleFraming();
+    // Supply the former measured-sky API inputs deliberately. Even a copy
+    // region covering most of the viewport cannot trigger a corrective zoom.
+    for (const copyFraction of [0.3, 0.52, 0.9, 0.52]) {
+      framing.configure(camera, track, metadata, { top: 0, height },
+        { top: height * copyFraction, height: height * (1 - copyFraction) }, { positions, modelRanges });
+      for (const progress of [0, 0.2, 0.5, 1, 0.5, 0]) {
+        framing.apply(camera, progress);
+        assert.deepEqual(camera.projectionMatrix.elements, projection.elements,
+          'Text enlargement must use layout and authored sky rather than a camera correction.');
+        assert.deepEqual(camera.position, position);
+        assert.deepEqual(camera.quaternion.toArray(), rotation.toArray());
+      }
+    }
+    assert.deepEqual(positions, sourcePositions, 'Authored points retain their source positions.');
+
+    // Retain the previous scan consumer as an explicit fixture. Its positions
+    // are synthetic test input; the canonical world no longer includes a city.
+    const legacyScan = structuredClone(metadata);
+    delete legacyScan.source.worldType;
+    delete legacyScan.source.cinematicJourney;
+    legacyScan.models = [{ ...model, key: 'about.06', renderingProfile: 'scan' }];
+    framing.configure(camera, track, legacyScan, { top: 0, height },
+      { top: height * 0.9, height: height * 0.1 }, { positions, modelRanges });
+    for (const progress of [0, 0.5, 1, 0.5, 0]) {
+      framing.apply(camera, progress);
+      assert.deepEqual(camera.projectionMatrix.elements, projection.elements);
+      assert.deepEqual(camera.position, position);
+      assert.deepEqual(camera.quaternion.toArray(), rotation.toArray());
+      assert.deepEqual(positions, sourcePositions, 'Legacy scan points retain their source positions.');
+    }
   });
 }
+
+test('Short landscape shifts the sensor within its viewport bounds without changing focal scale', () => {
+  const projection = {
+    horizontalFov: 70, portraitMaxVerticalFov: 90,
+    shortLandscape: { maxViewportWidth: 900, maxViewportHeight: 600, verticalOffsetNdc: 0.4 },
+  };
+  const lens = resolveAboutSceneProjection(projection, 824 / 292, 844, 390);
+  assert.equal(lens.verticalOffsetNdc, 0.4);
+  assert.equal(lens.verticalFov, resolveResponsiveVerticalFovFromHorizontalFov(70, 824 / 292, 90));
+  assert.equal(resolveAboutSceneProjection(projection, 880 / 502, 900, 600).verticalOffsetNdc, 0.4);
+  for (const [width, height] of [[901, 600], [900, 601], [600, 900], [1440, 1000]]) {
+    assert.deepEqual(resolveAboutSceneProjection(projection, width / height, width, height), {
+      verticalFov: resolveResponsiveVerticalFovFromHorizontalFov(70, width / height, 90), verticalOffsetNdc: 0,
+    });
+  }
+  assert.deepEqual(resolveAboutSceneProjection(projection, 370 / 746, 390, 844), { verticalFov: 90, verticalOffsetNdc: 0 });
+  const camera = new THREE.PerspectiveCamera(lens.verticalFov, 824 / 292, 0.1, 600);
+  const scaleX = camera.projectionMatrix.elements[0], scaleY = camera.projectionMatrix.elements[5];
+  camera.projectionMatrix.elements[9] += lens.verticalOffsetNdc;
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  const axis = new THREE.Vector3(0, 0, -20).project(camera);
+  assert.ok(Math.abs(axis.y + 0.4) < 1e-12, 'Positive sensor offset moves the image down20% of the canvas.');
+  assert.equal(camera.projectionMatrix.elements[0], scaleX);
+  assert.equal(camera.projectionMatrix.elements[5], scaleY);
+  for (const invalid of [NaN, -1, 1]) {
+    assert.throws(() => resolveAboutSceneProjection({ ...projection,
+      shortLandscape: { ...projection.shortLandscape, verticalOffsetNdc: invalid },
+    }, 2, 844, 390), RangeError);
+  }
+});

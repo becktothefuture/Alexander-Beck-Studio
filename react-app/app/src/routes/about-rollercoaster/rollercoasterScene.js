@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import samplingWorkerFactory from 'virtual:about-rollercoaster-sampling-worker';
 import { withBasePath } from '../../lib/base-path.js';
 import { THEME_CHANGE_EVENT, isDarkThemeDocument } from '../../lib/theme-state.js';
 import { getThemeBackgroundColour } from '../../lib/theme-transition.js';
@@ -13,8 +14,20 @@ import {
   sampleRollercoasterCamera,
 } from './rollercoasterContract.js';
 import { ROLLERCOASTER_MOTION_GLSL, rollercoasterMotionPhase, sampleRollercoasterMotion } from './rollercoasterMotion.js';
-import { ROLLERCOASTER_FIELD, sampleRollercoasterField } from './rollercoasterField.js';
+import { ROLLERCOASTER_FIELD } from './rollercoasterField.js';
+import { createRollercoasterSampler } from './rollercoasterSampler.js';
+import { createRollercoasterSurfaceBatches } from './rollercoasterSurfaceBatches.js';
 import { resolveRollercoasterProjection, resolveRollercoasterSamplingSpacing } from './rollercoasterProjection.js';
+import { ROLLERCOASTER_OPENING_GLSL } from './rollercoasterEnding.js';
+import { applyRollercoasterLean, createRollercoasterLeanState } from './rollercoasterCameraLean.js';
+import {
+  ROLLERCOASTER_DOT_STYLE_GLSL, createRollercoasterDotSeeds, createRollercoasterDotDrift,
+  advanceRollercoasterDotDrift, sampleRollercoasterDotOffset, resolveRollercoasterDotPalette,
+} from './rollercoasterDotStyle.js';
+import {
+  createRollercoasterParticles, PARTICLE_MAX_COUNT, PARTICLE_STRIDE, PARTICLE_VERTEX_SHADER, PARTICLE_VISIBILITY,
+  resolveParticleCount, sampleFloatingParticle,
+} from './rollercoasterParticles.js';
 
 import {
   loadRollercoasterAppearance, getRollercoasterAppearance, subscribeRollercoasterAppearance,
@@ -36,19 +49,52 @@ const VERTEX_SHADER = `
   uniform vec4 uMotionC[${ROLLERCOASTER_MAX_MOTION_GROUPS}];
   uniform vec4 uMotionD[${ROLLERCOASTER_MAX_MOTION_GROUPS}];
   uniform vec4 uMotionE[${ROLLERCOASTER_MAX_MOTION_GROUPS}];
+  uniform vec4 uEndingOpeningWorld;
+  uniform vec2 uEndingOpeningWorldSize;
+  uniform vec3 uEndingOpeningNormal;
+  uniform float uEndingGridGroup;
+  uniform float uEndingScatterClearance;
+  uniform float uEndingScaleReveal;
   varying vec2 vCircle;
   varying float vPalette;
   varying float vDepth;
+  varying float vOpeningClearance;
   ${ROLLERCOASTER_MOTION_GLSL}
+  ${ROLLERCOASTER_DOT_STYLE_GLSL}
+  ${ROLLERCOASTER_OPENING_GLSL}
   void main() {
     vec3 point = applyAuthoredMotion(iPosition, int(iMotionGroup + 0.5));
+    vOpeningClearance = 1.0;
+    float openingScale = 1.0;
+    if (abs(iMotionGroup - uEndingGridGroup) < 0.5 && uEndingOpeningWorld.w > 0.0) {
+      vec3 delta = point - uEndingOpeningWorld.xyz;
+      delta -= uEndingOpeningNormal * dot(delta, uEndingOpeningNormal);
+      // Omit whole circles in the final plane. Its analytic depth wave keeps
+      // moving around a real empty opening, with no faded dots or colour plate.
+      // Membership uses the authored anchor and a conservative scatter margin,
+      // so drifting dots cannot enter the opening or flicker across its edge.
+      vOpeningClearance = length(delta) - uEndingOpeningWorld.w - uRadius - uEndingScatterClearance;
+      if (uEndingScaleReveal > 0.0) {
+        if (uEndingOpeningWorldSize.x > 0.0) {
+          vec2 halfSize = uEndingOpeningWorldSize + vec2(uRadius + uEndingScatterClearance);
+          float distance = openingOrganicDistance(delta.xy, halfSize, iDotSeed.w);
+          openingScale = openingOrganicScale(distance, uEndingScaleReveal, iDotSeed.w);
+        } else {
+          float radius = uEndingOpeningWorld.w * openingRadiusFactor(delta.xy)
+            + uRadius + uEndingScatterClearance;
+          openingScale = openingCircleScale(length(delta) / radius, uEndingScaleReveal);
+        }
+        vOpeningClearance = 1.0;
+      }
+    }
+    point += surfaceDotOffset();
     vec4 center = modelViewMatrix * vec4(point, 1.0);
     vDepth = -center.z;
     // Expand in camera space, so even a moving surface retains the Home face.
-    center.xy += position.xy * uRadius;
+    center.xy += position.xy * uRadius * openingScale;
     gl_Position = projectionMatrix * center;
     vCircle = position.xy;
-    vPalette = iPalette;
+    vPalette = surfaceDotPalette(iPalette);
   }
 `;
 const FRAGMENT_SHADER = `
@@ -64,13 +110,17 @@ const FRAGMENT_SHADER = `
   uniform float uTitleQuiet;
   uniform float uTitleFeather;
   uniform float uPixelRatio;
+  uniform float uOpacity;
+  uniform vec4 uReadingBox;
+  uniform float uReadingQuiet;
   varying vec2 vCircle;
   varying float vPalette;
   varying float vDepth;
+  varying float vOpeningClearance;
   ${ROLLERCOASTER_VISIBILITY_GLSL}
   ${ROLLERCOASTER_COVERAGE_GLSL}
   void main() {
-    if (dot(vCircle, vCircle) > 1.0 || vDepth <= 0.0) discard;
+    if (dot(vCircle, vCircle) > 1.0 || vDepth <= 0.0 || vOpeningClearance < 0.0) discard;
     vec2 uv = vCircle * 0.5 + 0.5;
     float slot = uPaletteSlots[int(vPalette + 0.5)];
     vec4 material = texture2D(uAtlas, vec2(
@@ -79,12 +129,15 @@ const FRAGMENT_SHADER = `
     ));
     if (material.a <= 0.025) discard;
     float visibility = corridorVisibility(vDepth);
+    visibility *= uOpacity;
     // Fully hidden circles must not write depth over visible circles behind them.
     if (visibility <= 0.0) discard;
-    // Soften material contrast only under active editorial titles. The full
-    // surface, circle density, depth writes and shared corridor stay intact.
+    // Titles share contrast protection. Prose protection is enabled only for
+    // floating particles; authored surface coverage stays intact.
     vec2 edge = max(abs(gl_FragCoord.xy / uPixelRatio - uTitleBox.xy) - uTitleBox.zw, 0.0);
     float quiet = uTitleQuiet * (1.0 - smoothstep(0.0, uTitleFeather, length(edge)));
+    vec2 readingEdge = max(abs(gl_FragCoord.xy / uPixelRatio - uReadingBox.xy) - uReadingBox.zw, 0.0);
+    quiet = max(quiet, uReadingQuiet * (1.0 - smoothstep(0.0, uTitleFeather, length(readingEdge))));
     material.rgb = mix(material.rgb, uFogColor, quiet);
     gl_FragColor = vec4(material.rgb, material.a * corridorCoverage(visibility));
     #include <colorspace_fragment>
@@ -100,7 +153,21 @@ function createGeometry(points) {
   geometry.setAttribute('iPosition', new THREE.InterleavedBufferAttribute(source, 3, 0));
   geometry.setAttribute('iPalette', new THREE.InterleavedBufferAttribute(source, 1, 4));
   geometry.setAttribute('iMotionGroup', new THREE.InterleavedBufferAttribute(source, 1, 5));
+  geometry.setAttribute('iDotSeed', new THREE.InstancedBufferAttribute(createRollercoasterDotSeeds(points), 4, true));
   geometry.instanceCount = points.length / 6;
+  return geometry;
+}
+
+function createParticleGeometry(points) {
+  const geometry = new THREE.InstancedBufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute([
+    -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, 1, 1, 0, -1, 1, 0,
+  ], 3));
+  const source = new THREE.InstancedInterleavedBuffer(points, PARTICLE_STRIDE);
+  geometry.setAttribute('iPosition', new THREE.InterleavedBufferAttribute(source, 3, 0));
+  geometry.setAttribute('iSize', new THREE.InterleavedBufferAttribute(source, 1, 3));
+  geometry.setAttribute('iPalette', new THREE.InterleavedBufferAttribute(source, 1, 4));
+  geometry.setAttribute('iFloat', new THREE.InterleavedBufferAttribute(source, 4, 5));
   return geometry;
 }
 
@@ -138,12 +205,17 @@ function cameraFarPlane(points, track, meta) {
 }
 
 /** Owns GPU resources and subscriptions; the caller owns the sole animation loop. */
-export async function createRollercoasterScene({ canvas, onReady, onError, signal, samplingSettings } = {}) {
+export async function createRollercoasterScene({ canvas, onReady, onError, signal, samplingSettings,
+  surfaceBatching = false, scrollOwnedCamera = false, boardJourney = null } = {}) {
   if (!canvas?.getContext) throw new TypeError('About rollercoaster needs a canvas.');
   const ownerDocument = canvas.ownerDocument;
   const ownerWindow = ownerDocument.defaultView;
   const abortController = new AbortController();
+  const sampler = createRollercoasterSampler({ workerFactory: samplingWorkerFactory });
   let renderer, geometry, material, atlasTexture, backgroundObserver, mesh, sourceGeometry;
+  let surfaceBatches = null;
+  let entryJourney = null;
+  let particlePoints, particleGeometry, particleMaterial, particleMesh, particleUniforms;
   let unsubscribePalette, unsubscribeMaterial, unsubscribeAppearance;
   let appearance = getRollercoasterAppearance();
   let bodyRadiusPx = 0;
@@ -153,10 +225,18 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   let slotColors = [], theme = '', backgroundSignature = '';
   let api, meta, track, points, field, camera, scene, uniforms, loadAttempts, lastReportedError;
   let samplingTimer = 0, samplingRevision = 0, requestedSpacing = 0;
+  let samplingRequest = 0, samplingInFlight = 0;
   let renderRevision = 0, renderedRevision = -1, renderedProgress = -1, renderedTime = -1;
-  let drawCount = 0, skippedDrawCount = 0;
+  let drawCount = 0, skippedDrawCount = 0, samplingMs = 0;
   const pose = createRollercoasterCameraPose();
-  const lastFrame = { progress: 0, ambientSeconds: 0, reducedMotion: false, titleWidth: 0, titleTop: 0, titleBottom: 0, titleOpacity: 0 };
+  const endingPose = createRollercoasterCameraPose();
+  const endingRight = new THREE.Vector3(), endingUp = new THREE.Vector3(), endingForward = new THREE.Vector3();
+  const endingCenter = new THREE.Vector3(), projectedOpening = new THREE.Vector3();
+  const lean = createRollercoasterLeanState();
+  const dotDrift = createRollercoasterDotDrift();
+  const lastFrame = { progress: 0, ambientSeconds: 0, reducedMotion: false, titleWidth: 0, titleTop: 0, titleBottom: 0, titleOpacity: 0,
+    readingWidth: 0, readingTop: 0, readingBottom: 0, cameraTimeSeconds: 0, resetCameraMotion: true,
+    endingOpening: null, endingTitleActive: false, boardJourneyProgress: 0 };
   const fogTarget = new THREE.Color();
   const renderedBackground = new THREE.Color();
   const inspectionIndices = [];
@@ -177,8 +257,11 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   const contextRestore = () => {
     if (disposed) return;
     contextLost = false;
+    lean.timeSeconds = NaN;
+    dotDrift.timeSeconds = NaN;
     contextGeneration += 1;
     material.needsUpdate = true;
+    particleMaterial.needsUpdate = true;
     if (atlasTexture) atlasTexture.needsUpdate = true;
     resize(width, height, true);
     render(lastFrame);
@@ -206,6 +289,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     const nextTheme = isDarkThemeDocument(ownerDocument) ? 'dark' : 'light';
     const atlas = getSimulationBodyMaterialAtlas(colors, { theme: nextTheme });
     if (!atlas) throw new Error('The shared Home circle material is unavailable.');
+    if (entryJourney?.setPalette(snapshot, atlas)) invalidate();
     slotColors = colors;
     theme = nextTheme;
     if (atlas.key === materialKey) return;
@@ -270,6 +354,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       camera.updateProjectionMatrix();
     }
     uniforms.uTitleFeather.value = appearance.titleFeather;
+    uniforms.uViewportPx.value.set(width, height);
     uniforms.uPixelRatio.value = pixelRatio;
     uniforms.uVisibility.value.set(appearance.nearHidden, appearance.nearClear,
       appearance.farClear, appearance.farHidden);
@@ -277,6 +362,12 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       width * camera.projectionMatrix.elements[0] / 2);
     bodyRadiusPx = size.radiusPx;
     uniforms.uRadius.value = size.radiusWU;
+    uniforms.uDotStyle.value.set(appearance.colorMix, field.spacing * appearance.scatter, appearance.dotDrift);
+    updateSurfacePadding();
+    particleUniforms.uRadius.value = size.radiusWU / appearance.circleScale * 0.6 * appearance.particleSize;
+    particleUniforms.uOpacity.value = appearance.particleOpacity;
+    particleGeometry.instanceCount = resolveParticleCount(appearance.particleDensity);
+    particleMesh.visible = particleGeometry.instanceCount > 0;
     invalidate();
     // Size and density are independent. Sampling uses the fixed half-Home
     // calibration; the visible radius can change without moving every circle.
@@ -291,25 +382,49 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     }
   }
 
-  function rebuildField() {
+  function updateSurfacePadding() {
+    // Dot drift and scatter are bounded in world units. Keep the same authored
+    // spheres visible across live appearance changes and camera movement.
+    surfaceBatches?.setPadding(uniforms.uRadius.value
+      + field.spacing * appearance.scatter * (2 + appearance.dotDrift * 2));
+  }
+
+  function rebuildSurfaceBatches() {
+    if (!surfaceBatching) return;
+    surfaceBatches?.dispose();
+    surfaceBatches = createRollercoasterSurfaceBatches(points, field, meta.motionGroups,
+      material, createGeometry);
+    mesh.visible = false;
+    scene.add(surfaceBatches.root);
+    updateSurfacePadding();
+  }
+
+  async function rebuildField() {
     samplingTimer = 0;
     if (disposed || !sourceGeometry || requestedSpacing === field.spacing) return;
+    const spacing = requestedSpacing, request = ++samplingRequest;
+    samplingInFlight = request;
     try {
       // The sampler checks all point/candidate budgets before allocating. The
       // previous complete field stays live until its replacement is ready.
-      const next = sampleRollercoasterField(sourceGeometry, { ...samplingOptions, spacing: requestedSpacing });
+      const next = await sampler.sample(sourceGeometry, { ...samplingOptions, spacing });
+      if (disposed || request !== samplingRequest || spacing !== requestedSpacing) return;
+      samplingMs = next.samplingMs;
       const nextGeometry = createGeometry(next.points);
       const previous = geometry;
       points = next.points;
       field = next.field;
       geometry = nextGeometry;
       mesh.geometry = nextGeometry;
+      uniforms.uDotStyle.value.y = field.spacing * appearance.scatter;
+      rebuildSurfaceBatches();
       previous.dispose();
       samplingRevision += 1;
       updateInspectionIndices();
       invalidate();
       if (hasFrame) render(lastFrame);
-    } catch (error) { reportError(error); }
+    } catch (error) { if (error.name !== 'AbortError') reportError(error); }
+    finally { if (samplingInFlight === request) samplingInFlight = 0; }
   }
 
   function scheduleField(radiusWU) {
@@ -317,7 +432,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     const nextSpacing = resolveRollercoasterSamplingSpacing(radiusWU, {
       baseSpacing: samplingOptions.spacing, currentSpacing: field.spacing, density: appearance.density,
     });
-    if (nextSpacing === requestedSpacing && samplingTimer) return;
+    if (nextSpacing === requestedSpacing && (samplingTimer || samplingInFlight)) return;
     requestedSpacing = nextSpacing;
     ownerWindow.clearTimeout(samplingTimer);
     samplingTimer = 0;
@@ -331,35 +446,109 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     if (hasFrame) render(lastFrame);
   }
 
-  function render({ progress = 0, ambientSeconds = 0, reducedMotion = false, titleWidth = 0, titleTop = 0, titleBottom = 0, titleOpacity = 0 } = lastFrame) {
+  function render({ progress = 0, ambientSeconds = 0, reducedMotion = false, titleWidth = 0, titleTop = 0, titleBottom = 0, titleOpacity = 0,
+    readingWidth = 0, readingTop = 0, readingBottom = 0, cameraTimeSeconds = 0, resetCameraMotion = false,
+    endingOpening = null, endingTitleActive = false, boardJourneyProgress = 0 } = lastFrame) {
     if (disposed || !renderer || contextLost || shaderError || appearanceError) return false;
+    const motionChanged = lastFrame.reducedMotion !== Boolean(reducedMotion);
     lastFrame.progress = Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0;
     lastFrame.ambientSeconds = Number.isFinite(ambientSeconds) ? Math.max(0, ambientSeconds) : 0;
     lastFrame.reducedMotion = Boolean(reducedMotion);
+    lastFrame.cameraTimeSeconds = cameraTimeSeconds;
+    lastFrame.resetCameraMotion = resetCameraMotion;
+    if (lastFrame.boardJourneyProgress !== boardJourneyProgress) invalidate();
+    lastFrame.boardJourneyProgress = boardJourneyProgress;
+    const openingReveal = boardJourney ? boardJourney.openingReveal(boardJourneyProgress) : -1;
+    uniforms.uEndingScaleReveal.value = lastFrame.reducedMotion && openingReveal >= 0
+      ? Number(openingReveal >= 1) : openingReveal;
+    if (lastFrame.endingOpening !== endingOpening || lastFrame.endingTitleActive !== endingTitleActive) invalidate();
+    lastFrame.endingOpening = endingOpening;
+    lastFrame.endingTitleActive = endingTitleActive;
     if (lastFrame.titleWidth !== titleWidth || lastFrame.titleTop !== titleTop
-      || lastFrame.titleBottom !== titleBottom || lastFrame.titleOpacity !== titleOpacity) invalidate();
+      || lastFrame.titleBottom !== titleBottom || lastFrame.titleOpacity !== titleOpacity
+      || lastFrame.readingWidth !== readingWidth || lastFrame.readingTop !== readingTop || lastFrame.readingBottom !== readingBottom) invalidate();
     lastFrame.titleWidth = titleWidth;
     lastFrame.titleTop = titleTop;
     lastFrame.titleBottom = titleBottom;
     lastFrame.titleOpacity = titleOpacity;
-    uniforms.uTitleQuiet.value = appearance.titleQuiet * titleOpacity;
+    lastFrame.readingWidth = readingWidth;
+    lastFrame.readingTop = readingTop;
+    lastFrame.readingBottom = readingBottom;
+    uniforms.uReadingBox.value.set(width / 2, height - (readingTop + readingBottom) / 2,
+      readingWidth / 2 + appearance.titlePadding, (readingBottom - readingTop) / 2 + appearance.titlePadding);
+    particleUniforms.uReadingQuiet.value = readingWidth > 0 ? 0.72 : 0;
+    uniforms.uTitleQuiet.value = endingTitleActive ? 0 : appearance.titleQuiet * titleOpacity;
     uniforms.uTitleBox.value.set(width / 2, height / 2 - (titleTop + titleBottom) / 2,
       titleWidth / 2 + appearance.titlePadding, (titleBottom - titleTop) / 2 + appearance.titlePadding);
     const resolvedProgress = resolveRollercoasterProgress(meta, lastFrame.progress, lastFrame.reducedMotion);
     const time = lastFrame.reducedMotion ? 0 : lastFrame.ambientSeconds;
+    particleUniforms.uFloatTime.value = time * appearance.particleDrift;
+    if (boardJourney) particleMesh.visible = boardJourneyProgress >= 0.2
+      && particleGeometry.instanceCount > 0;
+    advanceRollercoasterDotDrift(dotDrift, lastFrame.ambientSeconds, appearance.dotDriftSpeed, lastFrame.reducedMotion);
     if (width < 2 || height < 2) return false;
     if (pixelRatio !== Math.min(ownerWindow.devicePixelRatio || 1, 2)) resize(width, height);
     const background = getThemeBackgroundColour();
     if (background) uniforms.uFogColor.value.setRGB(background[0] / 255, background[1] / 255, background[2] / 255, THREE.SRGBColorSpace);
     else uniforms.uFogColor.value.copy(fogTarget);
-    if (hasFrame && renderedProgress === resolvedProgress && renderedTime === time
+    sampleRollercoasterCamera(track, resolvedProgress, pose, lastFrame.reducedMotion);
+    const previousLean = lean.degrees;
+    // The board uses the authored camera pose directly in both scroll
+    // directions. The standalone narrative retains its inertial lean.
+    if (!scrollOwnedCamera) applyRollercoasterLean(lean, pose, cameraTimeSeconds, appearance,
+      resetCameraMotion || motionChanged || lastFrame.reducedMotion);
+    // A capture can complete while the scroll and Reduced Motion clock are
+    // stopped. Occupancy is independent from the camera's cached frame.
+    if (entryJourney?.syncOccupancy()) invalidate();
+    if (hasFrame && renderedProgress === resolvedProgress && renderedTime === time && previousLean === lean.degrees
       && renderedRevision === renderRevision && renderedBackground.equals(uniforms.uFogColor.value)) {
       skippedDrawCount += 1;
       return true;
     }
-    sampleRollercoasterCamera(track, resolvedProgress, pose);
     camera.position.fromArray(pose.position);
     camera.quaternion.fromArray(pose.quaternion);
+    // The board's continuous entry band uses this same renderer, atlas and
+    // depth buffer, then hands the camera to the unchanged Blender rail.
+    entryJourney?.update({ progress: boardJourneyProgress, camera, width, height,
+      appearance, reducedMotion: lastFrame.reducedMotion });
+    uniforms.uEndingOpeningWorld.value.w = 0;
+    uniforms.uEndingOpeningWorldSize.value.set(0, 0);
+    uniforms.uEndingOpeningScreen.value.z = 0;
+    uniforms.uEndingOpeningScreenSize.value.set(0, 0);
+    if (endingOpening && meta.finalGrid) {
+      const focalLength = height * camera.projectionMatrix.elements[5] / 2;
+      const distance = meta.finalGrid.stoppingDistance;
+      const worldPerPixel = distance / focalLength;
+      endingCenter.fromArray(endingPose.position).addScaledVector(endingForward, distance)
+        .addScaledVector(endingRight, (endingOpening.x - width / 2) * worldPerPixel)
+        .addScaledVector(endingUp, (height / 2 - endingOpening.y) * worldPerPixel);
+      const radius = (endingOpening.radius + appearance.titlePadding) * worldPerPixel;
+      // Include depth scatter's perspective change as well as planar scatter.
+      uniforms.uEndingScatterClearance.value = uniforms.uDotStyle.value.y * (1 + radius / distance);
+      uniforms.uEndingOpeningWorld.value.set(endingCenter.x, endingCenter.y, endingCenter.z, radius);
+      if (endingOpening.halfWidth > 0 && endingOpening.halfHeight > 0) {
+        uniforms.uEndingOpeningWorldSize.value.set(
+          (endingOpening.halfWidth + appearance.titlePadding) * worldPerPixel,
+          (endingOpening.halfHeight + appearance.titlePadding) * worldPerPixel);
+      }
+      // Keep floating particles out of the same projected opening on arrival.
+      // Before the final plane comes into view, the particle volume stays intact.
+      camera.updateMatrixWorld();
+      const depth = -projectedOpening.copy(endingCenter).applyMatrix4(camera.matrixWorldInverse).z;
+      if (depth > 0 && depth < PARTICLE_VISIBILITY.farHidden) {
+        projectedOpening.copy(endingCenter).project(camera);
+        const arrival = Math.min(1, Math.max(0, (PARTICLE_VISIBILITY.farHidden - depth)
+          / (PARTICLE_VISIBILITY.farHidden - PARTICLE_VISIBILITY.farClear)));
+        uniforms.uEndingOpeningScreen.value.set((projectedOpening.x + 1) * width / 2,
+          (projectedOpening.y + 1) * height / 2, radius * focalLength / depth * arrival);
+        if (endingOpening.halfWidth > 0 && endingOpening.halfHeight > 0) {
+          const scale = focalLength / depth * worldPerPixel * arrival;
+          uniforms.uEndingOpeningScreenSize.value.set(
+            (endingOpening.halfWidth + appearance.titlePadding) * scale,
+            (endingOpening.halfHeight + appearance.titlePadding) * scale);
+        }
+      }
+    }
     for (const group of meta.motionGroups) uniforms.uMotionC.value[group.id * 4 + 3] = rollercoasterMotionPhase(group, time);
     renderer.setClearColor(uniforms.uFogColor.value, 1);
     renderer.render(scene, camera);
@@ -373,7 +562,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   }
 
   function inspect({ pointIndices = inspectionIndices } = {}) {
-    if (disposed) return { status: 'disposed', source: meta ? { ...meta.source } : null,
+    if (disposed) return { status: 'disposed', source: meta ? { ...meta.source } : null, sampling: sampler.inspect(),
       ownedResources: { geometries: 0, materials: 0, textures: 0, pointBytes: 0 }, frameLoopOwner: 'caller' };
     const samples = [];
     const vector = new THREE.Vector3();
@@ -383,11 +572,16 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       const offset = id * 6;
       const rest = [points[offset], points[offset + 1], points[offset + 2]];
       const group = points[offset + 5];
-      const position = sampleRollercoasterMotion(rest, meta.motionGroups[group], lastFrame.reducedMotion ? 0 : lastFrame.ambientSeconds);
+      const anchor = sampleRollercoasterMotion(rest, meta.motionGroups[group], lastFrame.reducedMotion ? 0 : lastFrame.ambientSeconds);
+      const seeds = geometry.getAttribute('iDotSeed').array;
+      const dotOffset = sampleRollercoasterDotOffset(seeds, id, uniforms.uDotStyle.value.y, appearance.dotDrift, dotDrift.waves);
+      const position = anchor.map((value, axis) => value + dotOffset[axis]);
       vector.fromArray(position).applyMatrix4(camera.matrixWorldInverse);
       const depth = -vector.z;
       vector.fromArray(position).project(camera);
-      samples.push({ id, group, paletteIndex: points[offset + 4], radius: uniforms.uRadius.value, rest, position,
+      samples.push({ id, group, authoredPaletteIndex: points[offset + 4],
+        paletteIndex: resolveRollercoasterDotPalette(seeds[id * 4 + 3], points[offset + 4], appearance.colorMix),
+        radius: uniforms.uRadius.value, rest, anchor, dotOffset, position,
         depth, visibility: sampleRollercoasterVisibility(depth, appearance),
         ndc: vector.toArray(), pixels: [(vector.x + 1) * width / 2, (1 - vector.y) * height / 2] });
     }
@@ -397,23 +591,43 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       progress: lastFrame.progress, renderedProgress: pose.progress,
       ambientSeconds: lastFrame.ambientSeconds, effectiveAmbientSeconds: lastFrame.reducedMotion ? 0 : lastFrame.ambientSeconds,
       reducedMotion: lastFrame.reducedMotion,
-      camera: { position: [...pose.position], quaternion: [...pose.quaternion], aspect: camera.aspect,
+      camera: { position: camera.position.toArray(), quaternion: camera.quaternion.toArray(), rollDegrees: pose.rollDegrees,
+        bankDegrees: pose.bankDegrees, turnDegrees: pose.turnDegrees, aspect: camera.aspect,
+        lean: { authoredDegrees: lean.authoredDegrees, targetDegrees: lean.targetDegrees,
+          velocityDegreesPerSecond: lean.velocity, travelSpeedWU: lean.speedWU },
         verticalFov: camera.fov, sourceHorizontalFov: meta.camera.horizontalFov, near: camera.near, far: camera.far },
       viewport: { width, height, pixelRatio },
+      bandJourney: entryJourney?.inspect(camera) || null,
       visibilityMode: uniforms.uDitherVisibility.value ? 'screen-door' : 'multisample-coverage',
       canvasAlpha: renderer.getContext().getContextAttributes()?.alpha,
       appearance: { ...appearance },
       titleProtection: { strength: uniforms.uTitleQuiet.value, box: uniforms.uTitleBox.value.toArray(), feather: appearance.titleFeather },
+      endingOpening: { world: uniforms.uEndingOpeningWorld.value.toArray(),
+        screen: uniforms.uEndingOpeningScreen.value.toArray(), clearancePx: appearance.titlePadding,
+        scatterClearanceWU: uniforms.uEndingScatterClearance.value,
+        scaleReveal: uniforms.uEndingScaleReveal.value,
+        gridMotionGroup: uniforms.uEndingGridGroup.value },
       visibilityCorridor: { nearHidden: appearance.nearHidden, nearClear: appearance.nearClear,
         farClear: appearance.farClear, farHidden: appearance.farHidden },
       circleField: { spacing: field.spacing, radius: uniforms.uRadius.value,
         diameterPxAtReference: bodyRadiusPx * 2, homeSizeScale: appearance.circleScale, density: appearance.density, referenceDepthWU: HOME_SIZE_REFERENCE_DEPTH_WU,
-        diameterToPitch: uniforms.uRadius.value * 2 / field.spacing, samplingRevision }, pointCount: field.count,
+        diameterToPitch: uniforms.uRadius.value * 2 / field.spacing, samplingRevision, samplingMs,
+        colorMix: appearance.colorMix, scatterWU: uniforms.uDotStyle.value.y, drift: appearance.dotDrift,
+        driftSpeed: appearance.dotDriftSpeed, driftPhases: [dotDrift.phaseA, dotDrift.phaseB],
+        seedBytes: geometry.getAttribute('iDotSeed').array.byteLength }, sampling: sampler.inspect(), pointCount: field.count,
+      particles: { count: particleGeometry.instanceCount, capacity: PARTICLE_MAX_COUNT, worldSpace: true,
+        density: appearance.particleDensity, size: appearance.particleSize, drift: appearance.particleDrift,
+        opacity: particleUniforms.uOpacity.value, radius: particleUniforms.uRadius.value, time: particleUniforms.uFloatTime.value,
+        visibility: { ...PARTICLE_VISIBILITY }, readingQuiet: particleUniforms.uReadingQuiet.value,
+        samples: [0, 1, 2, 3].map(index => sampleFloatingParticle(particlePoints, index, particleUniforms.uFloatTime.value)) },
       field: { ...field, surfaceCounts: { ...field.surfaceCounts }, objectRanges: field.objectRanges.map(range => ({ ...range })) },
       slotColors: [...slotColors], slotIndices: [...uniforms.uPaletteSlots.value], paletteId, paletteGeneration,
       materialAtlasKey: materialKey, materialRevision, theme, sharedHomeMaterial: Boolean(atlasTexture),
       contextGeneration, loadAttempts, frameLoopOwner: 'caller',
-      ownedResources: { geometries: 1, materials: 1, textures: atlasTexture ? 1 : 0, pointBytes: points.byteLength },
+      ownedResources: { geometries: 2 + (surfaceBatches?.count || 0) + (entryJourney ? 2 : 0),
+        materials: 2 + (entryJourney ? 2 : 0), textures: atlasTexture ? 1 : 0,
+        pointBytes: points.byteLength + particlePoints.byteLength + geometry.getAttribute('iDotSeed').array.byteLength
+          + (entryJourney?.pointBytes || 0) },
       gpu: { calls: renderer.info.render.calls, geometries: renderer.info.memory.geometries,
         textures: renderer.info.memory.textures, drawCount, skippedDrawCount },
       pointSamples: samples,
@@ -423,6 +637,9 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
   function dispose() {
     if (disposed) return;
     disposed = true;
+    sampler.dispose();
+    entryJourney?.dispose();
+    entryJourney = null;
     ownerWindow.clearTimeout(samplingTimer);
     abortController.abort();
     signal?.removeEventListener('abort', abort);
@@ -434,7 +651,11 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     canvas.removeEventListener('webglcontextlost', contextLoss);
     canvas.removeEventListener('webglcontextrestored', contextRestore);
     geometry?.dispose();
+    surfaceBatches?.dispose();
+    surfaceBatches = null;
     material?.dispose();
+    particleGeometry?.dispose();
+    particleMaterial?.dispose();
     atlasTexture?.dispose();
     renderer?.dispose();
     // React effects and HMR reuse attached canvases; only retire a removed surface.
@@ -442,6 +663,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     scene?.clear();
     points = field = track = scene = camera = uniforms = sourceGeometry = mesh = null;
     renderer = geometry = material = atlasTexture = null;
+    particlePoints = particleGeometry = particleMaterial = particleMesh = particleUniforms = null;
     backgroundObserver = unsubscribePalette = unsubscribeMaterial = null;
     inspectionIndices.length = 0;
     slotColors = [];
@@ -455,12 +677,17 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     appearance = getRollercoasterAppearance();
     const bounds = canvas.getBoundingClientRect();
     const bundle = await loadRollercoasterBundle({ assetRoot: withBasePath(ASSET_ROOT), signal: abortController.signal,
+      sampleField: (geometry, settings) => sampler.sample(
+        boardJourney ? boardJourney.selectGeometry(geometry) : geometry, settings),
       samplingSettings: sourceMeta => {
         if (bounds.width < 2 || bounds.height < 2) return samplingOptions;
-        const projection = resolveRollercoasterProjection(sourceMeta.camera, bounds.width, bounds.height);
+        const projection = resolveRollercoasterProjection(sourceMeta.camera, bounds.width, bounds.height, {
+          horizontalFov: sourceMeta.camera.horizontalFov * appearance.lensWidth,
+          portraitVerticalFov: appearance.portraitFov,
+        });
         const size = resolveRollercoasterBodySize(appearance, bounds.width, bounds.height, projection.focalLengthPx);
-        return { ...samplingOptions, spacing: resolveRollercoasterSamplingSpacing(size.radiusWU, {
-          baseSpacing: samplingOptions.spacing, currentSpacing: samplingOptions.spacing,
+        return { ...samplingOptions, spacing: resolveRollercoasterSamplingSpacing(size.radiusWU * ABOUT_HOME_BODY_SCALE / appearance.circleScale, {
+          baseSpacing: samplingOptions.spacing, currentSpacing: samplingOptions.spacing, density: appearance.density,
         }) };
       },
     });
@@ -468,9 +695,15 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     meta = bundle.meta;
     loadAttempts = bundle.loadAttempts;
     track = bundle.camera;
+    sampleRollercoasterCamera(track, 1, endingPose);
+    const endingOrientation = new THREE.Quaternion().fromArray(endingPose.quaternion);
+    endingRight.set(1, 0, 0).applyQuaternion(endingOrientation);
+    endingUp.set(0, 1, 0).applyQuaternion(endingOrientation);
+    endingForward.set(0, 0, -1).applyQuaternion(endingOrientation);
     points = bundle.points;
     field = bundle.field;
-    sourceGeometry = bundle.geometry;
+    samplingMs = bundle.samplingMs;
+    sourceGeometry = boardJourney ? boardJourney.selectGeometry(bundle.geometry) : bundle.geometry;
     requestedSpacing = field.spacing;
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(50, 1, 0.01, cameraFarPlane(points, track, meta));
@@ -481,12 +714,37 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
       uVisibility: { value: new THREE.Vector4() }, uRadius: { value: 0 }, uDitherVisibility: { value: 0 },
       uTitleBox: { value: new THREE.Vector4() }, uTitleQuiet: { value: 0 },
       uTitleFeather: { value: 80 }, uPixelRatio: { value: 1 },
+      uOpacity: { value: 1 }, uReadingBox: { value: new THREE.Vector4() }, uReadingQuiet: { value: 0 },
+      uEndingOpeningWorld: { value: new THREE.Vector4() },
+      uEndingOpeningWorldSize: { value: new THREE.Vector2() },
+      uEndingOpeningNormal: { value: new THREE.Vector3().fromArray(meta.finalGrid?.normal || [0, 0, 1]).normalize() },
+      uEndingGridGroup: { value: meta.finalGrid?.motionGroup ?? -1 },
+      uEndingScatterClearance: { value: 0 },
+      uEndingScaleReveal: { value: -1 },
+      uEndingOpeningScreen: { value: new THREE.Vector3() },
+      uEndingOpeningScreenSize: { value: new THREE.Vector2() }, uViewportPx: { value: new THREE.Vector2() },
+      uDotStyle: { value: new THREE.Vector3() }, uDotDriftWaves: { value: dotDrift.waves },
     };
     material = new THREE.ShaderMaterial({ vertexShader: VERTEX_SHADER, fragmentShader: FRAGMENT_SHADER, uniforms,
       transparent: false, alphaToCoverage: true, depthTest: true, depthWrite: true, blending: THREE.NoBlending });
     mesh = new THREE.Mesh(geometry, material);
     mesh.frustumCulled = false; // Moving parts retain their complete source population.
     scene.add(mesh);
+    rebuildSurfaceBatches();
+    particlePoints = createRollercoasterParticles(track);
+    particleGeometry = createParticleGeometry(particlePoints);
+    // Share atlas, palette, title protection and theme uniforms by reference.
+    particleUniforms = { ...uniforms, uRadius: { value: 0 }, uFloatTime: { value: 0 },
+      uOpacity: { value: appearance.particleOpacity }, uReadingQuiet: { value: 0 },
+      uDitherVisibility: { value: 0 },
+      uVisibility: { value: new THREE.Vector4(PARTICLE_VISIBILITY.nearHidden, PARTICLE_VISIBILITY.nearClear,
+        PARTICLE_VISIBILITY.farClear, PARTICLE_VISIBILITY.farHidden) } };
+    particleMaterial = new THREE.ShaderMaterial({ vertexShader: PARTICLE_VERTEX_SHADER,
+      fragmentShader: FRAGMENT_SHADER, uniforms: particleUniforms,
+      transparent: true, depthTest: true, depthWrite: false, blending: THREE.NormalBlending });
+    particleMesh = new THREE.Mesh(particleGeometry, particleMaterial);
+    particleMesh.frustumCulled = false;
+    scene.add(particleMesh);
     // Coverage already mixes each circle with this theme-tracked ground. An
     // opaque canvas prevents the page compositor from applying its fade again.
     // The route already owns an opaque CSS ground; shell finish layers retain
@@ -511,6 +769,7 @@ export async function createRollercoasterScene({ canvas, onReady, onError, signa
     };
     canvas.addEventListener('webglcontextlost', contextLoss);
     canvas.addEventListener('webglcontextrestored', contextRestore);
+    if (boardJourney) entryJourney = boardJourney.create({ scene, track, meta, uniforms, canvas, sourceGeometry });
     syncMaterial();
     readBackground(true);
     renderer.compile(scene, camera);

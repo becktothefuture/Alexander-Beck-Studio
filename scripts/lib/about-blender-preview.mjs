@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import process from 'node:process';
+import { aboutInstanceVisibilityDiagnostics, decodeAboutInstanceVisibility } from '../../react-app/app/src/routes/about-narrative-lab/aboutBlenderInstanceVisibility.js';
+import { ABOUT_BLENDER_MAX_MODELS, ABOUT_CONNECTED_WORLD_TYPE, validateAboutBlenderSceneBundle } from '../../react-app/app/src/routes/about-narrative-lab/aboutBlenderSceneContract.js';
+import { resolveAboutCircleField, validateAboutCircleFieldRadii } from '../../react-app/app/src/routes/about-narrative-lab/aboutBlenderCircleField.js';
 
 const ASSET_PREFIX = '/__about-blender-preview';
 const BUNDLE_FILES = ['meta.json', 'camera-track.json', 'surfels.bin'];
@@ -24,20 +27,37 @@ export function createBlenderSourceReader({ read = readFile } = {}) {
 }
 
 export async function readAboutPreviewBundle(directory) {
-  const signatures = await Promise.all(BUNDLE_FILES.map(async (file) => (
-    signatureOf(await stat(join(directory, file)))
-  )));
-  const buffers = Object.fromEntries(await Promise.all(BUNDLE_FILES.map(async (file) => (
+  const metaSignature = signatureOf(await stat(join(directory, 'meta.json')));
+  const metaBytes = await readFile(join(directory, 'meta.json'));
+  const metadata = JSON.parse(metaBytes.toString('utf8'));
+  const instanceDiagnostics = aboutInstanceVisibilityDiagnostics(metadata);
+  if (instanceDiagnostics.length) throw new Error(instanceDiagnostics[0].message);
+  const bundleFiles = metadata.files?.instanceVisibility === undefined ? BUNDLE_FILES
+    : [...BUNDLE_FILES, 'instance-visibility.bin'];
+  const signatures = await Promise.all(bundleFiles.map(async (file) => file === 'meta.json'
+    ? metaSignature : signatureOf(await stat(join(directory, file)))));
+  const buffers = Object.fromEntries(await Promise.all(bundleFiles.map(async (file) => (
+    file === 'meta.json' ? [file, metaBytes] :
     [file, await readFile(join(directory, file))]
   ))));
-  const metadata = JSON.parse(buffers['meta.json'].toString('utf8'));
   if (metadata.schema !== 'about-point-scene' || metadata.version !== 2
     || !metadata.source?.sha256 || metadata.source?.semanticFallbacks?.length
     || !Array.isArray(metadata.models) || metadata.layout?.strideBytes !== 32) {
     throw new Error('The export does not contain a complete compatible Blender point world.');
   }
+  const connectedWorld = metadata.source.worldType === ABOUT_CONNECTED_WORLD_TYPE;
+  if (metadata.source.worldType !== undefined && !connectedWorld) {
+    throw new Error('The export declares an unsupported connected world type.');
+  }
   const modelKeys = new Set(metadata.models.map((model) => model.key));
-  if (modelKeys.size !== metadata.models.length
+  if (connectedWorld) {
+    if (!metadata.models.length || metadata.models.length > ABOUT_BLENDER_MAX_MODELS
+      || modelKeys.size !== metadata.models.length
+      || metadata.models.some((model, index) => model.id !== index || typeof model.key !== 'string'
+        || !model.key || model.renderingProfile !== 'solid')) {
+      throw new Error('The connected export has invalid solid models or exceeds the renderer capacity.');
+    }
+  } else if (modelKeys.size !== metadata.models.length
     || REQUIRED_MODELS.some((key) => !modelKeys.has(key))
     || [...modelKeys].some((key) => !/^about\.0[0-6]$/u.test(key))) {
     throw new Error('The export has missing or duplicate active scene models.');
@@ -46,18 +66,54 @@ export async function readAboutPreviewBundle(directory) {
   if (camera.schema !== 'about-camera-track' || camera.samples?.length < 2) {
     throw new Error('The export has no usable Blender camera track.');
   }
-  for (const [key, file] of [['surfels', 'surfels.bin'], ['cameraTrack', 'camera-track.json']]) {
+  const runtimeFiles = [['surfels', 'surfels.bin'], ['cameraTrack', 'camera-track.json']];
+  if (metadata.files.instanceVisibility !== undefined) runtimeFiles.push(['instanceVisibility', 'instance-visibility.bin']);
+  for (const [key, file] of runtimeFiles) {
     const record = metadata.files?.[key];
     if (record?.file !== file || record.bytes !== buffers[file].length
       || record.sha256 !== sha256(buffers[file])) {
       throw new Error(`The export failed its ${key} integrity check.`);
     }
   }
+  if (connectedWorld) {
+    const verified = await validateAboutBlenderSceneBundle({
+      meta: metadata, cameraTrackBytes: buffers['camera-track.json'],
+      surfelBytes: buffers['surfels.bin'], digestSha256: sha256,
+    });
+    if (verified.status !== 'compatible') {
+      throw new Error(verified.diagnostics.map(item => item.message).join(' '));
+    }
+    if (metadata.source.geography != null || camera.stagedGatePassages?.length) {
+      throw new Error('The connected export cannot contain geography or legacy gate visibility.');
+    }
+    const points = buffers['surfels.bin'];
+    if (!Number.isSafeInteger(metadata.files.surfels.count)
+      || metadata.files.surfels.count !== points.byteLength / metadata.layout.strideBytes) {
+      throw new Error('The connected export surfel count does not match its packed records.');
+    }
+    validateAboutCircleFieldRadii(metadata,
+      points.buffer.slice(points.byteOffset, points.byteOffset + points.byteLength), resolveAboutCircleField(metadata));
+    let pathLengthWU = 0;
+    for (let index = 1; index < camera.samples.length; index += 1) {
+      const previous = camera.samples[index - 1], sample = camera.samples[index];
+      pathLengthWU += Math.hypot(sample[0] - previous[0], sample[1] - previous[1], sample[2] - previous[2]);
+    }
+    if (!(pathLengthWU > 0) || !Number.isFinite(pathLengthWU)
+      || metadata.models.some(model => model.visibilitySpace !== 'camera-distance-wu'
+        || model.visibilityStartWU !== 0 || !Number.isFinite(model.visibilityEndWU)
+        || !Number.isFinite(model.visibilityHandoffWU) || model.visibilityHandoffWU <= 0
+        || model.visibilityEndWU - model.visibilityHandoffWU < pathLengthWU - 0.000001)) {
+      throw new Error('The connected export must keep every source model fully visible through the complete rail.');
+    }
+  }
+  const cameraInstanceDiagnostics = aboutInstanceVisibilityDiagnostics(metadata, camera);
+  if (cameraInstanceDiagnostics.length) throw new Error(cameraInstanceDiagnostics[0].message);
+  decodeAboutInstanceVisibility(metadata, buffers['instance-visibility.bin'], buffers['surfels.bin']);
   const controls = metadata.source?.authoring?.controlValues;
   if (!controls || Object.values(controls).some((value) => !Number.isFinite(value))) {
     throw new Error('The export has no finite Blender control mirror.');
   }
-  const after = await Promise.all(BUNDLE_FILES.map(async (file) => (
+  const after = await Promise.all(bundleFiles.map(async (file) => (
     signatureOf(await stat(join(directory, file)))
   )));
   if (after.some((signature, index) => signature !== signatures[index])) {
@@ -66,8 +122,9 @@ export async function readAboutPreviewBundle(directory) {
   const bundleHash = sha256([
     metadata.source.sha256, metadata.files.surfels.sha256,
     metadata.files.cameraTrack.sha256, sha256(buffers['meta.json']),
+    ...(metadata.files.instanceVisibility ? [metadata.files.instanceVisibility.sha256] : []),
   ].join(':'));
-  return { metadata, bundleHash, buffers };
+  return { metadata, bundleHash, buffers, signature: after.join('|') };
 }
 
 function assertSourceIdentity(expected, actual, bundle) {
@@ -139,12 +196,14 @@ export function createAboutPreviewResolver({ sourcePath, canonicalDirectory, pre
     return bundle;
   };
   const load = async (directory) => {
-    const signature = (await Promise.all(BUNDLE_FILES.map(async (file) => (
+    const previous = validated.get(directory);
+    const fileNames = previous ? Object.keys(previous.bundle.buffers) : BUNDLE_FILES;
+    const signature = (await Promise.all(fileNames.map(async (file) => (
       signatureOf(await stat(join(directory, file)))
     )))).join('|');
-    if (validated.get(directory)?.signature === signature) return validated.get(directory).bundle;
+    if (previous?.signature === signature) return previous.bundle;
     const bundle = await readAboutPreviewBundle(directory);
-    validated.set(directory, { signature, bundle });
+    validated.set(directory, { signature: bundle.signature, bundle });
     while (validated.size > 4) validated.delete(validated.keys().next().value);
     return bundle;
   };
@@ -173,7 +232,7 @@ export function createAboutPreviewResolver({ sourcePath, canonicalDirectory, pre
       try { active = await load(canonicalDirectory); }
       catch (error) { cacheError = `${cacheError} Canonical export: ${error.message}`.trim(); }
     }
-    if (!active && latest) {
+    if (!active && latest && !latest.bundle.metadata.files.instanceVisibility) {
       active = latest.bundle;
       activeSource = latest.preview.activeSource;
     }

@@ -37,6 +37,7 @@ assert.equal(files.some((file) => /AboutNarrativeEditor|about-narrative-editor/i
 assert.equal(files.some((file) => /AboutNarrativeParameterPanel|about-narrative-parameters/i.test(file)), false, 'Production emitted the development About parameter panel.');
 assert.equal(files.some((file) => /AboutNarrativeLabExperience|AboutRollercoasterExperience/i.test(file)), false, 'The held production build must not emit the About narrative chunk.');
 assert.equal(files.some((file) => /AboutRollercoasterControls|rollercoaster-controls/i.test(file)), false, 'Production must not emit About authoring controls.');
+assert.equal(files.some((file) => /rollercoasterSampling/i.test(file)), false, 'Production must not emit the held About sampling worker.');
 assert.ok(holdFound, 'The production About Coming soon screen is missing.');
 assert.equal(files.some((file) => /aboutNarrativeResourceLedger/i.test(file)), false, 'Production emitted the About resource-ledger chunk.');
 assert.equal(files.some((file) => /aboutNarrativeRuntimeObserver\.certification/i.test(file)), false, 'Production emitted the certification runtime observer.');

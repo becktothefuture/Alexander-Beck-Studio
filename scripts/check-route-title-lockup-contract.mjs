@@ -77,7 +77,7 @@ test('shared CSS owns lockup typography, rule geometry, spacing, and settled des
 
 });
 
-test('Contact and About share one centred, compact two-action family', () => {
+test('Contact and About share compact action buttons with route-specific layouts', () => {
   assert.match(
     sources.main,
     /\.contact-action-stack \{[\s\S]*?flex-direction: column;[\s\S]*?align-items: center;[\s\S]*?width: fit-content;[\s\S]*?max-width: 100%;[\s\S]*?margin-inline: auto;/,
@@ -90,9 +90,11 @@ test('Contact and About share one centred, compact two-action family', () => {
   assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.match(sources.actionButtons, /\.abs-labelled-action > i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
   assert.doesNotMatch(sources.main, /\.contact-linkedin-action i \{/);
-  assert.match(sources.about, /rollercoaster-contact-actions contact-action-stack/);
+  assert.match(sources.about, /<CopyEmailAction/);
+  assert.match(sources.about, /<LinkedInAction/);
+  assert.doesNotMatch(sources.about, /contact-action-stack/);
   assert.match(sources.aboutStyles, /\.rollercoaster-title-support \{[\s\S]*?align-items: center;[\s\S]*?overflow-y: auto;/);
-  assert.match(sources.aboutStyles, /\.rollercoaster-contact-actions \{[\s\S]*?flex-wrap: wrap;[\s\S]*?justify-content: center;[\s\S]*?max-width: 100%;/);
+  assert.match(sources.aboutStyles, /\.rollercoaster-contact-actions \{[\s\S]*?flex-wrap: nowrap;[\s\S]*?justify-content: center;[\s\S]*?max-width: 100%;/);
   assert.doesNotMatch(sources.aboutStyles, /top: 58%/);
 
 });
@@ -151,11 +153,10 @@ test('bookend palette frames stay fully opaque before their quieter resting endp
 });
 
 test('About readiness accepts the production hold and waits for the development scene', () => {
-  const readySelector = /\.about-narrative-lab\[data-route-content=["']about["']\]/;
-  assert.match(sources.siteApp, readySelector);
-  assert.match(sources.routeReadiness, readySelector);
+  assert.match(sources.siteApp, /import \{ isAboutSceneReady, waitForObservedRouteReady \}/);
+  assert.match(sources.routeReadiness, /\[data-route-content="about"\]/);
   assert.match(sources.routeReadiness, /\[data-about-publication="held"\] #about-coming-soon-title/);
-  assert.match(sources.siteApp, /const waitsForAboutNarrativeScene = routeId === 'about' && import\.meta\.env\.DEV/);
+  assert.match(sources.siteApp, /const waitsForAboutScene = routeId === 'about' && import\.meta\.env\.DEV/);
 });
 
 test('Work holds production at Coming soon and prewarms the canvas only in development', () => {
@@ -173,24 +174,22 @@ test('Work holds production at Coming soon and prewarms the canvas only in devel
   assert.match(sources.siteApp, /const isPortfolioWorkCanvas = routeId === 'portfolio' && import\.meta\.env\.DEV/);
 });
 
-test('About holds production and prewarms its code-split scene only in development', () => {
+test('About holds production and prewarms its code-split scene in development or local certification', () => {
   assert.match(sources.aboutRoute, /prewarm: \(\{ stage \} = \{\}\) => \{/);
   assert.match(sources.aboutRoute, /stage === 'data'/);
   assert.match(sources.aboutRoute, /return loadAboutNarrativeExperience\(\)/);
-  assert.match(sources.aboutRoute, /import\('\.\.\/about-rollercoaster\/AboutRollercoasterExperience\.jsx'\)/);
-  assert.match(sources.aboutRoute, /const AboutNarrativeExperience = import\.meta\.env\.DEV \? lazy/);
-  assert.match(sources.aboutRoute, /if \(!import\.meta\.env\.DEV\) return Promise\.resolve\(\)/);
-  assert.match(sources.aboutRoute, /if \(!import\.meta\.env\.DEV\) \{[\s\S]*?secondary: <AboutComingSoon \/>/);
+  assert.match(sources.aboutRoute, /import\('\.\.\/about-game-board\/AboutGameBoardExperience\.jsx'\)/);
+  assert.match(sources.aboutRoute, /const FULL_JOURNEY = import\.meta\.env\.DEV \|\| import\.meta\.env\.MODE === 'certification'/);
+  assert.match(sources.aboutRoute, /const AboutNarrativeExperience = FULL_JOURNEY \? lazy/);
+  assert.match(sources.aboutRoute, /if \(!FULL_JOURNEY\) return Promise\.resolve\(\)/);
+  assert.match(sources.aboutRoute, /if \(!FULL_JOURNEY\) \{[\s\S]*?secondary: <AboutComingSoon \/>/);
   assert.doesNotMatch(sources.aboutRoute, /searchParams|localStorage|sessionStorage/);
   assert.match(sources.entranceEvents, /routeContent\.dataset\.routeEntranceStarted = 'true'/);
   assert.match(
     sources.main,
     /\.about-narrative-lab:not\(\[data-route-entrance-started='true'\]\)[\s\S]*?visibility: hidden/,
   );
-  assert.match(
-    sources.aboutStyles,
-    /data-abs-transition-phase='route-loading'[\s\S]*?\.rollercoaster-indicator-layer[\s\S]*?visibility: hidden/,
-  );
+  assert.doesNotMatch(sources.about, /shell-persistent-route-ui-host|rollercoaster-indicator/);
 });
 
 
@@ -243,7 +242,7 @@ test('every flight title keeps its optical centre while travelling only in depth
   assert.match(sources.about, /\(box\.width \/ 2\)[\s\S]*?\(\(minX \+ maxX\) \/ 2\)/);
   assert.match(sources.about, /\(box\.height \/ 2\)[\s\S]*?\(\(minY \+ maxY\) \/ 2\)/);
   const lifecycleStart = sources.about.indexOf('        titleRecords.forEach((record) => {');
-  const lifecycleEnd = sources.about.indexOf('        const progressValue', lifecycleStart);
+  const lifecycleEnd = sources.about.indexOf('        renderFrame.titleWidth', lifecycleStart);
   assert(lifecycleStart >= 0 && lifecycleEnd > lifecycleStart, 'Inspect the actual cached title update loop.');
   const visibleLifecycle = sources.about.slice(lifecycleStart, lifecycleEnd);
   assert.match(visibleLifecycle, /rollercoasterTitleOpacity\(frame\.localProgress, record\.options, textMotionRef\.current\)/);

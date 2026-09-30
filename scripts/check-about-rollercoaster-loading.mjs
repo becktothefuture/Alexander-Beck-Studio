@@ -3,10 +3,52 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { withAboutLoadDeadline } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterLoading.js';
 import { loadRollercoasterBundle } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterContract.js';
+import { createRollercoasterSampler } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterSampler.js';
 
 const root = new URL('../react-app/app/public/models/about-rollercoaster-world/', import.meta.url);
 const bytes = Object.fromEntries(await Promise.all(['meta.json', 'camera.json', 'geometry.json'].map(async file => [file, await readFile(new URL(file, root))])));
 const fixtureFetch = async url => new Response(bytes[url.split('/').at(-1)]);
+
+test('sampling keeps only the latest queued resize and returns transferred results in order', async () => {
+  const sent = [];
+  const worker = { postMessage: request => sent.push(request), terminate() {} };
+  const sampler = createRollercoasterSampler({ workerFactory: () => worker });
+  const first = sampler.sample({}, { spacing: 1 });
+  const superseded = sampler.sample({}, { spacing: 2 }).catch(error => error.name);
+  const latest = sampler.sample({}, { spacing: 3 });
+  assert.equal(sent.length, 1);
+  assert.equal(await superseded, 'AbortError');
+  worker.onmessage({ data: { id: sent[0].id, result: { field: { spacing: 1 } } } });
+  assert.equal((await first).field.spacing, 1);
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].settings.spacing, 3);
+  worker.onmessage({ data: { id: sent[1].id, result: { field: { spacing: 3 } } } });
+  assert.equal((await latest).field.spacing, 3);
+  sampler.dispose();
+  assert.equal(sampler.inspect().workers, 0);
+});
+
+test('leaving the route terminates sampling and rejects active and queued work', async () => {
+  let terminations = 0;
+  const sampler = createRollercoasterSampler({ workerFactory: () => ({ postMessage() {}, terminate() { terminations += 1; } }) });
+  const active = sampler.sample({}, {}).catch(error => error.name);
+  const queued = sampler.sample({}, {}).catch(error => error.name);
+  sampler.dispose(); sampler.dispose();
+  assert.deepEqual(await Promise.all([active, queued]), ['AbortError', 'AbortError']);
+  assert.equal(terminations, 1);
+  assert.deepEqual(sampler.inspect(), { mode: 'worker', workers: 0, active: false, queued: false });
+  await assert.rejects(sampler.sample({}, {}), { name: 'AbortError' });
+});
+
+test('a stalled sampling worker has a bounded deadline and is terminated', async () => {
+  let stopped = false;
+  const sampler = createRollercoasterSampler({ timeoutMs: 10,
+    workerFactory: () => ({ postMessage() {}, terminate() { stopped = true; } }) });
+  await assert.rejects(sampler.sample({}, {}), /sampling timed out/);
+  assert.equal(stopped, true);
+  assert.equal(sampler.inspect().workers, 0);
+  sampler.dispose();
+});
 
 test('deadline rejects an uncooperative pending transport and aborts its request', async () => {
   let request;

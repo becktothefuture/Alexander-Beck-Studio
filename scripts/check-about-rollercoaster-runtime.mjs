@@ -20,11 +20,328 @@ import {
   resolveRollercoasterProjection, resolveRollercoasterSamplingSpacing,
 } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterProjection.js';
 import { stepRollercoasterCamera } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterCameraMotion.js';
+import { measureRollercoasterEndingCircle } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterEnding.js';
+import { applyRollercoasterLean, createRollercoasterLeanState } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterCameraLean.js';
+import {
+  createRollercoasterParticles, PARTICLE_MAX_COUNT, PARTICLE_STRIDE,
+  resolveParticleCount, sampleFloatingParticle,
+} from '../react-app/app/src/routes/about-rollercoaster/rollercoasterParticles.js';
+import { applyRollercoasterRoll, sampleRollercoasterBank, sampleRollercoasterRoll, validateRollercoasterBank, validateRollercoasterRoll } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterRoll.js';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const near = (actual, expected, epsilon = 1e-10) => assert.ok(Math.abs(actual - expected) < epsilon, `${actual} != ${expected}`);
 const vectorNear = (actual, expected, epsilon) => actual.forEach((value, index) => near(value, expected[index], epsilon));
 const clone = value => structuredClone(value);
+
+const rollCue = { name: 'Full turn', enabled: true, chapter: 'tunnel-a', start: .22, peak: .30, end: .38, angleDegrees: 720 };
+
+test('the ending circle encloses every title, description and side-by-side action corner', () => {
+  for (const width of [300, 370, 1252]) {
+    const titleWidth = Math.min(width - 48, 390);
+    const actionWidth = Math.min(width - 24, 355);
+    const boxes = [
+      { left: (width - titleWidth) / 2, right: (width + titleWidth) / 2, top: 150, bottom: 240 },
+      { left: 40, right: width - 40, top: 260, bottom: 295 },
+      { left: (width - actionWidth) / 2, right: (width + actionWidth) / 2, top: 320, bottom: 368 },
+    ];
+    const circle = measureRollercoasterEndingCircle(boxes);
+    near(circle.x, width / 2);
+    for (const box of boxes) for (const x of [box.left, box.right]) for (const y of [box.top, box.bottom]) {
+      assert.ok(Math.hypot(x - circle.x, y - circle.y) <= circle.radius + 1e-9);
+    }
+    const translated = measureRollercoasterEndingCircle(boxes.map(box => ({ left: box.left + 17,
+      right: box.right + 17, top: box.top - 42, bottom: box.bottom - 42 })));
+    near(translated.radius, circle.radius);
+    near(translated.x, circle.x + 17);
+    near(translated.y, circle.y - 42);
+  }
+  assert.equal(measureRollercoasterEndingCircle([]), null);
+  assert.equal(measureRollercoasterEndingCircle([{ left: 0, right: 0, top: 0, bottom: 0 }]), null);
+});
+
+function leanPose(distance, bank = 12, turn = 180) {
+  const pose = createRollercoasterCameraPose();
+  pose.position[2] = -distance;
+  pose.bankDegrees = bank;
+  pose.turnDegrees = turn;
+  pose.rollDegrees = bank + turn;
+  applyRollercoasterRoll(pose.quaternion, pose.rollDegrees);
+  return pose;
+}
+
+test('weighted lean builds with travel speed and settles without unwinding the held tunnel turn', () => {
+  const banks = [];
+  for (const speed of [2, 6, 18]) {
+    const state = createRollercoasterLeanState();
+    applyRollercoasterLean(state, leanPose(0), 0);
+    for (let frame = 1; frame <= 120; frame += 1) {
+      const pose = leanPose(speed * frame / 60);
+      applyRollercoasterLean(state, pose, frame / 60);
+      assert.ok(pose.bankDegrees >= 0 && pose.bankDegrees <= 12);
+      near(pose.rollDegrees - pose.bankDegrees, 180);
+    }
+    banks.push(state.degrees);
+    const held = leanPose(speed * 2);
+    applyRollercoasterLean(state, held, 2 + 1 / 60);
+    assert.ok(held.bankDegrees > banks.at(-1) * 0.9, 'A stop retains weight instead of snapping level.');
+    for (let frame = 2; frame <= 180; frame += 1) applyRollercoasterLean(state, leanPose(speed * 2), 2 + frame / 60);
+    near(state.degrees, 0);
+    for (const turn of [180, 360, 720]) {
+      const pose = leanPose(speed * 2, 12, turn);
+      applyRollercoasterLean(state, pose, 5);
+      near(pose.rollDegrees, turn);
+      near(Math.hypot(...pose.quaternion), 1);
+      near(pose.quaternion[0], 0);
+      near(pose.quaternion[1], 0);
+    }
+  }
+  assert.ok(banks[0] < 2 && banks[1] > 5 && banks[2] > 10, 'Slow reading and fast travel have distinct bank loads.');
+});
+
+test('lean preserves angular momentum through changing bends and reverse travel stays inward', () => {
+  const state = createRollercoasterLeanState();
+  applyRollercoasterLean(state, leanPose(0), 0);
+  for (let frame = 1; frame <= 12; frame += 1) applyRollercoasterLean(state, leanPose(frame / 3), frame / 60);
+  const entering = state.degrees;
+  applyRollercoasterLean(state, leanPose(13 / 3, -12), 13 / 60);
+  assert.ok(state.targetDegrees < 0 && state.degrees > entering, 'Existing momentum carries through the first instant of a bend reversal.');
+  for (let frame = 14; frame <= 120; frame += 1) {
+    applyRollercoasterLean(state, leanPose(frame / 3, -12), frame / 60);
+    assert.ok(Math.abs(state.degrees) <= 12, 'Bank remains inside the authored envelope.');
+  }
+  assert.ok(state.degrees < -10);
+  for (let frame = 1; frame <= 120; frame += 1) {
+    applyRollercoasterLean(state, leanPose(40 - frame / 3, -12), 2 + frame / 60);
+    assert.ok(state.degrees < 0, 'Reversing travel does not reverse the inside of the same curve.');
+  }
+});
+
+test('lean mass is frame-rate independent and more weight slows both loading and recovery', () => {
+  const results = [];
+  for (const hz of [30, 60, 120, 144]) {
+    const state = createRollercoasterLeanState();
+    applyRollercoasterLean(state, leanPose(0), 0);
+    for (let frame = 1; frame <= hz / 2; frame += 1) applyRollercoasterLean(state, leanPose(12 * frame / hz), frame / hz);
+    results.push(state.degrees);
+  }
+  results.forEach(result => near(result, results[0]));
+  const outcomes = [350, 1100].map(leanWeightMs => {
+    const state = createRollercoasterLeanState();
+    const settings = { leanAmount: 1, leanWeightMs };
+    applyRollercoasterLean(state, leanPose(0), 0, settings);
+    for (let frame = 1; frame <= 30; frame += 1) applyRollercoasterLean(state, leanPose(frame / 3), frame / 60, settings);
+    const loading = state.degrees;
+    for (let frame = 31; frame <= 120; frame += 1) applyRollercoasterLean(state, leanPose(frame / 3), frame / 60, settings);
+    for (let frame = 121; frame <= 144; frame += 1) applyRollercoasterLean(state, leanPose(40), frame / 60, settings);
+    return { loading, recovery: state.degrees };
+  });
+  assert.ok(outcomes[1].loading < outcomes[0].loading);
+  assert.ok(outcomes[1].recovery > outcomes[0].recovery);
+});
+
+test('lean processes a frame once and clears stale momentum on restore, long gaps or reduced motion', () => {
+  const state = createRollercoasterLeanState();
+  applyRollercoasterLean(state, leanPose(0), 0);
+  for (let frame = 1; frame <= 30; frame += 1) applyRollercoasterLean(state, leanPose(frame / 3), frame / 60);
+  const before = { ...state };
+  const pose = leanPose(10);
+  applyRollercoasterLean(state, pose, 0.5);
+  assert.deepEqual(state, before, 'A palette/appearance re-render cannot advance the spring a second time.');
+  near(pose.bankDegrees, before.degrees);
+  applyRollercoasterLean(state, leanPose(200), 10);
+  near(state.degrees, 0);
+  near(state.speedWU, 0);
+  for (let frame = 1; frame <= 30; frame += 1) applyRollercoasterLean(state, leanPose(200 + frame / 3), 10 + frame / 60);
+  assert.ok(state.degrees > 8);
+  const reduced = leanPose(220, 0, 0);
+  applyRollercoasterLean(state, reduced, 10.6, undefined, true);
+  near(reduced.rollDegrees, 0);
+  near(state.velocity, 0);
+  const restored = leanPose(220, 12, 360);
+  applyRollercoasterLean(state, restored, 10.7, undefined, true);
+  near(restored.rollDegrees, 360);
+  const disabled = { leanAmount: 0, leanWeightMs: 850 };
+  for (let frame = 1; frame <= 30; frame += 1) applyRollercoasterLean(state, leanPose(220 + frame), 10.7 + frame / 60, disabled);
+  near(state.degrees, 0);
+});
+
+test('floating particles retain stable world identities, six colours and a bounded density budget', () => {
+  const track = { samples: [[0,0,0,0,0,0,0,1],[1,0,0,-360,0,0,0,1]] };
+  const points = createRollercoasterParticles(track);
+  assert.deepEqual(points, createRollercoasterParticles(track));
+  assert.equal(points.length, PARTICLE_MAX_COUNT * PARTICLE_STRIDE);
+  assert.ok(points.every(Number.isFinite));
+  assert.equal(resolveParticleCount(0), 0);
+  assert.equal(resolveParticleCount(1), PARTICLE_MAX_COUNT / 2);
+  assert.equal(resolveParticleCount(20), PARTICLE_MAX_COUNT);
+  assert.equal(resolveParticleCount(NaN), 0);
+  const colours = new Set();
+  let smallest = Infinity, largest = 0;
+  for (let i = 0; i < resolveParticleCount(1); i += 1) {
+    colours.add(points[i * PARTICLE_STRIDE + 4]);
+    const size = points[i * PARTICLE_STRIDE + 3];
+    smallest = Math.min(smallest, size); largest = Math.max(largest, size);
+  }
+  assert.deepEqual([...colours].sort(), [0,1,2,3,4,5]);
+  assert.ok(largest > smallest * 4, 'Small flecks and occasional larger fly-bys share one field.');
+});
+
+test('particle float is continuous, bounded and exactly repeatable when held or retraced', () => {
+  const points = createRollercoasterParticles({ samples: [[0,0,0,0,0,0,0,1],[1,0,0,-360,0,0,0,1]] });
+  for (let id = 0; id < 100; id += 1) {
+    const rest = [...points.slice(id * PARTICLE_STRIDE, id * PARTICLE_STRIDE + 3)];
+    assert.deepEqual(sampleFloatingParticle(points, id, 0), rest);
+    const position = sampleFloatingParticle(points, id, 17.3);
+    assert.deepEqual(position, sampleFloatingParticle(points, id, 17.3));
+    const next = sampleFloatingParticle(points, id, 17.3 + 1 / 60);
+    assert.ok(Math.hypot(...next.map((v,i) => v-position[i])) < 0.005);
+    for (const time of [5, 25, 80, 300, 3600]) {
+      const offset = sampleFloatingParticle(points, id, time).map((v,i) => v-rest[i]);
+      assert.ok(Math.hypot(...offset) < 2, 'Drift stays near its anchor; it never accumulates or respawns.');
+    }
+  }
+});
+
+test('floating volume fills the authored route and both bookends on desktop and portrait', async () => {
+  const track = JSON.parse(await readFile(new URL('../react-app/app/public/models/about-rollercoaster-world/camera.json', import.meta.url)));
+  const points = createRollercoasterParticles(track);
+  const pose = createRollercoasterCameraPose();
+  for (const [width, height] of [[1280,720],[390,844]]) {
+    const lens = resolveRollercoasterProjection({ horizontalFov:70, portraitVerticalFov:95 }, width, height);
+    const tangentY = Math.tan(lens.verticalFov * Math.PI / 360), tangentX = tangentY * width / height;
+    for (let step = 0; step <= 50; step += 1) {
+      sampleRollercoasterCamera(track, step / 50, pose);
+      const [qx,qy,qz,qw] = pose.quaternion;
+      let visible = 0;
+      for (let i = 0; i < resolveParticleCount(1); i += 1) {
+        const o = i * PARTICLE_STRIDE;
+        const x=points[o]-pose.position[0],y=points[o+1]-pose.position[1],z=points[o+2]-pose.position[2];
+        const tx=2*(-qy*z+qz*y),ty=2*(-qz*x+qx*z),tz=2*(-qx*y+qy*x);
+        const vx=x+qw*tx-qy*tz+qz*ty,vy=y+qw*ty-qz*tx+qx*tz,vz=z+qw*tz-qx*ty+qy*tx;
+        const depth=-vz;
+        if(depth>1.2&&depth<30&&Math.abs(vx)<depth*tangentX&&Math.abs(vy)<depth*tangentY) visible++;
+      }
+      assert.ok(visible >= 20, `${width}×${height} at ${step*2}% has only ${visible} floating circles.`);
+    }
+  }
+});
+
+test('optical roll keeps full turns, adds overlaps and retraces exactly in reverse', () => {
+  const cues = [rollCue, { ...rollCue, name: 'Counter roll', angleDegrees: -180 }];
+  near(sampleRollercoasterRoll(cues, .30), 540);
+  near(sampleRollercoasterRoll([{ ...rollCue, enabled: false }], .30), 0);
+  const path = Array.from({ length: 161 }, (_, i) => .22 + i * .001);
+  assert.deepEqual(path.map(p => sampleRollercoasterRoll(cues, p)),
+    [...path].reverse().map(p => sampleRollercoasterRoll(cues, p)).reverse());
+  for (const boundary of [.22, .30, .38]) {
+    const h = 1e-6;
+    const left = sampleRollercoasterRoll(cues, boundary - h);
+    const at = sampleRollercoasterRoll(cues, boundary);
+    const right = sampleRollercoasterRoll(cues, boundary + h);
+    assert.ok(Math.abs((right - left) / (2 * h)) < .01, 'Smooth zero angular velocity at cue boundaries');
+    assert.ok(Math.abs(right - 2 * at + left) < 1e-9, 'Smooth angular acceleration');
+  }
+  for (const p of [0, .1, .4, .6, .9, 1]) near(sampleRollercoasterRoll(cues, p), 0);
+});
+
+test('camera-local optical roll preserves tangent and position, and reduced motion removes roll', () => {
+  const q = [Math.sin(.25), 0, 0, Math.cos(.25)];
+  const forward = ([x,y,z,w]) => [-2*(x*z+w*y), -2*(y*z-w*x), -1+2*(x*x+y*y)];
+  const tangent = forward(q);
+  for (const angle of [-720, -145, 110, 270, 360, 720]) {
+    const rolled = [...q]; applyRollercoasterRoll(rolled, angle);
+    vectorNear(forward(rolled), tangent, 1e-12);
+    near(Math.hypot(...rolled), 1);
+  }
+  const source = { samples: [[0,0,0,0,...q],[1,0,0,-100,...q]], rollCues: [rollCue] };
+  const normal = createRollercoasterCameraPose();
+  const reduced = createRollercoasterCameraPose();
+  sampleRollercoasterCamera(source, .26, normal);
+  sampleRollercoasterCamera(source, .26, reduced, true);
+  near(normal.rollDegrees, 360);
+  near(reduced.rollDegrees, 0);
+  vectorNear(normal.position, reduced.position, 1e-12);
+  vectorNear(reduced.quaternion, q, 1e-12);
+});
+
+test('roll validation enforces travel chapters, finite bounded values and usable ramps', () => {
+  const beats = [{ id:'tunnel-a', kind:'travel', start:.2, end:.4 }];
+  validateRollercoasterRoll([rollCue], beats);
+  for (const change of [{ chapter:'background' }, { angleDegrees:721 }, { angleDegrees:NaN },
+    { name:'' }, { enabled:1 }, { start:.19 }, { end:.41 }, { peak:.222 }]) {
+    assert.throws(() => validateRollercoasterRoll([{ ...rollCue, ...change }], beats));
+  }
+  assert.throws(() => validateRollercoasterRoll(Array(17).fill(rollCue), beats));
+});
+
+test('held half-turns invert the middle journey and restore upright through the second tunnel', () => {
+  const cues = [
+    { ...rollCue, mode:'hold', angleDegrees:180 },
+    { ...rollCue, mode:'hold', chapter:'tunnel-b', start:.74, end:.87, angleDegrees:180 },
+  ].map(({ peak, ...cue }) => cue);
+  validateRollercoasterRoll(cues);
+  for (const p of [0,.1,.22]) near(sampleRollercoasterRoll(cues,p),0);
+  for (const p of [.38,.4,.5,.6,.74]) near(sampleRollercoasterRoll(cues,p),180);
+  for (const p of [.87,.9,.97,1]) near(sampleRollercoasterRoll(cues,p),360);
+  const path=Array.from({length:1001},(_,i)=>i/1000);
+  assert.deepEqual(path.map(p=>sampleRollercoasterRoll(cues,p)),
+    path.toReversed().map(p=>sampleRollercoasterRoll(cues,p)).toReversed());
+  for (const boundary of [.22,.38,.74,.87]) {
+    const h=1e-6, at=sampleRollercoasterRoll(cues,boundary);
+    near(sampleRollercoasterRoll(cues,boundary-h),at,1e-9);
+    near(sampleRollercoasterRoll(cues,boundary+h),at,1e-9);
+  }
+  assert.throws(()=>validateRollercoasterRoll([{...cues[0],end:cues[0].start+.001}]));
+  assert.throws(()=>validateRollercoasterRoll([{...cues[0],mode:'unknown'}]));
+});
+
+test('canopy quarter-turns hold a sideways passage and preserve the surrounding tunnel turns', () => {
+  const beats = [{ id:'tunnel-a', kind:'travel', start:.2, end:.4 }, { id:'tunnel-b', kind:'travel', start:.72, end:.9 }];
+  const regions = [{ id:'gallery-b', start:.4, end:.64 }];
+  const canopy = [
+    { name:'Canopy entry', enabled:true, chapter:'gallery-b', mode:'hold', start:.403, end:.427, angleDegrees:90 },
+    { name:'Canopy exit', enabled:true, chapter:'gallery-b', mode:'hold', start:.605, end:.635, angleDegrees:-90 },
+  ];
+  const tunnels = [
+    { ...rollCue, mode:'hold', angleDegrees:180 },
+    { ...rollCue, mode:'hold', chapter:'tunnel-b', start:.74, end:.87, angleDegrees:180 },
+  ];
+  const cues = [...tunnels, ...canopy];
+  validateRollercoasterRoll(cues, beats, regions);
+  for (const p of [.427,.44,.5,.59,.605]) near(sampleRollercoasterRoll(cues,p),270);
+  for (const p of [0,.3,.4,.403,.635,.7,.8,.9,1]) near(sampleRollercoasterRoll(cues,p),sampleRollercoasterRoll(tunnels,p));
+  const path = Array.from({length:401},(_,i)=>.35+i/1000);
+  assert.deepEqual(path.map(p=>sampleRollercoasterRoll(cues,p)),path.toReversed().map(p=>sampleRollercoasterRoll(cues,p)).toReversed());
+  for (const boundary of [.403,.427,.605,.635]) {
+    const at = sampleRollercoasterRoll(cues,boundary);
+    near(sampleRollercoasterRoll(cues,boundary-1e-7),at,1e-9);
+    near(sampleRollercoasterRoll(cues,boundary+1e-7),at,1e-9);
+  }
+  assert.throws(()=>validateRollercoasterRoll(canopy,beats));
+  for (const change of [{start:.39},{end:.65},{chapter:'gallery-c'}]) {
+    assert.throws(()=>validateRollercoasterRoll([{...canopy[0],...change}],beats,regions));
+  }
+  const track = { samples:[[0,0,0,0,0,0,0,1],[1,0,0,-100,0,0,0,1]], rollCues:cues };
+  near(sampleRollercoasterCamera(track,.5).turnDegrees,270);
+  near(sampleRollercoasterCamera(track,.5,undefined,true).turnDegrees,0);
+});
+
+test('curve banking composes with held turns at eased progress and reduced motion removes both', () => {
+  const bank={enabled:true,maxDegrees:24,smoothingDistanceWU:12,
+    samples:Array.from({length:513},(_,i)=>[i/512, i===0||i===512 ? 0 : 12, 0])};
+  validateRollercoasterBank(bank);
+  near(sampleRollercoasterBank(bank,.5),12);
+  const track={samples:[[0,0,0,0,0,0,0,1],[1,0,0,-100,0,0,0,1]],curveBank:bank,
+    rollCues:[{...rollCue,mode:'hold',angleDegrees:180}]};
+  const normal=sampleRollercoasterCamera(track,.5), reduced=sampleRollercoasterCamera(track,.5,undefined,true);
+  near(normal.turnDegrees,180);near(normal.bankDegrees,12);near(normal.rollDegrees,192);
+  near(reduced.rollDegrees,0);near(reduced.bankDegrees,0);near(reduced.turnDegrees,0);
+  assert.deepEqual(normal.position,reduced.position);
+  for (const change of [{maxDegrees:46},{smoothingDistanceWU:0},{enabled:1},{samples:bank.samples.slice(1)}])
+    assert.throws(()=>validateRollercoasterBank({...bank,...change}));
+  const bad=clone(bank);bad.samples[4][0]=.2;assert.throws(()=>validateRollercoasterBank(bad));
+  const overshoot=clone(bank);overshoot.samples[4][2]=1e6;assert.throws(()=>validateRollercoasterBank(overshoot));
+});
 
 test('one aspect-driven lens retains desktop framing and widens portrait capture to its reviewed cap', () => {
   const source = { horizontalFov: 70, portraitVerticalFov: 90 };
@@ -508,7 +825,7 @@ test('source metadata cannot reintroduce ordinary or ending visibility overrides
   }
 });
 
-test('the renderer uses the same near and far visibility for all material and motion groups', async () => {
+test('the renderer uses the same near and far visibility for all authored surface and motion groups', async () => {
   const source = await readFile(new URL('../react-app/app/src/routes/about-rollercoaster/rollercoasterScene.js', import.meta.url), 'utf8');
   const fragment = source.split('const FRAGMENT_SHADER = `')[1].split('`;')[0];
   assert.match(fragment, /float visibility = corridorVisibility\(vDepth\);/);

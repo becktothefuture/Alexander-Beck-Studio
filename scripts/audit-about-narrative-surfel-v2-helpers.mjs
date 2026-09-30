@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium, webkit } from 'playwright';
@@ -13,13 +14,13 @@ const expectedCameraPageIds = expectedAssetMetadata.pages.map((page) => page.id)
 export const ABOUT_SURFEL_PROFILES = Object.freeze({
   desktop: Object.freeze({
     viewport: Object.freeze({ width: 1440, height: 1000 }),
-    residentSurfelCount: 90_000,
-    maximumGpuBytes: 4_200_000,
+    residentSurfelCount: expectedAssetMetadata.profiles.desktop.surfelCount,
+    maximumGpuBytes: 11_100_000,
   }),
   mobile: Object.freeze({
     viewport: Object.freeze({ width: 390, height: 844 }),
-    residentSurfelCount: 30_000,
-    maximumGpuBytes: 1_400_000,
+    residentSurfelCount: expectedAssetMetadata.profiles.mobile.surfelCount,
+    maximumGpuBytes: 3_700_000,
   }),
 });
 
@@ -37,7 +38,7 @@ export async function launchAboutAuditBrowser(browserName = 'chromium') {
       headless: true,
       args: [
         '--use-gl=angle',
-        '--use-angle=swiftshader-webgl',
+        `--use-angle=${process.env.ABS_ABOUT_GPU || 'swiftshader-webgl'}`,
         '--enable-unsafe-swiftshader',
         '--disable-gpu-sandbox',
         '--enable-precise-memory-info',
@@ -56,10 +57,23 @@ export function collectPageErrors(page) {
   return errors;
 }
 
-export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000) {
+export function assertAboutDeliveredMetadata(actual, expected) {
+  const transportContract = value => {
+    // Candidate metadata is JSON-encoded when the preview envelope is added.
+    // JSON turns authored -0 coordinates into 0; compare the same transport
+    // representation while retaining every non-preview source contract field.
+    const normalized = JSON.parse(JSON.stringify(value));
+    delete normalized.preview;
+    return normalized;
+  };
+  assert.deepEqual(transportContract(actual), transportContract(expected),
+    'The browser received a different asset metadata contract.');
+}
+
+export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000, layoutProfile = profile) {
   const expected = ABOUT_SURFEL_PROFILES[profile];
   assert(expected, `Unknown About surfel profile ${profile}.`);
-  await page.waitForFunction(({ expectedProfile, expectedCount, expectedSourceHash }) => {
+  await page.waitForFunction(({ expectedProfile, expectedLayoutProfile, expectedCount, expectedSourceHash }) => {
     const root = document.querySelector('.about-narrative-lab');
     const metrics = window.__aboutNarrativeRuntime?.getMetrics?.();
     if (metrics?.assetSourceHash && metrics.assetSourceHash !== expectedSourceHash) {
@@ -74,7 +88,7 @@ export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000
       && metrics.adapterId === 'blender-surfel-v2'
       && metrics.qualityTier === expectedProfile
       && metrics.pointProfile === expectedProfile
-      && metrics.layoutProfile === expectedProfile
+      && metrics.layoutProfile === expectedLayoutProfile
       && metrics.assetSourceHash === expectedSourceHash
       && metrics.journeyMapValid === true
       && metrics.bundleIntegrityVerified === true
@@ -85,6 +99,7 @@ export async function waitForAboutSurfelRuntime(page, profile, timeout = 120_000
       && metrics.fixedAttributeIdentityStable === true;
   }, {
     expectedProfile: profile,
+    expectedLayoutProfile: layoutProfile,
     expectedCount: expected.residentSurfelCount,
     expectedSourceHash: expectedAssetMetadata.source.sha256,
   }, { timeout });
@@ -110,7 +125,7 @@ export function assertAboutSurfelMetrics(metrics, profile) {
     && metrics.activeSurfelCount <= metrics.residentSurfelCount,
   'The active story models must remain a non-empty subset of the resident profile.');
   assert.equal(metrics.pointCount, metrics.activeSurfelCount);
-  assert.equal(metrics.masterSurfelCount, 135_000);
+  assert.equal(metrics.masterSurfelCount, expectedAssetMetadata.profiles.master.surfelCount);
   assert.equal(metrics.modelCount, expectedAssetMetadata.models.length);
   assert.equal(Object.keys(metrics.perModelCounts).length, expectedAssetMetadata.models.length);
   assert(Object.values(metrics.perModelCounts).every((count) => count > 0));
@@ -134,23 +149,10 @@ export function assertAboutSurfelMetrics(metrics, profile) {
   assert(metrics.gpuBufferBytes > 0 && metrics.gpuBufferBytes <= expected.maximumGpuBytes);
   assert.deepEqual(metrics.zones, expectedCameraPageIds);
   assert.equal(metrics.assetSourceHash, expectedAssetMetadata.source.sha256);
-  const portalHost = expectedAssetMetadata.source.objects
-    .find((entry) => entry.objectKey === 'director.round-tunnel');
-  assert.equal(portalHost?.modelKey, 'about.02');
-  assert.equal(portalHost?.instanceCount, 10, 'The parametric round tunnel is incomplete.');
-  assert.equal(portalHost?.connectedComponentCount, 10,
-    'The single round-tunnel host must retain one connected component per generated ring.');
-  const gateHost = expectedAssetMetadata.source.objects
-    .find((entry) => entry.objectKey === 'director.square-gate-tunnel');
-  assert.equal(gateHost?.modelKey, 'about.04');
-  assert.equal(gateHost?.instanceCount, 26, 'The parametric square-gate tunnel is incomplete.');
-  assert.equal(gateHost?.connectedComponentCount, 26,
-    'The single square-gate host must retain one connected component per generated gate.');
-  const finaleSurface = expectedAssetMetadata.source.objects
-    .find((entry) => entry.objectKey === 'director.finale-surface');
-  assert.equal(finaleSurface?.modelKey, 'about.06');
-  assert.equal(finaleSurface?.connectedComponentCount, 1,
-    'The boundless finale surface must stay physically connected.');
+  const london = expectedAssetMetadata.models.find((entry) => entry.key === 'about.06');
+  assert.equal(london?.renderingProfile, 'scan');
+  assert.equal(expectedAssetMetadata.source.geography.constructedGeometry, false);
+  assert.equal(expectedAssetMetadata.source.geography.geometry, 'unreconstructed-survey-points');
   assert(
     metrics.activeZones.every((zone) => metrics.zones.includes(zone)),
     'The runtime reported an unknown active GPU page.',
@@ -346,9 +348,26 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
     };
     const paintedRects = (node) => {
       const range = document.createRange();
-      range.selectNodeContents(node);
-      return Array.from(range.getClientRects()).filter((bounds) => bounds.width > 0 && bounds.height > 0)
-        .map(rect);
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      const rectangles = [];
+      // A range over the whole button also returns its invisible Copied/Failed
+      // labels and wrapper boxes. Measure only painted text, then account for
+      // the bounded, scrollable copy area used by enlarged type.
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        if (!text.textContent.trim() || opacity(text.parentElement) <= 0.05) continue;
+        range.selectNodeContents(text);
+        for (const bounds of range.getClientRects()) {
+          let painted = bounds.width > 0 && bounds.height > 0 ? rect(bounds) : null;
+          for (let ancestor = text.parentElement; painted && ancestor && ancestor !== root; ancestor = ancestor.parentElement) {
+            const style = getComputedStyle(ancestor);
+            if (/(hidden|clip|auto|scroll)/.test(`${style.overflowX} ${style.overflowY}`)) {
+              painted = intersection(painted, ancestor.getBoundingClientRect());
+            }
+          }
+          if (painted) rectangles.push(painted);
+        }
+      }
+      return rectangles;
     };
     const toNdc = (bounds, margin = 0) => bounds && canvasRect ? {
       minX: (((bounds.left - margin) - canvasRect.left) / canvasRect.width) * 2 - 1,
@@ -397,8 +416,7 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
       ].join(', '));
       for (const node of lineNodes) {
         const effectiveOpacity = opacity(node);
-        // The production snap state uses 1 for the active line and 0.2 for
-        // contextual neighbours. Protect only the line intended for reading.
+        // Protect every painted paragraph through its restrained entrance.
         if (effectiveOpacity < 0.5) continue;
         for (const bounds of node.matches('img')
           ? [rect(node.getBoundingClientRect())] : paintedRects(node)) {
@@ -411,7 +429,7 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
             opacity: effectiveOpacity,
             readableFraction: readable
               ? (readable.bottom - readable.top) / (bounds.bottom - bounds.top) : 0,
-            protectedNdcBounds: toNdc(clipped),
+            protectedNdcBounds: toNdc(clipped, protectedMarginPx),
           });
         }
       }
@@ -482,13 +500,38 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
       terminalSweep: checkTerminalSweep,
     });
     const copyRegionDiagnostics = protectedCopyRegions.map((region, index) => {
-      const perModelCounts = Object.fromEntries(Object.entries(metrics.modelFraming).map(([key, model]) => (
-        [key, model.protectedRegionVisibleCounts[index]]
-      )));
+      const perModelDiagnostics = Object.fromEntries(Object.entries(metrics.modelFraming).map(([key, model]) => {
+        const allDepthVisibleCount = model.protectedRegionVisibleCounts[index];
+        const nearVisibleCount = model.protectedRegionNearVisibleCounts?.[index];
+        const maximumRadiusPx = model.protectedRegionMaximumRadiusPx?.[index];
+        const minimumDepthWU = model.protectedRegionMinimumDepthWU?.[index];
+        const nearCriteria = model.protectedNearCriteria || null;
+        const nearDiagnosticsAvailable = Number.isInteger(nearVisibleCount) && nearVisibleCount >= 0
+          && nearVisibleCount <= allDepthVisibleCount && Number.isFinite(maximumRadiusPx) && maximumRadiusPx >= 0
+          && (allDepthVisibleCount > 0 ? Number.isFinite(minimumDepthWU) : minimumDepthWU === null)
+          && Number.isFinite(nearCriteria?.unfoggedDepthWU) && nearCriteria?.minimumBallRadiusPx === 2;
+        return [key, { allDepthVisibleCount,
+          nearVisibleCount: nearDiagnosticsAvailable ? nearVisibleCount : null,
+          distantVisibleCount: nearDiagnosticsAvailable ? allDepthVisibleCount - nearVisibleCount : null,
+          maximumRadiusPx: Number.isFinite(maximumRadiusPx) ? maximumRadiusPx : null,
+          minimumDepthWU: Number.isFinite(minimumDepthWU) ? minimumDepthWU : null,
+          nearCriteria, nearDiagnosticsAvailable }];
+      }));
+      const perModelCounts = Object.fromEntries(Object.entries(perModelDiagnostics)
+        .map(([key, model]) => [key, model.allDepthVisibleCount]));
+      const nearDiagnosticsAvailable = Object.values(perModelDiagnostics).every(model => model.nearDiagnosticsAvailable);
+      const protectedVisibleCount = Object.values(perModelCounts).reduce((sum, count) => sum + count, 0);
+      const protectedNearVisibleCount = nearDiagnosticsAvailable
+        ? Object.values(perModelDiagnostics).reduce((sum, model) => sum + model.nearVisibleCount, 0) : null;
+      const depths = Object.values(perModelDiagnostics).map(model => model.minimumDepthWU).filter(Number.isFinite);
       return {
         ...region,
-        perModelCounts,
-        protectedVisibleCount: Object.values(perModelCounts).reduce((sum, count) => sum + count, 0),
+        perModelCounts, perModelDiagnostics, nearDiagnosticsAvailable, protectedVisibleCount,
+        protectedNearVisibleCount,
+        protectedDistantVisibleCount: nearDiagnosticsAvailable ? protectedVisibleCount - protectedNearVisibleCount : null,
+        maximumRadiusPx: nearDiagnosticsAvailable
+          ? Math.max(0, ...Object.values(perModelDiagnostics).map(model => model.maximumRadiusPx)) : null,
+        minimumDepthWU: depths.length ? Math.min(...depths) : null,
       };
     });
     const visibleTitles = Array.from(root.querySelectorAll('.about-narrative-render-span--title'))
@@ -532,6 +575,11 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
         fieldId: node.dataset.textFieldId, visibleRegionCount: lines.length, bounds: union(lines),
       }] : [];
     });
+    const utilityRail = document.querySelector('.shell-utility-rail')?.getBoundingClientRect();
+    const utilityRailOverlapCount = utilityRail ? visibleCopyLines.filter(line => intersection(line.bounds, {
+      left: utilityRail.left - 8, right: utilityRail.right,
+      top: utilityRail.top - 8, bottom: utilityRail.bottom + 8,
+    })).length : 0;
     return {
       metrics,
       diagnostics: metrics,
@@ -544,10 +592,20 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
         editorialClip: rect(editorialClip),
         editorialReadingBounds: rect(editorialReadingBounds),
         visibleLineCount: visibleCopyLines.length,
+        utilityRailOverlapCount,
         readableLineCount: visibleCopyLines.filter((line) => line.readableFraction >= 0.95
           && line.opacity >= 0.5).length,
         regions: copyRegionDiagnostics,
         maximumProtectedVisibleCount: Math.max(0, ...copyRegionDiagnostics.map((line) => line.protectedVisibleCount)),
+        nearDiagnosticsAvailable: copyRegionDiagnostics.every(line => line.nearDiagnosticsAvailable),
+        maximumProtectedNearVisibleCount: copyRegionDiagnostics.every(line => line.nearDiagnosticsAvailable)
+          ? Math.max(0, ...copyRegionDiagnostics.map(line => line.protectedNearVisibleCount)) : null,
+        maximumProtectedDistantVisibleCount: copyRegionDiagnostics.every(line => line.nearDiagnosticsAvailable)
+          ? Math.max(0, ...copyRegionDiagnostics.map(line => line.protectedDistantVisibleCount)) : null,
+        protectedNearCriteria: Object.fromEntries(Object.entries(metrics.modelFraming)
+          .map(([key, model]) => [key, model.protectedNearCriteria || null])),
+        pixelRatio: metrics.pixelRatio,
+        radiusUnit: 'CSS pixels from the active renderer; no fixed cap or diameter is assumed',
       },
       visibleTitles,
       visibleEditorialFields,
@@ -563,8 +621,11 @@ export async function getAboutSurfelState(page, { fieldId = '', marginPx = 0, te
 
 export async function driveAboutStoryWU(page, targetWU) {
   const resolvedTarget = Number.isFinite(targetWU) ? Math.max(0, targetWU) : null;
-  await page.evaluate(async (target) => {
+  await page.evaluate((target) => {
     const scrollport = document.querySelector('.about-narrative-scrollport');
+    if (scrollport.classList.contains('lenis')) throw new Error(
+      'Native positioning fixture cannot directly drive an active Lenis owner. Use real wheel input or the authored zero-smoothing About source.',
+    );
     const maximum = Math.max(0, scrollport.scrollHeight - scrollport.clientHeight);
     const duration = Math.max(...Array.from(document.querySelectorAll('[data-render-span-id]'),
       (node) => Number(node.dataset.storyEndWu) || 0));
@@ -573,19 +634,10 @@ export async function driveAboutStoryWU(page, targetWU) {
     const destination = target === null || target >= duration - 0.00001
       ? maximum
       : Math.min(maximum, target / duration * maximum);
-    // Hold the native destination across several frames so Lenis synchronises
-    // its internal target instead of restoring the previous audit checkpoint.
-    await new Promise((resolve) => {
-      let framesRemaining = 8;
-      const holdDestination = () => {
-        scrollport.scrollTop = destination;
-        scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
-        framesRemaining -= 1;
-        if (framesRemaining <= 0) resolve();
-        else requestAnimationFrame(holdDestination);
-      };
-      holdDestination();
-    });
+    // Write once to the native owner. Repeated writes can hide a competing
+    // smoothing destination and cannot prove an untouched stopped position.
+    scrollport.scrollTop = destination;
+    scrollport.dispatchEvent(new Event('scroll', { bubbles: false }));
   }, resolvedTarget);
   await page.waitForFunction((target) => {
     const root = document.querySelector('.about-narrative-lab');
@@ -599,6 +651,28 @@ export async function driveAboutStoryWU(page, targetWU) {
     return Math.abs(storyWU - target) <= 0.035;
   }, resolvedTarget, { timeout: 30_000 });
   await page.waitForTimeout(120);
+}
+
+export async function captureAboutDistantOverlapReview(page, {
+  state, screenshotPath, id, fieldId, runtimeSourceFingerprint = null,
+}) {
+  assert.equal(state.copyProtection.nearDiagnosticsAvailable, true, 'Missing near-material diagnostics cannot certify prose.');
+  const regions = state.copyProtection.regions.map((region, index) => ({ index, ...region }))
+    .filter(region => region.protectedDistantVisibleCount > 0);
+  if (!regions.length) return null;
+  assert.equal(state.metrics.visible, true, 'Distant-overlap review requires the active GPU scene.');
+  const bytes = await page.screenshot({ path: screenshotPath, animations: 'allow' });
+  return {
+    id, fieldId, storyWU: state.storyWU, scrollTop: state.scrollTop,
+    sourceHash: state.metrics.assetSourceHash, runtimeSourceFingerprint,
+    pointProfile: state.metrics.pointProfile, layoutProfile: state.metrics.layoutProfile,
+    pixelRatio: state.metrics.pixelRatio, paletteId: state.metrics.paletteId,
+    paletteGeneration: state.metrics.paletteGeneration,
+    screenshot: screenshotPath, screenshotSha256: createHash('sha256').update(bytes).digest('hex'),
+    regions, protectedNearCriteria: state.copyProtection.protectedNearCriteria,
+    status: 'pending-visual-review', visualJudgement: 'pending', accepted: false,
+    scope: 'Every sampled distant-overlap region requires direct review of this active-scene screenshot. Radius is CSS pixels and depth is world units; per-model extrema cover all admitted overlaps. When the near count is zero, those extrema describe distant material. Counts precede depth/DOM occlusion and do not establish visual acceptance.',
+  };
 }
 
 export function percentile(values, fraction) {

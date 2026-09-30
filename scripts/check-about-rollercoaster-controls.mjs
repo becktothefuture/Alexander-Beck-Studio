@@ -58,7 +58,7 @@ const clone = value => structuredClone(value);
 const loadedSource = () => ({ document: clone(canonical), hash: 'baseline-hash' });
 const canonicalDesign = JSON.parse(await readFile(new URL('react-app/app/public/config/design-system.json', ROOT), 'utf8'));
 
-test('copy mapping covers the canonical titles, complete nested prose, career and client accessibility text', () => {
+test('copy mapping covers the canonical titles, nested practice prose, disciplines and client accessibility text', () => {
   assert.deepEqual([...new Set(controls.map(control => control.fieldId))], canonical.tracks.text.fields.filter(field => field.publishable).map(field => field.id));
   assert.equal(new Set(controls.map(control => control.id)).size, controls.length);
   for (const control of controls) {
@@ -67,15 +67,19 @@ test('copy mapping covers the canonical titles, complete nested prose, career an
       `An unchanged ${control.id} must preserve the whole source document.`);
     assert.ok(!control.path.some(part => ['id', 'src', 'startWU', 'endWU', 'stageId', 'parameters'].includes(part)));
   }
-  const career = canonical.tracks.text.fields.find(field => field.id === 'text-background-unit').block.modules.find(module => module.kind === 'career-sequence');
-  for (const job of career.items) {
-    for (const key of ['yearLabel', 'employer', 'role', 'description']) {
-      assert.ok(controls.some(control => control.fieldId === 'text-background-unit' && control.path.at(-1) === key && control.value === job[key]));
+  const practice = canonical.tracks.text.fields.find(field => field.id === 'text-background-unit').block.modules;
+  for (const prose of practice.filter(module => module.kind === 'prose')) {
+    assert.ok(controls.some(control => control.fieldId === 'text-background-unit' && control.path.at(-1) === 'text' && control.value === prose.text));
+  }
+  const disciplines = canonical.tracks.text.fields.find(field => field.id === 'text-discipline-labels').block;
+  for (const item of disciplines.items) {
+    for (const key of ['label', 'description']) {
+      assert.ok(controls.some(control => control.fieldId === 'text-discipline-labels' && control.path.at(-1) === key && control.value === item[key]));
     }
   }
   assert.equal(controls.filter(control => control.path.at(-1) === 'alt').length, 15);
-  assert.ok(controls.some(control => control.value === 'Let’s begin.'));
-  assert.ok(controls.some(control => control.value === 'How I work'));
+  assert.ok(controls.some(control => control.value === 'Let’s talk.'));
+  assert.ok(controls.some(control => control.value === 'Get in touch to discuss a project or collaboration.'));
 });
 
 test('editing changes only the selected website value and rejects scene, timing, unsafe or invalid writes', () => {
@@ -155,20 +159,20 @@ test('the existing HTTP client and atomic service save, reload and protect concu
   const normalizedBaseline = clone(editor.getSnapshot().document);
   const currentOpening = listCopyControls(normalizedBaseline).find(control => control.fieldId === 'text-promise-main' && control.path.at(-1) === 'text');
   editor.change(currentOpening.id, 'Hello, I’m Alex.');
-  editor.change('globals.typography.mainTitleSizeScale', 0.9);
+  editor.change('globals.typography.inbetweenTitleSizeScale', 0.9);
   assert.equal(await editor.save(), true);
   assert.notEqual(editor.getSnapshot().hash, initialHash);
   const disk = JSON.parse(await readFile(configPath, 'utf8'));
   assert.equal(readPath(disk, currentOpening.path), 'Hello, I’m Alex.');
-  assert.equal(disk.globals.typography.mainTitleSizeScale, 0.9);
+  assert.equal(disk.globals.typography.inbetweenTitleSizeScale, 0.9);
   readPath(disk, currentOpening.path.slice(0, -1))[currentOpening.path.at(-1)] = readPath(normalizedBaseline, currentOpening.path);
-  disk.globals.typography.mainTitleSizeScale = normalizedBaseline.globals.typography.mainTitleSizeScale;
+  disk.globals.typography.inbetweenTitleSizeScale = normalizedBaseline.globals.typography.inbetweenTitleSizeScale;
   assert.deepEqual(disk, normalizedBaseline, 'The save must not change hidden scene compatibility data.');
 
   const reloaded = createContentEditor(canonical);
   assert.equal(await reloaded.load(), true);
   assert.equal(readPath(reloaded.getSnapshot().document, currentOpening.path), 'Hello, I’m Alex.');
-  assert.equal(reloaded.getSnapshot().document.globals.typography.mainTitleSizeScale, 0.9);
+  assert.equal(reloaded.getSnapshot().document.globals.typography.inbetweenTitleSizeScale, 0.9);
   editor.change(currentOpening.id, 'A local draft.');
   const currentDisk = await service.read();
   const external = editContentDocument(currentDisk.document, currentOpening.id, 'A source edit.');
@@ -257,7 +261,7 @@ test('the source inspector separates Blender surfaces from browser-owned circle 
   assert.match(renderToStaticMarkup(React.createElement(SourceInspector, { meta: null })), /Waiting for the saved Blender scene/);
 });
 
-test('visibility defaults use four canonical keys and the existing Home sizing names', async (t) => {
+test('appearance loads the saved canonical values and the existing Home sizing names', async (t) => {
   let requests = 0;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     requests += 1;
@@ -276,9 +280,20 @@ test('visibility defaults use four canonical keys and the existing Home sizing n
   assert.equal(loaded.homeSimulationBodyRadiusPx, canonicalDesign.runtime.homeSimulationBodyRadiusPx);
   assert.equal(loaded.mobileSimulationBodyScale, canonicalDesign.runtime.mobileSimulationBodyScale);
   assert.ok(!Object.hasOwn(loaded, 'homeSimulationMobileRadiusScale'));
-  ABOUT_APPEARANCE_CONTROLS.forEach(control => assert.equal(canonicalDesign.runtime[control.runtimeKey], control.defaultValue));
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => assert.equal(loaded[control.id],
+    canonicalDesign.runtime[control.runtimeKey] ?? control.defaultValue));
   assert.equal(await loadRollercoasterAppearance(), loaded);
   assert.equal(requests, 1, 'A second renderer/panel load reuses the same initialized store.');
+});
+
+test('missing appearance settings use schema defaults without replacing saved tuning', async (t) => {
+  const source = clone(canonicalDesign);
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => { delete source.runtime[control.runtimeKey]; });
+  source.runtime.aboutCameraLeanAmount = 0.65;
+  t.mock.method(globalThis, 'fetch', async () => Response.json(source));
+  const loaded = await loadRollercoasterAppearance({ forceReload: true });
+  ABOUT_APPEARANCE_CONTROLS.forEach(control => assert.equal(loaded[control.id],
+    control.id === 'leanAmount' ? 0.65 : control.defaultValue));
 });
 
 test('invalid visibility intervals never apply and dynamic slider limits keep all four values ordered', async (t) => {
@@ -346,8 +361,10 @@ test('appearance save fresh-merges only owned runtime keys and survives the real
   });
   await loadRollercoasterAppearance({ forceReload: true });
   setRollercoasterAppearance({ nearHidden: 1, nearClear: 3, farClear: 18, farHidden: 40,
-    lensWidth: 1.1, portraitFov: 100, scrollGlideMs: 800, circleScale: 0.6, density: 1.25,
-    animationSpeed: 0.5, titleQuiet: 0.85, titlePadding: 30, titleFeather: 100 });
+    lensWidth: 1.1, portraitFov: 100, scrollGlideMs: 800, leanAmount: 0.75, leanWeightMs: 1000, circleScale: 0.6, density: 1.25,
+    colorMix: 0.75, scatter: 1.2, dotDrift: 0.8, dotDriftSpeed: 0.4,
+    particleDensity: 1.35, particleSize: 0.8, particleDrift: 0.45, particleOpacity: 0.75,
+    titleQuiet: 0.85, titlePadding: 30, titleFeather: 100 });
 
   // Another editor changes unrelated settings after our panel loaded.
   const changedElsewhere = JSON.parse(await readFile(configPath, 'utf8'));
