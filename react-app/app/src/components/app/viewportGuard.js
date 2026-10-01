@@ -7,6 +7,7 @@ export function getViewportCoverMode(
   width,
   height,
   maxRatio = MAX_SUPPORTED_VIEWPORT_RATIO,
+  maxWindowWidth = Infinity,
 ) {
   const resolvedWidth = Number(width);
   const resolvedHeight = Number(height);
@@ -23,7 +24,8 @@ export function getViewportCoverMode(
     return null;
   }
 
-  const ratio = resolvedWidth / resolvedHeight;
+  const cappedWidth = Number(maxWindowWidth) > 0 ? Math.min(resolvedWidth, Number(maxWindowWidth)) : resolvedWidth;
+  const ratio = cappedWidth / resolvedHeight;
   if (ratio > resolvedMaxRatio) return 'wide';
   if (ratio < 1 / resolvedMaxRatio) return 'tall';
   if (

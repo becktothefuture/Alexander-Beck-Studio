@@ -3740,8 +3740,8 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     max(1px, calc(var(--frame-edge-blend-blur, 3px) * var(--surface-edge-softness, 1)))
     calc(var(--frame-edge-blend-size, 1px) * var(--surface-edge-depth, 1))
     rgba(var(--inner-wall-top-light-rgb), calc(var(--abs-theme-rim-opacity, var(--inner-wall-rim-opacity, 0.85)) * var(--frame-edge-blend-strength, 1) * var(--surface-light-intensity, 1)));
-  --finish-far-blur: var(--outer-wall-glow-far-blur, 48px);
-  --finish-far-size: var(--outer-wall-glow-far-size, 8px);
+  --finish-far-blur: calc(var(--outer-wall-glow-far-blur, 48px) * var(--window-wall-glow-scale, 1));
+  --finish-far-size: calc(var(--outer-wall-glow-far-size, 8px) * var(--window-wall-glow-scale, 1));
   /* The outer reflection moves toward the light; inset offsets move inward. */
   --finish-light-x: calc(var(--surface-light-x, 0) * 6px * var(--surface-edge-depth, 1));
   --finish-light-y: calc(var(--surface-light-y, 0) * -6px * var(--surface-edge-depth, 1));
@@ -3750,11 +3750,11 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
     var(--finish-light-x) calc(var(--outer-wall-glow-near-shift, 0px) + var(--finish-light-y))
       max(1px, calc(var(--outer-wall-glow-near-size, 0px) * var(--surface-edge-depth, 1) * 0.75), calc(var(--outer-wall-glow-near-blur, 14px) * var(--surface-edge-softness, 1)))
       calc(var(--outer-wall-glow-near-size, 0px) * var(--surface-edge-depth, 1))
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-near-opacity, 0.18) * var(--surface-light-intensity, 1))),
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-near-opacity, 0.18) * var(--surface-light-intensity, 1) * var(--window-light-emission, 1))),
     var(--finish-light-x) calc(var(--outer-wall-glow-far-shift, 0px) + var(--finish-light-y))
       max(2px, calc(var(--finish-far-size) * var(--surface-edge-depth, 1) * 0.75), calc(var(--finish-far-blur) * var(--surface-edge-softness, 1)))
       calc(var(--finish-far-size) * var(--surface-edge-depth, 1))
-      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-far-opacity, 0.055) * var(--surface-light-intensity, 1)));
+      rgba(var(--inner-wall-top-light-rgb), calc(var(--outer-wall-glow-far-opacity, 0.055) * var(--surface-light-intensity, 1) * var(--window-light-emission, 1)));
   pointer-events: none;
   z-index: 99;
 }

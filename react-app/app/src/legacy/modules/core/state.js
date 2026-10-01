@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS, FEATURED_MODES, MODES } from './constants.js';
+import { getStudioWindowInsets, STUDIO_WINDOW_DEFAULTS } from '../../../lib/studio-window.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import {
   DEFAULT_FRAME_RADIUS_DESKTOP_PX,
@@ -1001,8 +1002,8 @@ export function applyLayoutFromVwToPx() {
   // Derive px values once, then everything downstream remains px-based.
   const w = getLayoutViewportWidthPx();
 
-  // One responsive frame size owns the visible outer inset and the collision
-  // clearance. The old vw wall size, mobile multiplier, area multiplier, and
+  // One responsive frame size owns the base outer inset and frame thickness.
+  // The old vw wall size, mobile multiplier, area multiplier, and
   // inner border width no longer stack into competing thicknesses.
   const frameInsetMobilePx = Math.max(0, readTokenPx(
     '--abs-frame-inset-mobile',
@@ -1036,8 +1037,19 @@ export function applyLayoutFromVwToPx() {
   state.frameRadiusMobilePx = frameRadiusMobilePx;
   state.frameRadiusDesktopPx = frameRadiusDesktopPx;
 
-  state.containerBorder = canonicalFrameInsetPx;
-  state.containerBorderX = canonicalFrameInsetPx;
+  const windowInsets = getStudioWindowInsets({
+    width: w,
+    height: getLayoutViewportHeightPx(),
+    frameInset: canonicalFrameInsetPx,
+    menuReserve: (document.querySelector('.button-bar')?.offsetHeight || 66)
+      + readTokenPx('--tactile-nav-row-padding-top', 8) + readTokenPx('--tactile-nav-row-padding-bottom', 4),
+    maxWidth: Math.max(1, readTokenPx('--abs-window-max-width', STUDIO_WINDOW_DEFAULTS.maxWidth)),
+    maxHeight: Math.max(1, readTokenPx('--abs-window-max-height', STUDIO_WINDOW_DEFAULTS.maxHeight)),
+    outerSpaceRatio: Math.max(0, Math.min(0.2, readTokenNumber('--abs-window-outer-space-ratio', STUDIO_WINDOW_DEFAULTS.outerSpaceRatio))),
+    insetMultiplier: Math.max(1, readTokenNumber('--abs-window-large-inset-multiplier', STUDIO_WINDOW_DEFAULTS.insetMultiplier)),
+  });
+  state.containerBorder = windowInsets.y;
+  state.containerBorderX = windowInsets.x;
   state.simulationPadding = 0;
   state.wallThickness = canonicalFrameInsetPx;
   
@@ -1099,6 +1111,7 @@ export function applyLayoutCSSVars() {
   root.style.setProperty('--safari-tint-inset', `${state.containerBorder}px`); // legacy Y alias
   root.style.setProperty('--safari-tint-inset-x', `${state.containerBorderX}px`);
   root.style.setProperty('--safari-tint-inset-y', `${state.containerBorder}px`);
+  root.style.setProperty('--abs-window-outer-space', `${Math.max(0, state.containerBorder - (state.frameInsetPx ?? state.containerBorder))}px`);
   root.style.setProperty('--simulation-padding', `${state.simulationPadding}px`);
   const contentPaddingBottomRatio = Math.max(0.5, Number(state.contentPaddingBottomRatio) || 1.3);
   const contentPaddingBottom = Math.round(Math.max(0, state.contentPaddingY) * contentPaddingBottomRatio);

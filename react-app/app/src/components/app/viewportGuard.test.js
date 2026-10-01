@@ -23,6 +23,14 @@ test('covers viewports beyond the supported ratio in either direction', () => {
   assert.equal(getViewportCoverMode(320, 1000), 'tall');
 });
 
+test('supports super-wide displays when the studio window is capped, retaining narrow and short guards', () => {
+  assert.equal(getViewportCoverMode(5120, 1440, undefined, 1920), null);
+  assert.equal(getViewportCoverMode(5120, 1440), 'wide');
+  assert.equal(getViewportCoverMode(2560, 600, undefined, 1920), 'wide');
+  assert.equal(getViewportCoverMode(844, 390, undefined, 1920), 'mobile-landscape');
+  assert.equal(getViewportCoverMode(320, 1000, undefined, 1920), 'tall');
+});
+
 test('covers mobile landscape and short landscape viewports', () => {
   assert.equal(getViewportCoverMode(844, 390), 'mobile-landscape');
   assert.equal(getViewportCoverMode(667, 375), 'mobile-landscape');

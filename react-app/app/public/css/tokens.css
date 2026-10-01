@@ -59,6 +59,11 @@
   --abs-frame-radius-desktop: 72px;
   --abs-frame-radius-mobile: 32px;
   --abs-frame-inset: var(--abs-frame-inset-value);
+  --abs-window-max-width: 1920px;
+  --abs-window-max-height: 1080px;
+  --abs-window-outer-space-ratio: 0.08;
+  --abs-window-large-inset-multiplier: 3;
+  --abs-window-outer-space: 0px;
   --abs-content-inset: var(--abs-content-inset-desktop);
   --abs-frame-radius: var(--abs-frame-radius-value);
   --abs-safe-top: env(safe-area-inset-top, 0px);
@@ -496,7 +501,7 @@
 
   /* Wall Frame Inset (space between viewport edge and wall outer edge) */
   --safari-tint-inset: var(--container-border);
-  --safari-tint-inset-x: var(--container-border);
+  --safari-tint-inset-x: max(var(--container-border), calc((100vw - var(--abs-window-max-width)) / 2));
   --safari-tint-inset-y: var(--container-border);
 
   --shadow-input-dark: 0 2px 8px rgba(var(--abs-rgb-black), 0.4);

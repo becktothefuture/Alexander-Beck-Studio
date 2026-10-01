@@ -11,10 +11,11 @@ function readViewport() {
 
   const width = window.innerWidth;
   const height = window.innerHeight;
+  const maxWindowWidth = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--abs-window-max-width')) || Infinity;
   return {
     width,
     height,
-    mode: getViewportCoverMode(width, height),
+    mode: getViewportCoverMode(width, height, undefined, maxWindowWidth),
     finePointer: window.matchMedia('(pointer: fine)').matches,
   };
 }

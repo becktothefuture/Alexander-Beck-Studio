@@ -34,6 +34,10 @@ const DEFAULT_SHELL_CONFIG = {
   layout: {
     frameInsetDesktop: '16px',
     frameInsetMobile: '10px',
+    windowMaxWidth: '1920px',
+    windowMaxHeight: '1080px',
+    largeScreenOuterSpaceRatio: 0.08,
+    largeScreenInsetMultiplier: 3,
     contentInsetDesktop: '28px',
     contentInsetTablet: '22px',
     contentInsetMobile: '16px',
@@ -485,6 +489,10 @@ export function applyShellLayoutVars(config = currentShellConfig) {
   root.style.setProperty('--abs-frame-inset-value', buildResponsiveFrameInsetCss(frameInset));
   root.style.setProperty('--abs-frame-inset', 'var(--abs-frame-inset-value)');
   root.style.removeProperty('--abs-frame-inset-tablet');
+  root.style.setProperty('--abs-window-max-width', layout.windowMaxWidth || DEFAULT_SHELL_CONFIG.layout.windowMaxWidth);
+  root.style.setProperty('--abs-window-max-height', layout.windowMaxHeight || DEFAULT_SHELL_CONFIG.layout.windowMaxHeight);
+  root.style.setProperty('--abs-window-outer-space-ratio', String(layout.largeScreenOuterSpaceRatio ?? DEFAULT_SHELL_CONFIG.layout.largeScreenOuterSpaceRatio));
+  root.style.setProperty('--abs-window-large-inset-multiplier', String(layout.largeScreenInsetMultiplier ?? DEFAULT_SHELL_CONFIG.layout.largeScreenInsetMultiplier));
   root.style.setProperty('--abs-content-inset-desktop', layout.contentInsetDesktop);
   root.style.setProperty('--abs-content-inset-tablet', layout.contentInsetTablet);
   root.style.setProperty('--abs-content-inset-mobile', layout.contentInsetMobile);

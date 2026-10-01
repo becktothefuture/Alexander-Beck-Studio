@@ -3,9 +3,6 @@ body.about-narrative-page .shell-wall-route-root,
 body.about-narrative-page .route-simulation-layer { width: 100%; height: 100%; }
 
 .about-game-board {
-  --about-board-max-width: 2400px;
-  --about-board-side-shade: 3%;
-  --about-board-side-bg: color-mix(in srgb, var(--studio-window-bg), #000 var(--about-board-side-shade));
   /* Two authored materials: all fixed structure is one quiet neutral;
    * moving mechanisms are white. The legacy SVG roles alias these owners. */
   --about-architecture-static-light: #d3d3d3;
@@ -35,7 +32,7 @@ body.about-narrative-page .route-simulation-layer { width: 100%; height: 100%; }
   isolation: isolate;
   overflow: hidden;
   color: var(--text-primary);
-  background: var(--about-board-side-bg);
+  background: var(--studio-window-bg);
   font-family: var(--abs-font-sans);
   container-type: size;
   pointer-events: auto;
@@ -59,7 +56,6 @@ body.about-narrative-page .route-simulation-layer { width: 100%; height: 100%; }
   position: relative;
   display: flow-root;
   width: 100%;
-  max-width: var(--about-board-max-width);
   min-height: 100%;
   margin-inline: auto;
   container-type: inline-size;
@@ -252,7 +248,6 @@ html.abs-corner-shape-squircle .about-board-discipline-dot { corner-shape: round
 .about-board-grid-guide {
   position: absolute;
   inset: 0;
-  max-width: var(--about-board-max-width);
   margin-inline: auto;
   z-index: 4;
   pointer-events: none;
@@ -455,7 +450,6 @@ html.abs-corner-shape-squircle .about-board-discipline-dot { corner-shape: round
 
 /* Dark mode preserves the fixed grey / moving white material roles. */
 :root[data-abs-theme='dark'] .about-game-board {
-  --about-board-side-shade: 30%;
   --about-architecture-static: var(--about-architecture-static-dark);
 }
 :root[data-abs-theme='dark'] .about-board-client-logos img { filter: grayscale(1) invert(1) contrast(1.05); }

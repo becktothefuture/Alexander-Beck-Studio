@@ -17,7 +17,7 @@
   );
   inset-inline-end: max(var(--utility-rail-viewport-clearance, 0px), calc(
     var(--safari-tint-inset-x, var(--safari-tint-inset))
-    + var(--utility-rail-effective-horizontal-offset)
+    + max(var(--utility-rail-effective-horizontal-offset), calc(-1 * var(--utility-rail-effective-padding)))
   ));
   z-index: 400;
   box-sizing: border-box;
