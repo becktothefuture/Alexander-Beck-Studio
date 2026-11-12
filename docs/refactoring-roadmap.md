@@ -4,7 +4,7 @@ Last planned: 2026-07-30
 Source audit: `docs/codebase-audit.md`
 Source map: `docs/codebase-map.md`
 
-Execution update: Parallel group A was integrated and verified locally on 2026-07-30. M01 remains advisory in CI pending five stable Actions runs. M02 and M03 resolved their audit issues. M04 completed the non-destructive phase of `OPS-001`; M09 was approved, verified, and committed as `7fdb9ec6`. M05 completed the validated phase of `ARCH-001` after correcting the false assumption that standalone Loader Playground required a `StudioShell` scene. M07 is deferred at the user's request. M12 is accepted provisionally and must be refreshed after M07 before M16 begins.
+Execution update: Parallel group A was integrated and verified locally on 2026-07-30. M01 passed five advisory Actions runs and is now required before Pages deployment. M02 and M03 resolved their audit issues. M04 completed the non-destructive phase of `OPS-001`; M09 was approved, verified, and committed as `7fdb9ec6`. M05 completed the validated phase of `ARCH-001` after correcting the false assumption that standalone Loader Playground required a `StudioShell` scene. M07 is deferred at the user's request. M12 is accepted provisionally and must be refreshed after M07 before M16 begins.
 
 ## Objectives
 
@@ -167,7 +167,7 @@ Safe execution waves:
 
 ## MILESTONE-01 — Establish a bounded production-browser release smoke
 
-**Status:** Verified locally; `HD-04` approved, awaiting five qualifying Actions runs after the advisory workflow is published
+**Status** Required by the Pages workflow after five qualifying Actions runs. See `HD-04`.
 **Priority:** High
 **Estimated effort:** M
 **Change risk:** Medium
@@ -1718,9 +1718,9 @@ This is a cascade ownership change only. Do not “improve” pixels or rename s
 ### HD-04 — CI browser-smoke enforcement (`TEST-001`)
 
 - **Decision:** Approved on 2026-07-30: make the bounded Chromium smoke block Pages deployment after five stable GitHub Actions runs within the eight-minute budget.
-- **Current state:** The workflow remains advisory because no authorized push/CI evidence exists for the required five runs.
-- **Promotion rule:** After run five passes within budget, remove advisory failure tolerance in one focused workflow change and verify the next deployment remains green.
-- **Status:** Approved; external evidence pending.
+- The full browser check passed in 96–107 seconds on five pushes to `main`. [20 Sep, first run](https://github.com/becktothefuture/Alexander-Beck-Studio/actions/runs/35516435828), [20 Sep, second run](https://github.com/becktothefuture/Alexander-Beck-Studio/actions/runs/35530646671), [21 Sep](https://github.com/becktothefuture/Alexander-Beck-Studio/actions/runs/35571297010), [30 Sep](https://github.com/becktothefuture/Alexander-Beck-Studio/actions/runs/36755404533), [1 Oct](https://github.com/becktothefuture/Alexander-Beck-Studio/actions/runs/36851020616)
+- The workflow now requires Chromium installation and the browser check. Explicit Bash preserves the checks' exit status when the steps log through `tee`.
+- Verify the required check on the next authorized Pages deployment.
 
 ### HD-05 — Future public About launch (`DOC-001`)
 
@@ -1788,7 +1788,7 @@ The programme is **not complete**. The independent verdict is **Requires targete
 1. **Fix `TEST-003` and `ARCH-003`** — repair Playground focus smoke and unknown-route initial boot; effort S each; no broad refactor.
 2. **Create `OPS-002` integration boundaries** — preserve About and Playground work while capturing the refactor in reviewable commits; effort M.
 3. **Rerun release evidence** — canonical gate, release smoke, route transitions, Portfolio flows, and the current five-route accessibility matrix.
-4. **Integrate M01 CI deliberately** — publish the advisory smoke, collect five qualifying runs, then make it blocking under `HD-04`.
+4. **Verify M01 in CI** — confirm the required browser check on the next authorized Pages deployment.
 5. **Complete or keep M07 deferred** — resolve `A11Y-006` before refreshing M12. Do not begin M16 earlier.
 
 ### Next-cycle candidates
@@ -1823,6 +1823,6 @@ The remaining dependency path is:
 1. Run the final integrated local gates and inspect their artifacts.
 2. Create the authorized reviewable integration boundary required by `OPS-002`.
 3. Reproduce the integrated local gates from that boundary.
-4. Push only with explicit authorization, restore remote CI from the local passing lint state, collect four additional qualifying Actions runs, confirm branch protection, and then decide whether the smoke can become blocking under `TEST-001` and `HD-04`.
+4. Push only with explicit authorization, verify the required browser check on the next Pages deployment, and confirm branch protection separately.
 
 No commit, push, branch-protection, remote-CI, cross-browser performance certification, or production completion is claimed by this update.

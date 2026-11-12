@@ -6,6 +6,7 @@
     "npm" : ">=10"
   },
   "devDependencies" : {
+    "@axe-core/playwright" : "4.14.0",
     "playwright" : "^1.58.2",
     "pngjs" : "^7.0.0"
   },
@@ -25,6 +26,7 @@
     "url" : "https:\/\/github.com\/becktothefuture\/Alexander-Beck-Studio.git"
   },
   "scripts" : {
+    "audit:release-accessibility" : "node scripts/audit-release-accessibility.mjs",
     "audit:release-smoke" : "node scripts/audit-release-smoke.mjs && node scripts/audit-unknown-route-fallback.mjs && npm run audit:work-publication",
     "audit:work-publication" : "node scripts/audit-work-publication.mjs",
     "audit:about-publication" : "node scripts/audit-about-publication.mjs",
@@ -124,6 +126,7 @@
     "check:simulation-switch-transaction" : "node --test scripts\/check-simulation-switch-transaction.mjs",
     "check:malformed-tokens" : "node scripts\/check-malformed-tokens.mjs --full",
     "check:malformed-tokens:staged" : "node scripts\/check-malformed-tokens.mjs --staged",
+    "check:release-package" : "node scripts/check-release-package.mjs",
     "check:public-runtime-boundary" : "node scripts\/check-public-runtime-boundary.mjs",
     "check:about-rollercoaster-assets": "node scripts/check-about-rollercoaster-assets.mjs",
     "check:about-game-board" : "node --test scripts/check-about-game-board.mjs scripts/check-about-rigid-body-world.mjs scripts/check-about-circle-contacts.mjs scripts/check-about-circle-fixtures.mjs scripts/check-about-board-viewport.mjs scripts/check-about-scene-lifecycle.mjs",

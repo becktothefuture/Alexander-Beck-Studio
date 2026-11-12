@@ -74,6 +74,20 @@ The named tunnel credentials remain outside the repository. Do not commit them. 
 
 ## Production deployment
 
-`.github/workflows/gh-pages.yml` listens only for pushes to `main`. It installs the locked root and app dependencies, runs `npm run check:site`, builds the production site with Work and About held behind Coming soon, verifies the output, and deploys `react-app/app/dist` to GitHub Pages.
+`.github/workflows/gh-pages.yml` validates pull requests to `main`. A push to `main` or an authorized manual run on `main` can publish to GitHub Pages.
 
-Saving a local file, starting a public dev tunnel, running a build, or creating a commit does not deploy production. Only pushing the commit to `origin/main` can start that workflow.
+1. The build job installs locked dependencies, audits them, runs `npm run check:site`, and checks the built files in `react-app/app/dist`.
+2. The release requires the Chromium browser checks in `npm run audit:release-smoke` and an axe scan of Home and Contact in light and dark at 1280 × 900. Axe checks accessible names and text contrast. Confirmed violations fail the check. Results that need human review appear in `output/playwright/release-smoke/accessibility.json`, which is included in the release evidence.
+3. A report measures completed HTTP downloads on fresh mobile-viewport visits to Home and Work. It uses the Pit simulation for a repeatable Home measurement. The starting budgets are 1,450 KiB for Home and 1,400 KiB for Work, based on measured first visits of 1,234 KiB and 1,203 KiB. Overages appear as warnings. Measure the Work baseline again when the full Work page replaces its Coming Soon page.
+4. The workflow writes the commit ID and records the checksums of the primary pages, their entry scripts and styles, and shared CSS and config. The final package check rejects source maps, editable design files, files and folders named with `draft` or `drafts`, and paths the project already reserves for source-only material. It runs on pull requests and just before upload on releases.
+5. After Pages publishes, the live verification job checks the recorded files against `https://www.beck.fyi/`. It retries while the new release becomes available.
+
+With Chromium installed, run the local build and browser checks from the repository root.
+
+```bash
+npm run check:site
+npm run check:release-package
+npm run audit:release-smoke
+npm run audit:release-accessibility
+node scripts/audit-page-weight.mjs
+```

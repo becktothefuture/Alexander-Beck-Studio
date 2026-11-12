@@ -1,26 +1,13 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FORBIDDEN_RUNTIME_PATHS, FORBIDDEN_RUNTIME_PATTERNS } from './lib/public-runtime-policy.mjs';
 
 const REPO_ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const PUBLIC_ROOT = resolve(REPO_ROOT, 'react-app/app/public');
 const CONFIG_ROOT = resolve(PUBLIC_ROOT, 'config');
 const MAX_PUBLIC_BYTES = 40 * 1024 * 1024;
 const MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;
-
-const FORBIDDEN_RUNTIME_PATHS = [
-  'config/figma-tokens.json',
-  'font-vibe-test.html',
-  'images/palette-review',
-  'images/realistic_noise.gif',
-  'review',
-  'video/archive',
-  'video/under consideration',
-];
-
-const FORBIDDEN_RUNTIME_PATTERNS = [
-  /^images\/portfolio\/pages\/chapter-7-\d+\.webp$/,
-];
 
 const MEDIA_EXTENSIONS = new Set([
   '.avif',

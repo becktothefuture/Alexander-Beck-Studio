@@ -349,7 +349,7 @@ Primary commands:
 - `npm run studio:dev` — local authoring plus read-only public development mirror.
 - `npm run studio:publish` — explicit validated push of clean committed `main`.
 
-The deploy workflow installs root and app dependencies, runs `npm run check:site`, and stages a bounded Chromium production smoke as advisory before deploy. Deep browser and screenshot audits remain targeted. The smoke becomes blocking only after `HD-04` approval and five stable Actions runs. See `TEST-001`.
+The deploy workflow runs `npm run check:site` and requires the bounded Chromium production smoke before deploying from `main`. It reports first-visit page weight and verifies the new release on beck.fyi after Pages publishes. Deep browser and screenshot audits remain targeted. See `TEST-001` and the [release pipeline](deployment/DEVELOPMENT-AND-RELEASE.md).
 
 ## Conventions and protected assumptions
 

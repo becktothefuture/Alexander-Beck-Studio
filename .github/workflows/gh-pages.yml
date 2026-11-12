@@ -20,6 +20,8 @@ jobs:
   validate_build:
     name: Canonical validation and build
     runs-on: ubuntu-latest
+    outputs:
+      release_checksums: ${{ steps.fingerprint_release.outputs.checksums }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -88,24 +90,31 @@ jobs:
           echo "Build output verified:"
           ls -la react-app/app/dist/
 
-      # HD-04 promotion rule: after five qualifying main-push runs complete with
-      # both advisory steps successful and the smoke below eight minutes, remove
-      # continue-on-error from both steps in one focused workflow change.
-      - name: Install Chromium for release smoke (advisory)
+      - name: Install Chromium for release checks
         id: install_release_smoke_browser
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        continue-on-error: true
+        shell: bash
         timeout-minutes: 8
         run: |
           mkdir -p output/playwright/release-smoke
           npx playwright install --with-deps chromium 2>&1 | tee output/playwright/release-smoke/browser-install.log
 
-      - name: Run production release smoke (advisory)
-        id: release_smoke
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.install_release_smoke_browser.outcome == 'success'
-        continue-on-error: true
+      - name: Run required production browser checks
+        if: steps.install_release_smoke_browser.outcome == 'success'
+        shell: bash
         timeout-minutes: 8
         run: npm run audit:release-smoke 2>&1 | tee output/playwright/release-smoke/smoke.log
+
+      - name: Scan Home and Contact for accessibility
+        if: steps.install_release_smoke_browser.outcome == 'success'
+        timeout-minutes: 3
+        run: npm run audit:release-accessibility
+
+      - name: Report first-visit page weight
+        if: steps.install_release_smoke_browser.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/audit-page-weight.mjs
 
       - name: Upload release-smoke evidence
         if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -116,6 +125,16 @@ jobs:
           path: output/playwright/release-smoke/
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Fingerprint the release for live verification
+        id: fingerprint_release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          checksums=$(node scripts/verify-pages-release.mjs fingerprint)
+          printf 'checksums=%s\n' "$checksums" >> "$GITHUB_OUTPUT"
+
+      - name: Check the final Pages package
+        run: npm run check:release-package
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -142,3 +161,25 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+  verify_live:
+    name: Verify the live release at beck.fyi
+    needs: [validate_build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout the release
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.19.0'
+          package-manager-cache: false
+
+      - name: Compare the live site with the release
+        env:
+          PAGES_RELEASE_CHECKSUMS: ${{ needs.validate_build.outputs.release_checksums }}
+        run: node scripts/verify-pages-release.mjs verify https://www.beck.fyi
