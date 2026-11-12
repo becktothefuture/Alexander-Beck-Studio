@@ -23,6 +23,12 @@ const coveredViewports = [
   ['tall', { width: 320, height: 1000 }],
 ];
 
+const unfoldedLandscapeViewport = { width: 951, height: 543 };
+const unfoldedDuoViewports = [
+  ['duo-portrait', { width: 669, height: 825 }],
+  ['duo-landscape', unfoldedLandscapeViewport],
+];
+
 const supportedViewports = [
   ['desktop', { width: 1440, height: 1000 }],
   ['laptop', { width: 1280, height: 720 }],
@@ -68,18 +74,18 @@ async function assertCovered(page, routeId, expectedMode) {
   return state;
 }
 
-async function assertRecovered(page, routeId) {
-  await page.setViewportSize({ width: 1280, height: 720 });
+async function assertAvailable(page, routeId) {
   await page.locator('.viewport-cover').waitFor({ state: 'detached', timeout: 30_000 });
   await page.waitForFunction(() => {
     const root = document.getElementById('root');
-    return document.documentElement.dataset.absBootState !== 'booting'
-      && !root?.hasAttribute('inert')
-      && root?.getAttribute('aria-hidden') !== 'true';
+    return root && document.documentElement.dataset.absBootState !== 'booting'
+      && !root.hasAttribute('inert')
+      && root.getAttribute('aria-hidden') !== 'true';
   }, null, { timeout: 30_000 });
   const state = await readCoverState(page);
-  assert(!state.mode && !state.coverActive, `${routeId}: cover state persisted after recovery`);
-  assert(!state.rootInert && !state.rootHidden, `${routeId}: application root stayed unavailable after recovery`);
+  assert(!state.mode && !state.coverActive, `${routeId}: viewport cover is active`);
+  assert(!state.rootInert && !state.rootHidden, `${routeId}: application root is unavailable`);
+  return state;
 }
 
 await mkdir(outputDir, { recursive: true });
@@ -90,13 +96,10 @@ try {
   for (const [routeId, routePath] of routes) {
     for (const [mode, viewport] of coveredViewports) {
       const page = await browser.newPage({ viewport,
-        hasTouch: routeId === 'about' && mode === 'mobile-landscape' });
+        hasTouch: mode === 'mobile-landscape' });
       await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       if (routeId === 'about' && mode === 'short') {
-        await page.waitForFunction(() => document.documentElement.dataset.absBootState !== 'booting');
-        const state = await readCoverState(page);
-        assert(!state.mode && !state.rootInert && !state.rootHidden,
-          'About desktop text reflow must remain accessible on short CSS viewports');
+        const state = await assertAvailable(page, 'About desktop text reflow');
         results.supported.push({ name: 'about-desktop-reflow', viewport, state });
         await page.close();
         continue;
@@ -105,7 +108,35 @@ try {
       const screenshot = path.join(outputDir, `${routeId}-${mode}.png`);
       await page.screenshot({ path: screenshot, animations: 'disabled', timeout: 60_000 });
       results.covered.push({ routeId, routePath, mode, viewport, state, screenshot });
-      if (mode === 'mobile-landscape') await assertRecovered(page, routeId);
+      if (mode === 'mobile-landscape') {
+        await page.setViewportSize(unfoldedLandscapeViewport);
+        await assertAvailable(page, routeId);
+      }
+      await page.close();
+    }
+    for (const [name, viewport] of unfoldedDuoViewports) {
+      const page = await browser.newPage({
+        viewport, isMobile: true, hasTouch: true, deviceScaleFactor: 3, reducedMotion: 'reduce',
+      });
+      await page.goto(`${baseUrl}${routePath}`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      const state = await assertAvailable(page, `${routeId} ${name}`);
+      await page.locator('#simulations').waitFor({ state: 'visible' });
+      const navigation = page.getByRole('navigation', { name: 'Primary buttons' });
+      await navigation.locator('[aria-current="page"]').waitFor({ state: 'visible' });
+      assert(await navigation.getByRole('link').count() === 4, `${routeId} ${name}: missing route buttons`);
+      if (routeId === 'home') {
+        await page.locator('#simulation-title-canvas[data-title-plane-ready="true"]').waitFor();
+        if (name === 'duo-landscape') {
+          const title = await page.locator('#hero-title').boundingBox();
+          const switcher = await page.locator('.simulation-focus-switcher-slot').boundingBox();
+          assert(title && switcher && title.y + title.height <= switcher.y,
+            'Home title overlaps the simulation switcher in Duo landscape');
+        }
+      }
+      await page.locator('#abs-boot-overlay').waitFor({ state: 'hidden' });
+      const screenshot = path.join(outputDir, `${routeId}-${name}.png`);
+      await page.screenshot({ path: screenshot, animations: 'disabled', scale: 'css', timeout: 60_000 });
+      results.supported.push({ routeId, routePath, name, viewport, state, screenshot });
       await page.close();
     }
   }
@@ -124,4 +155,4 @@ try {
 }
 
 await writeFile(path.join(outputDir, 'report.json'), `${JSON.stringify(results, null, 2)}\n`);
-console.log(`Viewport cover audit passed in ${browserName}: ${results.covered.length} covered route states and ${results.supported.length} supported About viewports.`);
+console.log(`Viewport cover audit passed in ${browserName}: ${results.covered.length} covered route states and ${results.supported.length} supported states.`);

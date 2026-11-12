@@ -2691,6 +2691,13 @@ html[data-shell-route='home'] body .ui-meta-row {
   padding-inline: var(--home-footer-side-padding);
 }
 
+@media (600px < width < 1024px) {
+  html[data-shell-route='home'] body .ui-meta-row {
+    grid-template-columns: minmax(max-content, 1fr) minmax(0, 3fr) minmax(max-content, 1fr);
+    column-gap: var(--gap-sm);
+  }
+}
+
 .ui-meta-left, .ui-meta-right {
   pointer-events: auto;
 }
@@ -3363,6 +3370,16 @@ html[data-abs-transition-phase='modal-open'] .hero-title {
 html[data-shell-route='home'] .hero-title__name + .hero-title__role {
   position: relative;
   left: -0.03em;
+}
+
+@media (orientation: landscape) and (width < 1024px) and (height < 700px) {
+  html[data-shell-route='home'] .hero-title--canvas-source {
+    --home-hero-title-anchor-y: calc(55% - clamp(0px, 140px - 20dvh, 32px));
+  }
+
+  html[data-shell-route='home'] .hero-title--canvas-source :is(.hero-title__name, .hero-title__role) {
+    font-size: min(var(--home-hero-title-font-size), calc(24dvh - 72px));
+  }
 }
 
 .route-entrance-word {

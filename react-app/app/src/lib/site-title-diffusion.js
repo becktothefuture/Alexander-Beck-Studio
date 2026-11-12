@@ -16,20 +16,14 @@ function bindFilter(element, filter) {
 }
 
 function updateCanvasFilter(nodes, settings, fontSize, titleRect, canvasRect) {
-  // Bound the filter to the existing title geometry instead of filtering the
-  // full window. The region includes overscan for letter travel and diffusion.
-  const x = titleRect.left - canvasRect.left;
-  const y = titleRect.top - canvasRect.top;
+  // WebKit offsets the Canvas output when the filter region has a nonzero
+  // origin. Bound its right and bottom edges to the title plus overscan.
   const padX = Math.max(8, titleRect.width * 0.08);
   const padY = Math.max(8, titleRect.height * 0.18);
-  const left = Math.max(0, Math.floor(x - padX));
-  const top = Math.max(0, Math.floor(y - padY));
-  const right = Math.min(canvasRect.width, Math.ceil(x + titleRect.width + padX));
-  const bottom = Math.min(canvasRect.height, Math.ceil(y + titleRect.height + padY));
-  setFilterAttribute(nodes.filter, 'x', String(left));
-  setFilterAttribute(nodes.filter, 'y', String(top));
-  setFilterAttribute(nodes.filter, 'width', String(Math.max(1, right - left)));
-  setFilterAttribute(nodes.filter, 'height', String(Math.max(1, bottom - top)));
+  const right = Math.min(canvasRect.width, Math.ceil(titleRect.right - canvasRect.left + padX));
+  const bottom = Math.min(canvasRect.height, Math.ceil(titleRect.bottom - canvasRect.top + padY));
+  setFilterAttribute(nodes.filter, 'width', String(Math.max(1, right)));
+  setFilterAttribute(nodes.filter, 'height', String(Math.max(1, bottom)));
   updateTitleDiffusion(nodes, settings, fontSize);
 }
 
@@ -107,6 +101,8 @@ export function attachSiteTitleDiffusion(canvas) {
 
     const nodes = createTitleDiffusionFilter(defs, `abs-canvas-title-diffusion-${++filterSequence}`);
     nodes.filter.setAttribute('filterUnits', 'userSpaceOnUse');
+    nodes.filter.setAttribute('x', '0');
+    nodes.filter.setAttribute('y', '0');
     updateFilter = (fontSize, titleRect, canvasRect) => {
       updateCanvasFilter(nodes, settings, fontSize, titleRect, canvasRect);
       if (!canvas.style.getPropertyValue(FILTER_PROPERTY)) bindFilter(canvas, nodes.filter);

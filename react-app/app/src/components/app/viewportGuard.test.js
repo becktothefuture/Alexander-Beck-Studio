@@ -38,6 +38,24 @@ test('covers mobile landscape and short landscape viewports', () => {
   assert.equal(getViewportCoverMode(1024, 600), 'short');
 });
 
+test('supports the unfolded iPhone Duo with and without Safari chrome', () => {
+  assert.equal(getViewportCoverMode(669, 951), null);
+  assert.equal(getViewportCoverMode(951, 669), null);
+  assert.equal(getViewportCoverMode(669, 871), null);
+  assert.equal(getViewportCoverMode(951, 589), null);
+  assert.equal(getViewportCoverMode(669, 825), null);
+  assert.equal(getViewportCoverMode(951, 543), null);
+});
+
+test('checks size and aspect ratio for compact landscape viewports', () => {
+  assert.equal(getViewportCoverMode(900, 528), null);
+  assert.equal(getViewportCoverMode(900, 527), 'short');
+  assert.equal(getViewportCoverMode(990, 550), null);
+  assert.equal(getViewportCoverMode(991, 550), 'short');
+  assert.equal(getViewportCoverMode(1023, 600), null);
+  assert.equal(getViewportCoverMode(1024, 600), 'short');
+});
+
 test('keeps the exact ratio boundary available', () => {
   assert.equal(
     getViewportCoverMode(

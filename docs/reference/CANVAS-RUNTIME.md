@@ -229,6 +229,8 @@ Modes that smooth pointer state, calculate pointer velocity, or derive deltas mu
 
 Do not move the title's CSS x/y placement to align a scene. If a depth scene needs alignment, map the existing DOM title center into canvas coordinates and align the scene to that point. Do not register, snapshot, or transition the title plane, and do not add a second title geometry owner; extend `title-depth.js` so audits, readiness, and accessibility continue to share one source.
 
+The title plane shares the Current diffusion SVG recipe with DOM route titles. The filter region starts at the Canvas origin so WebKit keeps the title aligned. Its right and bottom edges follow the measured title with room for letter travel. The title cache supplies the existing font size and bounds when it refreshes; neither the simulation draw loop nor the semantic title gets a second render pass.
+
 ## Home simulation sizing and response
 
 - The authored shared Home body radius is 9.79 CSS px (a 10% increase); the existing mobile scale still applies. Non-featured legacy modes use the authored responsive size endpoints.

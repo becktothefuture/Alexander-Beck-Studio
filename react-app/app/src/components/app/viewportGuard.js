@@ -3,6 +3,10 @@ export const MIN_SUPPORTED_LANDSCAPE_VIEWPORT_HEIGHT = 700;
 export const MAX_MOBILE_LANDSCAPE_WIDTH = 900;
 export const MAX_MOBILE_LANDSCAPE_HEIGHT = 480;
 
+const COMPACT_LANDSCAPE_VIEWPORT_WIDTH_LIMIT = 1024;
+const MIN_COMPACT_LANDSCAPE_VIEWPORT_HEIGHT = 528;
+const MAX_COMPACT_LANDSCAPE_VIEWPORT_RATIO = 1.8;
+
 export function getViewportCoverMode(
   width,
   height,
@@ -38,6 +42,11 @@ export function getViewportCoverMode(
   if (
     resolvedWidth > resolvedHeight
     && resolvedHeight < MIN_SUPPORTED_LANDSCAPE_VIEWPORT_HEIGHT
+    && (
+      resolvedWidth >= COMPACT_LANDSCAPE_VIEWPORT_WIDTH_LIMIT
+      || resolvedHeight < MIN_COMPACT_LANDSCAPE_VIEWPORT_HEIGHT
+      || ratio > MAX_COMPACT_LANDSCAPE_VIEWPORT_RATIO
+    )
   ) {
     return 'short';
   }
