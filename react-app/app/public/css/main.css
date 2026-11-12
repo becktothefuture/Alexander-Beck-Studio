@@ -4855,6 +4855,7 @@ html.portfolio-access-gate-closing #modal-content-layer {
   touch-action: auto;
   background: transparent;
   contain: strict;
+  filter: var(--route-title-diffusion-filter, none);
   will-change: auto;
 }
 
@@ -6920,6 +6921,18 @@ body.portfolio-page--locked #simulations {
   line-height: calc(var(--route-title-line-height) * var(--abs-font-headline-line-height-scale, 1));
   letter-spacing: var(--route-title-letter-spacing);
   text-wrap: balance;
+  filter: var(--route-title-diffusion-filter, none);
+}
+
+@media (prefers-contrast: more), (forced-colors: active) {
+  #simulations > canvas.simulation-title-canvas,
+  .route-centered-page__title {
+    filter: none;
+  }
+
+  html[data-shell-route='home'] .hero-title--canvas-source {
+    --brand-logo-secondary-opacity: 1;
+  }
 }
 
 .route-bookend-title {

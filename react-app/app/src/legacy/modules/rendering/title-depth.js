@@ -287,7 +287,7 @@ function buildTitleRenderSignature(canvas, title, root, body, scene) {
   ].join('|');
 }
 
-function refreshCanvasTitleCache(ctx, canvas, globals) {
+function refreshCanvasTitleCache(ctx, canvas, globals, updateTitleMaterial) {
   if (!ctx || !canvas || typeof document === 'undefined') return markCanvasTitleInactive(globals);
 
   const title = document.getElementById('hero-title');
@@ -443,6 +443,7 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   titleRenderCache.state.lineCount = titleRenderCache.lineCount;
   titleRenderCache.state.maxOpacity = titleRenderCache.maxOpacity;
   titleRenderCache.state.firstLineFontSizeCssPx = titleRenderCache.lines[0].fontSizeCssPx;
+  updateTitleMaterial?.(titleRenderCache.state.firstLineFontSizeCssPx, titleRect, canvasRect);
   titleRenderCache.state.firstLineX = titleRenderCache.lines[0].x;
   titleRenderCache.state.firstLineY = titleRenderCache.lines[0].y;
   titleRenderCache.state.firstGlyphX = titleRenderCache.lines[0].glyphCount > 0
@@ -471,8 +472,8 @@ function refreshCanvasTitleCache(ctx, canvas, globals) {
   return titleRenderCache;
 }
 
-function drawHomepageCanvasTitleCache(ctx, canvas, globals) {
-  const cache = refreshCanvasTitleCache(ctx, canvas, globals);
+function drawHomepageCanvasTitleCache(ctx, canvas, globals, updateTitleMaterial) {
+  const cache = refreshCanvasTitleCache(ctx, canvas, globals, updateTitleMaterial);
   if (!canvas || !cache.active || cache.lineCount <= 0) return false;
 
   // A keyed route swap temporarily removes the semantic source. Keep the
@@ -655,7 +656,7 @@ function renderTitlePlane(controller) {
     if (controller.observedSource) controller.resizeObserver?.observe(controller.observedSource);
     titleRenderCache.signature = '';
   }
-  const visible = drawHomepageCanvasTitleCache(context, canvas, globals);
+  const visible = drawHomepageCanvasTitleCache(context, canvas, globals, controller.updateTitleMaterial);
   publishTitlePlaneState(canvas, globals);
 
   const scene = document.getElementById('abs-scene');
@@ -672,7 +673,7 @@ function renderTitlePlane(controller) {
   return visible;
 }
 
-function createTitlePlaneController(canvas) {
+function createTitlePlaneController(canvas, updateTitleMaterial) {
   const context = canvas.getContext('2d', {
     alpha: true,
     desynchronized: true,
@@ -682,6 +683,7 @@ function createTitlePlaneController(canvas) {
   const controller = {
     canvas,
     context,
+    updateTitleMaterial,
     disposed: false,
     rafId: 0,
     observedSource: null,
@@ -784,14 +786,14 @@ function createTitlePlaneController(canvas) {
  * Attaches the one shell-owned visual title plane. The returned disposer only
  * releases observers; it deliberately leaves the bitmap intact.
  */
-export function attachHomepageCanvasTitlePlane(canvas) {
+export function attachHomepageCanvasTitlePlane(canvas, updateTitleMaterial) {
   if (!canvas || typeof window === 'undefined') return undefined;
   if (titlePlaneController?.canvas === canvas && !titlePlaneController.disposed) {
     titlePlaneController.requestRender();
     return () => {};
   }
   titlePlaneController?.dispose?.();
-  const controller = createTitlePlaneController(canvas);
+  const controller = createTitlePlaneController(canvas, updateTitleMaterial);
   controller.dispose = () => {
     if (controller.disposed) return;
     controller.disposed = true;

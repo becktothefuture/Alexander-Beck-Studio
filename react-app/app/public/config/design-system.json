@@ -94,6 +94,11 @@
     "textColorDark": "#f0f0f0",
     "textColorDarkMuted": "#c8c8c8",
     "brandLogoSecondaryOpacity": 0.36,
+    "titleDiffusion": {
+      "softness": 30,
+      "edgeGrain": 1,
+      "fillGrain": 8
+    },
     "colorDistribution": [
       {
         "roleId": "product-design",

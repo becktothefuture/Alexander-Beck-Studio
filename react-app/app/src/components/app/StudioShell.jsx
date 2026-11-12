@@ -8,6 +8,7 @@ import { ShellButtonBar } from './ShellButtonBar.jsx';
 import { ShellUtilityRail } from './ShellUtilityRail.jsx';
 import { ShellWindowOverlay } from './ShellWindowOverlay.jsx';
 import { trySpaNavigate } from '../../lib/spa-navigation.js';
+import { attachSiteTitleDiffusion } from '../../lib/site-title-diffusion.js';
 import {
   attachSimulationAtmosphereHost,
   setSimulationAtmosphereTransitionState,
@@ -133,8 +134,14 @@ export function StudioShell({
   }, [transitionPhase]);
 
   useLayoutEffect(() => {
-    if (!titleCanvasRef.current) return undefined;
-    return attachHomepageCanvasTitlePlane(titleCanvasRef.current);
+    const canvas = titleCanvasRef.current;
+    if (!canvas) return undefined;
+    const diffusion = attachSiteTitleDiffusion(canvas);
+    const detachTitlePlane = attachHomepageCanvasTitlePlane(canvas, diffusion.updateCanvas);
+    return () => {
+      detachTitlePlane?.();
+      diffusion.dispose();
+    };
   }, []);
 
   useEffect(() => createInteractionSoundDelegate({
