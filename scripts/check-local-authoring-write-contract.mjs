@@ -765,6 +765,32 @@ test('local authoring JSON write contract', async (t) => {
       );
     });
 
+    await t.test('button styles save as one scoped change and survive older design snapshots', async () => {
+      const path = resolve(configDir, 'design-system.json');
+      const previous = JSON.parse(await readFile(path, 'utf8'));
+      const baseline = previous.shell.surface.buttonStyles ?? {};
+      const buttonStyles = { radius: baseline.radius === 11 ? 12 : 11, darkFill: '#193c51' };
+      const save = (styles, expected) => harness.request('/api/design-system/config', {
+        body: JSON.stringify({ buttonStyles: styles, expectedButtonStyles: expected }),
+      });
+      const applied = await save(buttonStyles, baseline);
+      assert.equal(applied.statusCode, 200);
+      assert.deepEqual(applied.json.buttonStyles, buttonStyles);
+      const current = JSON.parse(await readFile(path, 'utf8'));
+      assert.deepEqual(current, { ...previous, shell: { ...previous.shell,
+        surface: { ...previous.shell.surface, buttonStyles } } });
+      const shell = JSON.parse(await readFile(resolve(configDir, 'shell-config.json'), 'utf8'));
+      assert.deepEqual(shell.surface.buttonStyles, buttonStyles);
+      assert.equal((await save(baseline, baseline)).statusCode, 409);
+      const older = await harness.request('/api/design-system/config', {
+        body: JSON.stringify({ config: previous }),
+      });
+      assert.deepEqual(older.json, { ok: true, version: previous.version });
+      assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), current);
+      assert.equal((await save(baseline, buttonStyles)).statusCode, 200);
+      assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), previous);
+    });
+
     await t.test('About validation and conflict behavior keep diagnostics and ETag recovery data', async () => {
       const current = await harness.request('/api/about-narrative/config', {
         method: 'GET',

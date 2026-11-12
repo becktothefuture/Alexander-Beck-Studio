@@ -72,7 +72,7 @@ export function SiteFooter() {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="footer_icon-link w-inline-block home-footer-social-link"
+                  className="footer_icon-link abs-icon-btn abs-circular-utility"
                   aria-label={label}
                   data-route-enter="footer"
                   data-route-enter-order={index}

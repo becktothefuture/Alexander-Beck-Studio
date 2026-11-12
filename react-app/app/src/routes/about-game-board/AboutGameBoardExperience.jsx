@@ -1014,7 +1014,7 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
                   <CvDownloadAction soundSource="about-download-cv" />
                   <CopyEmailAction email={email} label={email} statusId="about-board-copy-status"
                     soundSource="about-copy-email" />
-                  <LinkedInAction href={linkedin} soundSource="about-linkedin" iconPosition="trailing" />
+                  <LinkedInAction href={linkedin} soundSource="about-linkedin" />
                 </div>
               </div>
             </footer>

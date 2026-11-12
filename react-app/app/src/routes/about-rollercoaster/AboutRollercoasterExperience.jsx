@@ -155,7 +155,7 @@ function TitleField({ field, opening = false, ending = false, index, count }) {
                 soundSource="about-copy-email"
                 statusId="about-copy-status"
               />
-              <LinkedInAction href={CONTACT.linkedin} soundSource="about-linkedin" iconPosition="trailing" />
+              <LinkedInAction href={CONTACT.linkedin} soundSource="about-linkedin" />
             </div>
           ) : null}
         </div>

@@ -1,14 +1,14 @@
 {
   "status": "m16-two-family-consolidated",
-  "mainRuleCount": 1429,
+  "mainRuleCount": 1427,
   "portfolioRuleCount": 489,
   "relevantMainRuleCount": 446,
-  "overlapCount": 200,
+  "overlapCount": 194,
   "exactOverlapCount": 16,
   "intentionalOverrideCount": 37,
-  "shellSharedCount": 163,
-  "plannedMainOwnerCount": 163,
+  "shellSharedCount": 157,
+  "plannedMainOwnerCount": 157,
   "plannedPortfolioOwnerCount": 37,
-  "overlapSignature": "efb556a03e5a6da90560d1d0779e64f1b53e1ec19610c9dd6de5039095166199",
+  "overlapSignature": "a606cb7f8b908d2efc5db447060f5498685f7931d63f77fbedad4e5d2ec8057f",
   "conditionalOverlapCount": 66
 }

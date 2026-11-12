@@ -31,7 +31,10 @@ export async function flattenDesignConfigDir(publicConfigDir, nextConfig = null,
 } = {}) {
   return runSerializedLocalFileOperation(async () => {
     const canonicalPath = resolve(publicConfigDir, 'design-system.json');
-    const designSystem = normalizeDesignSystemConfig(nextConfig ?? await readJson(canonicalPath));
+    const source = typeof nextConfig === 'function'
+      ? nextConfig(await readJson(canonicalPath))
+      : nextConfig ?? await readJson(canonicalPath);
+    const designSystem = normalizeDesignSystemConfig(source);
     const derived = deriveLegacyConfigFiles(designSystem);
     const files = {
       canonical: canonicalPath,

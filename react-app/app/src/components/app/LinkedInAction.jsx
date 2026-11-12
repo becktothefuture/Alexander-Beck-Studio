@@ -6,6 +6,7 @@ export function LinkedInAction({
 }) {
   return (
     <ActionButton
+      variant="icon"
       className="contact-linkedin-action"
       href={href}
       target="_blank"
@@ -14,7 +15,6 @@ export function LinkedInAction({
       data-sound-action="press"
       data-sound-source={soundSource}
       icon={<i className="ti ti-brand-linkedin" aria-hidden="true" />}
-      label="LinkedIn"
     />
   );
 }

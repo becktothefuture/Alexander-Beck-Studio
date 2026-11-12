@@ -2764,29 +2764,8 @@ button.abs-meta-btn,
   margin-inline-start: 0;
 }
 
-.home-footer-social-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: var(--home-footer-social-touch-size);
-  block-size: var(--home-footer-social-touch-size);
-  min-inline-size: var(--home-footer-social-touch-size);
-  min-block-size: var(--home-footer-social-touch-size);
-  padding: 0;
-  margin: 0;
-  background: none;
-  border: none;
-  border-radius: 0;
-  text-decoration: none;
-  line-height: 1;
-}
-
-#social-links .home-footer-social-link > i,
-#social-links .home-footer-social-link > svg {
-  width: var(--shell-control-icon-size);
-  height: var(--shell-control-icon-size);
-  font-size: var(--shell-control-icon-size);
-  line-height: 1;
+#social-links .abs-circular-utility {
+  border-color: transparent;
 }
 
 .abs-icon-btn {
@@ -2832,7 +2811,7 @@ button.abs-meta-btn,
 
 /* Social links use gap from parent .footer_icon-group (tokenized via --footer-icon-gap) */
 
-.footer_icon-link {
+.footer_icon-link:not(.abs-circular-utility) {
   color: var(--text-primary);
   /* Explicit transform so focus/active translateY(nudge) transitions cleanly (no 1px snap on blur) */
   transform: translateZ(0);
@@ -2847,14 +2826,14 @@ button.abs-meta-btn,
   /* No border-radius on link element - only hover background (::before) has rounded corners */
 }
 
-#social-links .abs-icon-btn > i,
-#social-links .abs-icon-btn > svg {
+#social-links .abs-icon-btn:not(.abs-circular-utility) > i,
+#social-links .abs-icon-btn:not(.abs-circular-utility) > svg {
   width: var(--shell-control-icon-size);
   height: var(--shell-control-icon-size);
   font-size: var(--shell-control-icon-size);
 }
 
-#social-links .abs-icon-btn {
+#social-links .abs-icon-btn:not(.abs-circular-utility) {
   inline-size: var(
     --home-responsive-social-control-frame-size,
     var(--home-footer-control-frame-size)
@@ -2866,8 +2845,8 @@ button.abs-meta-btn,
 }
 
 
-.footer_icon-link:hover,
-.footer_icon-link:focus-visible {
+.footer_icon-link:not(.abs-circular-utility):hover,
+.footer_icon-link:not(.abs-circular-utility):focus-visible {
   color: var(--text-primary);
   opacity: 1;
 }
@@ -3987,10 +3966,10 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   box-shadow: none;
 }
 
-.button-bar__sound-toggle[data-enabled='true'],
-.button-bar__sound-toggle[data-enabled='true']:hover,
-.button-bar__sound-toggle[data-enabled='true']:focus-visible,
-.button-bar__sound-toggle[data-enabled='true']:active {
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true'],
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:hover,
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:focus-visible,
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:active {
   --shell-tab-route-accent: var(--button-bar-sound-active-accent, var(--button-bar-accent-sound));
   --shell-tab-motion-y: 0px;
   --shell-tab-motion-scale: 1;
@@ -4001,14 +3980,14 @@ html[data-abs-transition-phase='modal-open'] .ui-main-nav { pointer-events: none
   box-shadow: none;
 }
 
-.button-bar__sound-toggle[data-enabled='true']:active {
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:active {
   transition-duration: 0ms;
 }
 
-.button-bar__sound-toggle[data-enabled='true'] .shell-tab__icon,
-.button-bar__sound-toggle[data-enabled='true']:hover .shell-tab__icon,
-.button-bar__sound-toggle[data-enabled='true']:focus-visible .shell-tab__icon,
-.button-bar__sound-toggle[data-enabled='true']:active .shell-tab__icon {
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true'] .shell-tab__icon,
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:hover .shell-tab__icon,
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:focus-visible .shell-tab__icon,
+.button-bar__sound-toggle:where(.shell-tab)[data-enabled='true']:active .shell-tab__icon {
   color: var(--shell-tab-text-active);
   transform: none;
 }
@@ -5712,7 +5691,7 @@ button:not(.abs-labelled-action, .abs-circular-utility):hover {
 }
 
 /* Apply nudge animation to interactive elements on hover */
-.footer_icon-link.abs-icon-btn:hover,
+.footer_icon-link.abs-icon-btn:not(.abs-circular-utility):hover,
 .abs-meta-btn:hover,
 .sound-toggle:hover,
 .ui-main-nav .footer_link:hover {
@@ -5720,8 +5699,8 @@ button:not(.abs-labelled-action, .abs-circular-utility):hover {
 }
 
 /* Focus-visible and active states get static nudge without bounce */
-.footer_icon-link.abs-icon-btn:focus-visible,
-.footer_icon-link.abs-icon-btn:active,
+.footer_icon-link.abs-icon-btn:not(.abs-circular-utility):focus-visible,
+.footer_icon-link.abs-icon-btn:not(.abs-circular-utility):active,
 .abs-meta-btn:focus-visible,
 .abs-meta-btn:active,
 .sound-toggle:focus-visible,
@@ -5732,8 +5711,8 @@ button:not(.abs-labelled-action, .abs-circular-utility):hover {
 }
 
 /* Footer only: no focus/active nudge (no 1px shift); ::before swell optional—disabled for minimal look */
-.ui-bottom .footer_icon-link.abs-icon-btn:focus-visible,
-.ui-bottom .footer_icon-link.abs-icon-btn:active,
+.ui-bottom .footer_icon-link.abs-icon-btn:not(.abs-circular-utility):focus-visible,
+.ui-bottom .footer_icon-link.abs-icon-btn:not(.abs-circular-utility):active,
 .ui-bottom .abs-meta-btn:focus-visible,
 .ui-bottom .abs-meta-btn:active {
   transform: translateZ(0);
@@ -5741,15 +5720,15 @@ button:not(.abs-labelled-action, .abs-circular-utility):hover {
 
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .footer_icon-link.abs-icon-btn:hover,
+  .footer_icon-link.abs-icon-btn:not(.abs-circular-utility):hover,
   .abs-meta-btn:hover,
   .sound-toggle:hover,
   .ui-main-nav .footer_link:hover {
     animation-name: none;
   }
   
-  .footer_icon-link.abs-icon-btn:focus-visible,
-  .footer_icon-link.abs-icon-btn:active,
+  .footer_icon-link.abs-icon-btn:not(.abs-circular-utility):focus-visible,
+  .footer_icon-link.abs-icon-btn:not(.abs-circular-utility):active,
   .abs-meta-btn:focus-visible,
   .abs-meta-btn:active,
   .sound-toggle:focus-visible,
@@ -5819,7 +5798,7 @@ a.shell-tab:active {
 
 /* Suppress dot-under-label for decorative text links */
 .decorative-script p a::after,
-.gate-back::after {
+.gate-back:not(.abs-circular-utility)::after {
   opacity: 0;
   animation: none;
   transform: translate3d(-50%, 0, 0) scaleY(0);
@@ -5868,7 +5847,7 @@ body.dark-mode .ui-main-nav .footer_link:active {
 /* Focus visibility (WCAG priority): restore a clear focus ring for primary interactive targets.
    These override the global focus suppression block above. */
 .footer_link:focus-visible,
-.footer_icon-link:focus-visible,
+.footer_icon-link:not(.abs-circular-utility):focus-visible,
 .decorative-script p a:focus-visible,
 .gate-back:not(.abs-circular-utility):focus-visible,
 .sound-toggle:focus-visible,
@@ -6268,8 +6247,6 @@ body.cv-page .route-topbar .gate-back:not(.abs-circular-utility) {
 .contact-email-row {
   --contact-email-label-duration: 520ms;
   --contact-email-label-easing: cubic-bezier(0.22, 0.72, 0.16, 1);
-  --contact-email-label-travel: calc(100% + 5px);
-  --contact-email-label-blur: 1.25px;
   z-index: 1;
   will-change: auto;
   text-rendering: geometricPrecision;
@@ -6300,32 +6277,20 @@ body.cv-page .route-topbar .gate-back:not(.abs-circular-utility) {
   line-height: 1;
   white-space: nowrap;
   opacity: 0;
-  filter: blur(var(--contact-email-label-blur));
-  transform: translate3d(0, var(--contact-email-label-travel), 0);
-  will-change: opacity, transform, filter;
-  transition:
-    opacity var(--contact-email-label-duration) var(--contact-email-label-easing),
-    transform var(--contact-email-label-duration) var(--contact-email-label-easing),
-    filter var(--contact-email-label-duration) var(--contact-email-label-easing);
+  transition: opacity var(--contact-email-label-duration) var(--contact-email-label-easing);
 }
 
 .contact-email-label--idle {
   opacity: 1;
-  filter: blur(0);
-  transform: translate3d(0, 0, 0);
 }
 
 .contact-email-row:is(.is-copied, .is-error) .contact-email-label--idle {
   opacity: 0;
-  filter: blur(var(--contact-email-label-blur));
-  transform: translate3d(0, calc(-1 * var(--contact-email-label-travel)), 0);
 }
 
 .contact-email-row.is-copied .contact-email-label--copied,
 .contact-email-row.is-error .contact-email-label--error {
   opacity: 1;
-  filter: blur(0);
-  transform: translate3d(0, 0, 0);
 }
 
 .contact-email-text,

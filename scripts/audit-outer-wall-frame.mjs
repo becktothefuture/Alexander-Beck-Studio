@@ -468,7 +468,7 @@ async function runCase(browser, siteTheme, browserScheme, expectations, profile)
     );
     await page.waitForFunction((simulationId) => (
       document.querySelector('.simulation-focus-switcher')?.dataset.simulationId === simulationId
-      && document.querySelector('.simulation-focus-switcher .abs-action-label')?.textContent?.trim() === 'CHANGE EFFECT'
+      && document.querySelector('.simulation-focus-switcher .abs-action-label')?.textContent?.trim() === 'Change effect'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'out'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'hold'
       && document.documentElement.dataset.absSimulationFocusTransition !== 'in'

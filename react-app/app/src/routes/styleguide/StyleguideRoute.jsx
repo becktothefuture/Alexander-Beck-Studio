@@ -96,17 +96,15 @@ export function getStyleguideRouteView() {
           </section>
 
           <section className="styleguide-section" aria-labelledby="sg-icon">
-            <h2 id="sg-icon">Icon frame buttons</h2>
+            <h2 id="sg-icon">Action buttons</h2>
             <p className="styleguide-section__hint">
-              <code className="styleguide-doc__code">.abs-icon-btn</code> — sound toggle, gate back, socials.
+              Labelled actions and icon actions share the same outline and press feedback.
             </p>
             <div className="styleguide-sample-row">
-              <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample mute" disabled>
+              <ActionButton label="Sample action" />
+              <ActionButton variant="icon" aria-label="Sample mute" disabled>
                 <i className="ti ti-volume-off" aria-hidden="true" />
-              </button>
-              <button type="button" className="sound-toggle abs-icon-btn" aria-label="Sample sound on" data-enabled="true" aria-pressed="true" disabled>
-                {renderSoundOnIcon()}
-              </button>
+              </ActionButton>
               <ActionButton variant="icon" href={homeHref} className="gate-back" aria-label="Sample back">
                 <i className="ti ti-arrow-left" aria-hidden="true" />
               </ActionButton>

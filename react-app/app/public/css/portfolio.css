@@ -46,7 +46,6 @@
   --portfolio-drawer-outline-opacity: 0.28;
   --portfolio-project-back-offset: var(--abs-window-control-offset, clamp(18px, 2.8vw, 38px));
   --portfolio-project-back-size: 56px;
-  --portfolio-project-back-glyph-size: 26px;
   --portfolio-project-back-clearance: calc(
     var(--portfolio-project-back-offset) + var(--portfolio-project-back-size) + clamp(14px, 3vw, 24px)
   );
@@ -1753,9 +1752,8 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
   transition-timing-function: ease, var(--portfolio-sheet-ease-in);
 }
 
-/* Drawer return action: placement and project-specific glyph scale only. */
+/* Drawer return action placement. */
 .portfolio-project-view__back--top.abs-icon-btn {
-  --abs-circular-utility-icon-size: var(--portfolio-project-back-glyph-size);
   position: absolute;
   top: max(var(--portfolio-project-back-offset), env(safe-area-inset-top, 0px));
   left: max(var(--portfolio-project-back-offset), env(safe-area-inset-left, 0px));
@@ -1763,7 +1761,7 @@ body.portfolio-page .hero-title.hero-title--portfolio .hero-title__eyebrow {
 }
 
 .portfolio-project-view.is-scrolled .portfolio-project-view__back--top.abs-icon-btn {
-  color: var(--portfolio-drawer-ink);
+  --abs-action-theme-ink: var(--portfolio-drawer-ink);
 }
 
 .portfolio-project-view__scroll {

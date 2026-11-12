@@ -64,6 +64,6 @@ Visual changes require a fresh root build and coverage of Home, Work, About, and
 
 ## Action button testing
 
-The development-only `/lab/button-audit.html` renders the shared Copy email, LinkedIn, and Change effect components over a photo. Use it to compare hover, press, release, keyboard focus, both themes, and reduced motion. Its blur and image controls are local preview settings. See the quiet control contract in `COMPONENT-LIBRARY.md`.
+The development-only `/lab/button-audit.html` shows the site’s shared 36px action buttons in both themes over a solid surface or photo. It includes Copy email, the icon-only LinkedIn specimen, Change effect, circular actions, and native buttons. Theme and sound sit in preview settings. Compare rest, hover, keyboard focus, press and release. See the editor and save contract in `COMPONENT-LIBRARY.md`.
 
-Action controls have one component and stylesheet: `ActionButton.jsx` and `action-buttons.css`, with primary, secondary and icon variants. The Home reference is the latest 36px, icon-free, widely tracked CHANGE EFFECT button. The test page also uses these variants for its own theme, image and reset actions.
+Action controls use `ActionButton.jsx` and `action-buttons.css`. The Home Change effect button is the icon-free example of the standard 36px face. The playground uses the same styles for preview settings and editor actions.

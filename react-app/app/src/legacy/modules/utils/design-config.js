@@ -1,6 +1,7 @@
 /* global __ABS_PRODUCTION_DESIGN_SYSTEM_CONFIG__:readonly */
 
 import { withBasePath } from '../../../lib/base-path.js';
+import { normalizeButtonStyles } from '../../../lib/buttonStyles.js';
 import { normalizeThemeTransition } from '../../../lib/theme-transition.js';
 import { normalizeSceneLighting } from '../../../lib/scene-lighting.js';
 import { SURFACE_FINISH_CONTROLS } from '../../../lib/surface-finish.js';
@@ -449,6 +450,9 @@ function pruneShellConfig(shell = {}) {
     }
   }
   if (isPlainObject(nextShell.surface)) {
+    if (Object.hasOwn(nextShell.surface, 'buttonStyles')) {
+      nextShell.surface.buttonStyles = normalizeButtonStyles(nextShell.surface.buttonStyles);
+    }
     nextShell.surface.lighting = normalizeSceneLighting(nextShell.surface.lighting, nextShell.surface);
     for (const { id } of SURFACE_FINISH_CONTROLS) delete nextShell.surface[id];
     delete nextShell.surface.surfaceLightSpread;

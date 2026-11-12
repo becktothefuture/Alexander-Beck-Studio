@@ -1,0 +1,44 @@
+/* Compatibility for native controls outside the shared action family. */
+:is(button, input[type='button'], input[type='submit'], input[type='reset'], a.abs-icon-btn, a.abs-meta-btn):not(:where(
+  .abs-labelled-action, .abs-circular-utility, .shell-tab, .work-snippet-stage__backdrop, [data-button-style-editor] *)) {
+  :root[data-abs-button-styles~='radius'] body & {
+    border-radius: var(--abs-button-radius);
+    corner-shape: round;
+  }
+  :root[data-abs-button-styles~='edge'] body & {
+    border: var(--abs-button-edge) solid currentColor;
+    box-sizing: border-box;
+  }
+  :root[data-abs-button-styles~='blur'] body & {
+    -webkit-backdrop-filter: blur(var(--abs-button-blur));
+    backdrop-filter: blur(var(--abs-button-blur));
+  }
+  :root[data-abs-button-styles~='flat'] body & {
+    background-image: none;
+    box-shadow: none;
+  }
+  :root[data-abs-button-styles~='flat'] body &:is(:hover, :focus-visible, :active, [data-action-pressed='true']) {
+    box-shadow: none;
+  }
+
+  :root[data-abs-button-styles~='font-size'] body & {
+    font-size: var(--abs-button-font-size);
+  }
+  :root[data-abs-button-styles~='font-weight'] body & {
+    font-weight: var(--abs-button-font-weight);
+  }
+
+  :root:is([data-abs-theme='dark'][data-abs-button-styles~='dark-fill'],
+    :not([data-abs-theme='dark'])[data-abs-button-styles~='light-fill']) body & {
+    background: var(--abs-button-theme-fill);
+  }
+  :root:is([data-abs-theme='dark'][data-abs-button-styles~='dark-hover'],
+    :not([data-abs-theme='dark'])[data-abs-button-styles~='light-hover']) body
+    &:is(:hover, :focus-visible):not(:where(:disabled, [aria-disabled='true'])) {
+    background: var(--abs-button-theme-hover);
+  }
+  :root:is([data-abs-theme='dark'][data-abs-button-styles~='dark-ink'],
+    :not([data-abs-theme='dark'])[data-abs-button-styles~='light-ink']) body & {
+    color: var(--abs-button-theme-ink);
+  }
+}

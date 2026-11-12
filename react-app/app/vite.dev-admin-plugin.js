@@ -20,6 +20,8 @@ import {
 } from '../../scripts/lib/simulation-admin-store.mjs';
 import { normalizeLoaderPlaygroundConfig } from './src/routes/loader-playground/loaderPlaygroundControls.js';
 import { normalizeAtmosphereLabConfig } from './src/routes/atmosphere-lab/atmosphereLabControls.js';
+import { normalizeButtonStyles } from './src/lib/buttonStyles.js';
+import { normalizeDesignSystemConfig } from './src/legacy/modules/utils/design-config.js';
 import {
   ABOUT_NARRATIVE_EDITOR_HEADER,
   ABOUT_NARRATIVE_MAX_DOCUMENT_BYTES,
@@ -177,6 +179,13 @@ function validateConfigPayload(payload, message) {
     throw createWriteRequestError(400, message);
   }
   return nextConfig;
+}
+
+function setDesignButtonStyles(config, buttonStyles) {
+  const surface = { ...config.shell?.surface };
+  if (Object.keys(buttonStyles).length) surface.buttonStyles = buttonStyles;
+  else delete surface.buttonStyles;
+  return { ...config, shell: { ...config.shell, surface } };
 }
 
 function createLocalJsonWriteHandler({
@@ -369,10 +378,29 @@ export function createDevAdminPlugin({
         allowedRootPaths: [publicConfigRoot],
         targetPaths: designSystemConfigPaths,
         validate(payload) {
-          return validateConfigPayload(payload, 'Missing config payload');
+          if (payload && Object.hasOwn(payload, 'buttonStyles')) {
+            const buttonStyles = normalizeButtonStyles(validateJsonObject(payload.buttonStyles));
+            const expected = normalizeButtonStyles(validateJsonObject(payload.expectedButtonStyles));
+            const update = (current) => {
+              const previous = normalizeButtonStyles(current.shell?.surface?.buttonStyles);
+              if (JSON.stringify(previous) !== JSON.stringify(expected)) {
+                throw createWriteRequestError(409, 'Button styles changed. Reload the playground before saving.');
+              }
+              return setDesignButtonStyles(current, buttonStyles);
+            };
+            return { update, buttonPatch: true };
+          }
+          const next = validateConfigPayload(payload, 'Missing config payload');
+          const update = (current) => {
+            const saved = current.shell?.surface?.buttonStyles;
+            if (saved === undefined && next.shell?.surface?.buttonStyles === undefined) return next;
+            // Other authoring panels may hold a snapshot from before a button-style save.
+            return setDesignButtonStyles(normalizeDesignSystemConfig(next), normalizeButtonStyles(saved));
+          };
+          return { update };
         },
-        async handle(nextConfig, req, res) {
-          const { designSystem: normalized } = await flattenDesignConfigDir(publicConfigDir, nextConfig, {
+        async handle({ update, buttonPatch }, req, res) {
+          const { designSystem: normalized } = await flattenDesignConfigDir(publicConfigDir, update, {
             transactionIo,
           });
           server.ws.send({
@@ -380,7 +408,9 @@ export function createDevAdminPlugin({
             path: '/config/design-system.json',
           });
 
-          sendJson(res, 200, { ok: true, version: normalized.version ?? 1 });
+          const result = { ok: true, version: normalized.version ?? 1 };
+          if (buttonPatch) result.buttonStyles = normalized.shell?.surface?.buttonStyles ?? {};
+          sendJson(res, 200, result);
         },
         failureMessage: 'Failed to save design system',
       }));

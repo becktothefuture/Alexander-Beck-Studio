@@ -1,4 +1,6 @@
 .shell-utility-rail {
+  --abs-action-theme-ink: #f3f3f3;
+  --abs-action-outline-strength: 28%;
   --utility-rail-effective-padding: var(--utility-rail-padding, 6px);
   --utility-rail-effective-corner-radius: var(--utility-rail-corner-radius, 33px);
   --utility-rail-effective-button-size: var(--utility-rail-button-size, 32px);
@@ -87,7 +89,7 @@
   pointer-events: none;
 }
 
-.shell-utility-control {
+.shell-utility-control:where(.shell-tab) {
   position: relative;
   z-index: 1;
   display: inline-grid;
@@ -109,37 +111,58 @@
     background-color 160ms var(--ease-safari-safe, cubic-bezier(0.2, 0, 0, 1));
 }
 
-.shell-utility-control:focus-visible,
-.shell-utility-control[data-enabled='true'] {
+.shell-utility-control:where(.shell-tab):focus-visible,
+.shell-utility-control:where(.shell-tab)[data-enabled='true'] {
   color: #fff;
   background-color: rgb(255 255 255 / 0.065);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .shell-utility-control:hover {
+  .shell-utility-control:where(.shell-tab):hover {
     color: #fff;
     background-color: rgb(255 255 255 / 0.065);
   }
 }
 
-.shell-utility-control:active {
+.shell-utility-control:where(.shell-tab):active {
   color: #fff;
   background-color: rgb(255 255 255 / 0.1);
 }
 
-.shell-utility-control:focus-visible {
+.shell-utility-control:where(.shell-tab):focus-visible {
   outline: 2px solid rgb(255 255 255 / 0.78);
   outline-offset: -4px;
+}
+
+/* The rail keeps its authored contour and touch spacing. */
+.shell-utility-rail .shell-utility-control.abs-circular-utility {
+  --abs-action-face-size: var(--utility-rail-effective-button-size);
+  --abs-action-icon-size: var(--utility-rail-effective-icon-size);
+}
+
+.shell-utility-controls .shell-utility-control.abs-circular-utility {
+  --abs-action-fill: var(--abs-button-shell-fill, transparent);
+  --abs-action-hover-fill: var(--abs-button-shell-hover, var(--abs-action-fill));
+  --abs-action-ink: var(--abs-button-shell-ink, var(--abs-action-theme-ink));
+  z-index: 1;
+}
+
+.shell-utility-controls .shell-utility-control.abs-circular-utility[aria-pressed='true'] {
+  --abs-action-selected-ring: inset 0 0 0 1px var(--abs-action-outline);
+}
+
+:root[data-abs-button-styles~='flat'] .shell-utility-controls .shell-utility-control.abs-circular-utility {
+  --abs-action-selected-ring: none;
 }
 
 .shell-utility-control__icon {
   display: inline-grid;
   place-items: center;
-  inline-size: var(--utility-rail-effective-icon-size);
-  block-size: var(--utility-rail-effective-icon-size);
+  inline-size: var(--abs-action-icon-size);
+  block-size: var(--abs-action-icon-size);
   color: currentColor;
-  font-size: var(--utility-rail-effective-icon-size);
-  line-height: var(--utility-rail-effective-icon-size);
+  font-size: var(--abs-action-icon-size);
+  line-height: var(--abs-action-icon-size);
   pointer-events: none;
 }
 
@@ -177,7 +200,7 @@
     inset-inline: 4px;
   }
 
-  .shell-utility-control {
+  .shell-utility-rail .shell-utility-control {
     --utility-rail-hit-inline-slop: max(
       0px,
       calc((44px - var(--utility-rail-effective-button-size)) / 2)
@@ -196,26 +219,28 @@
     );
   }
 
-  .shell-utility-control::before {
+  .shell-utility-rail .shell-utility-control.abs-circular-utility::after { content: none; }
+
+  .shell-utility-rail .shell-utility-control::before {
     content: '';
     position: absolute;
-    inset-inline: calc(-1 * var(--utility-rail-hit-inline-slop));
+    inset-inline: calc(-1 * (var(--utility-rail-hit-inline-slop) + var(--abs-action-edge)));
     border-radius: 999px;
   }
 
-  .shell-utility-control:first-child::before {
-    inset-block-start: calc(-1 * var(--utility-rail-hit-outer-slop));
-    inset-block-end: calc(-1 * var(--utility-rail-hit-inner-slop));
+  .shell-utility-rail .shell-utility-control:first-child::before {
+    inset-block-start: calc(-1 * (var(--utility-rail-hit-outer-slop) + var(--abs-action-edge)));
+    inset-block-end: calc(-1 * (var(--utility-rail-hit-inner-slop) + var(--abs-action-edge)));
   }
 
-  .shell-utility-control:last-child::before {
-    inset-block-start: calc(-1 * var(--utility-rail-hit-inner-slop));
-    inset-block-end: calc(-1 * var(--utility-rail-hit-outer-slop));
+  .shell-utility-rail .shell-utility-control:last-child::before {
+    inset-block-start: calc(-1 * (var(--utility-rail-hit-inner-slop) + var(--abs-action-edge)));
+    inset-block-end: calc(-1 * (var(--utility-rail-hit-outer-slop) + var(--abs-action-edge)));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shell-utility-control {
+  .shell-utility-control:where(.shell-tab) {
     transition: none;
   }
 }

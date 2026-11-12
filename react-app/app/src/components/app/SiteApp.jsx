@@ -54,6 +54,8 @@ import { applyLayoutCSSVars, initState } from '../../legacy/modules/core/state.j
 import { waitForFonts } from '../../legacy/modules/utils/font-loader.js';
 import { loadRuntimeConfig } from '../../legacy/modules/utils/runtime-config.js';
 import { loadDesignSystemConfig } from '../../legacy/modules/utils/design-config.js';
+import { applyButtonStyles, previewButtonStylesInApp } from '../../lib/buttonStyles.js';
+import './button-styles.css';
 import { loadShellConfig, syncShellToDocument } from '../../legacy/modules/visual/site-shell.js';
 import { applyWallFrameLayout } from '../../legacy/modules/visual/wall-frame.js';
 import { initializeDarkMode } from '../../legacy/modules/visual/dark-mode-v2.js';
@@ -165,6 +167,9 @@ function syncSharedShellRuntimeState() {
       loadDesignSystemConfig(),
     ]).then(([runtimeConfig, shellConfig, designSystem]) => {
       document.documentElement.dataset.absDesignConfigRevision = String(designSystem?.version || 1);
+      const buttonStyles = designSystem?.shell?.surface?.buttonStyles;
+      applyButtonStyles(document.documentElement, buttonStyles);
+      if (import.meta.env.DEV) previewButtonStylesInApp(document.documentElement, buttonStyles);
       setSimulationAtmosphereConfig(designSystem?.shell?.surface?.simulationAtmosphere);
       setSimulationBodyMaterialConfig(designSystem?.shell?.surface?.simulationBodyMaterial);
       initState(runtimeConfig);

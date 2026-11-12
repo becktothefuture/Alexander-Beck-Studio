@@ -331,8 +331,6 @@
 }
 
 .work-canvas-route .work-snippet-stage__close {
-  --abs-circular-utility-size: 44px;
-  --abs-circular-utility-icon-size: 20px;
   position: absolute;
   inset-block-start: max(16px, var(--work-stage-inset));
   inset-inline-end: var(--work-stage-inset);
@@ -340,8 +338,6 @@
 }
 
 .work-canvas-route .work-snippet-stage__close svg {
-  inline-size: 20px;
-  block-size: 20px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;

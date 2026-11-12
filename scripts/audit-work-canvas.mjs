@@ -33,6 +33,21 @@ function round(value) {
   return Math.round(Number(value || 0) * 100) / 100;
 }
 
+async function assertIconAction(control, label) {
+  const action = await control.evaluate(el => {
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    const { x, y, width, height } = rect;
+    const target = [
+      [x - 5, y + height / 2], [x + width + 5, y + height / 2],
+      [x + width / 2, y - 5], [x + width / 2, y + height + 5],
+    ].every(([left, top]) => el.contains(document.elementFromPoint(left, top)));
+    return { width, height, target, border: style.borderTopWidth };
+  });
+  assert(Math.abs(action.width - 36) <= 0.5 && Math.abs(action.height - 36) <= 0.5
+    && action.border === '1px' && action.target, label + ' must have a 36px outlined face and an expanded target', action);
+}
+
 async function waitForServer() {
   const response = await fetch(`${baseUrl}/portfolio.html`);
   assert(response.ok, `Work development route is not ready at ${baseUrl}`, {
@@ -568,6 +583,7 @@ async function auditSnippetFlow(page) {
     'Snippet presentation must make the canvas inert and expose expanded state', openState);
   assert(openState.activeInsideDialog && openState.phase === 'open',
     'Snippet presentation must settle focus inside an open dialog', openState);
+    await assertIconAction(page.locator('.work-snippet-stage__close'), 'Snippet close');
   await page.screenshot({ path: resolve(runRoot, 'desktop-snippet-open.png') });
   await page.keyboard.press('Tab');
   assert(await page.evaluate(() => (
@@ -610,7 +626,9 @@ async function auditProtectedGate(browser) {
     assert(gatedState.worldHidden === 'true' && gatedState.activeInGate,
       'The password gate must own focus while the Work canvas is inert', gatedState);
     await audit.page.screenshot({ path: resolve(runRoot, 'desktop-protected-gate.png') });
-    await audit.page.locator('.portfolio-access-gate__close').click();
+    const close = audit.page.locator('.portfolio-access-gate__close');
+    await assertIconAction(close, 'Work gate close');
+    await close.click();
     await audit.page.waitForSelector('[data-portfolio-access-gate]', {
       state: 'detached',
       timeout: timeoutMs,
@@ -674,7 +692,7 @@ async function auditUnlockedCaseStudy(browser) {
       const drawerRect = drawer?.getBoundingClientRect();
       const hostRect = host?.getBoundingClientRect();
       const buttonBarRect = buttonBar?.getBoundingClientRect();
-      const overlapHit = buttonBarRect
+      const buttonBarHit = buttonBarRect
         ? document.elementFromPoint(
           buttonBarRect.left + (buttonBarRect.width / 2),
           buttonBarRect.top + (buttonBarRect.height / 2),
@@ -701,7 +719,7 @@ async function auditUnlockedCaseStudy(browser) {
         buttonBarTop: buttonBarRect?.top ?? null,
         hostZIndex: Number.parseInt(getComputedStyle(host).zIndex, 10) || 0,
         buttonBarZIndex: Number.parseInt(getComputedStyle(buttonBar).zIndex, 10) || 0,
-        buttonBarOwnsOverlap: Boolean(overlapHit?.closest?.('[data-button-bar]')),
+        buttonBarReceivesInput: Boolean(buttonBarHit?.closest?.('[data-button-bar]')),
       };
     }, CASE_STUDY_ID);
     assert(drawerState.workId === CASE_STUDY_ID && drawerState.title,
@@ -715,12 +733,19 @@ async function auditUnlockedCaseStudy(browser) {
       && Math.abs(drawerState.drawerRect.right - drawerState.hostRect.right) <= 3,
     'Case study drawer must fill the clipped studio-window host on all four sides', drawerState);
     assert(drawerState.buttonBarTop !== null
-      && drawerState.drawerRect.bottom > drawerState.buttonBarTop
+      && drawerState.drawerRect.bottom <= drawerState.buttonBarTop + 1
       && drawerState.hostZIndex < drawerState.buttonBarZIndex
-      && drawerState.buttonBarOwnsOverlap,
-    'The overlapping Button Bar must paint and receive input above the case-study drawer', drawerState);
+      && drawerState.buttonBarReceivesInput,
+    'The Button Bar must stay below the case-study drawer and receive input', drawerState);
     await audit.page.screenshot({ path: resolve(runRoot, 'desktop-case-study-open.png') });
-    await audit.page.keyboard.press('Escape');
+    const back = audit.page.locator('[data-portfolio-project-back]');
+    await assertIconAction(back, 'Case study return');
+    await back.focus();
+    const restingFill = await back.evaluate(el => getComputedStyle(el).backgroundColor);
+    await audit.page.keyboard.down('Space');
+    assert(await back.evaluate((el, rest) => getComputedStyle(el).backgroundColor !== rest, restingFill),
+      'Case study return must show the held keyboard press tint');
+    await audit.page.keyboard.up('Space');
     await audit.page.waitForFunction((id) => {
       const root = document.querySelector('[data-work-experience]');
       const source = document.activeElement?.closest?.('[data-playground-item]');
@@ -767,7 +792,7 @@ async function auditMobile(browser) {
       const close = document.querySelector('.work-snippet-stage__close')?.getBoundingClientRect();
       const buttonBar = document.querySelector('[data-button-bar]')?.getBoundingClientRect();
       const workViewport = document.querySelector('[data-playground-viewport]')?.getBoundingClientRect();
-      const overlapHit = buttonBar
+      const buttonBarHit = buttonBar
         ? document.elementFromPoint(
           buttonBar.left + (buttonBar.width / 2),
           buttonBar.top + (buttonBar.height / 2),
@@ -784,7 +809,7 @@ async function auditMobile(browser) {
           right: workViewport.right,
           bottom: workViewport.bottom,
         } : null,
-        buttonBarOwnsOverlap: Boolean(overlapHit?.closest?.('[data-button-bar]')),
+        buttonBarReceivesInput: Boolean(buttonBarHit?.closest?.('[data-button-bar]')),
       };
     });
     assert(geometry.surface && geometry.close,
@@ -795,14 +820,13 @@ async function auditMobile(browser) {
       && geometry.surface.top >= geometry.workViewport.top - 1
       && geometry.surface.bottom <= geometry.workViewport.bottom + 1,
     'Mobile snippet presentation must remain within the clipped Work window', geometry);
-    assert(geometry.buttonBarOwnsOverlap,
-      'The mobile Button Bar must retain paint and input ownership over the window overlap', geometry);
+    assert(geometry.buttonBarReceivesInput && geometry.buttonBarTop !== null
+      && geometry.workViewport.bottom <= geometry.buttonBarTop + 1,
+      'The mobile Button Bar must stay below the Work window and receive input', geometry);
     assert(geometry.close.left >= 0 && geometry.close.right <= geometry.viewport.width
       && geometry.close.top >= 0 && geometry.close.bottom <= geometry.viewport.height,
     'Mobile snippet close control must remain fully reachable', geometry);
-    assert(geometry.close.right - geometry.close.left >= 43.5
-      && geometry.close.bottom - geometry.close.top >= 43.5,
-    'Mobile snippet close control must retain a 44-pixel tap area', geometry);
+    await assertIconAction(audit.page.locator('.work-snippet-stage__close'), 'Mobile snippet close');
     await audit.page.screenshot({ path: resolve(runRoot, 'mobile-snippet-open.png') });
     await audit.page.locator('.work-snippet-stage__close').tap();
     await audit.page.waitForSelector('[data-work-snippet-stage]', { state: 'detached', timeout: timeoutMs });

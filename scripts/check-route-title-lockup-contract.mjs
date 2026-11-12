@@ -88,7 +88,7 @@ test('Contact and About share compact action buttons with route-specific layouts
   );
   assert.match(sources.main, /\.contact-email-text \{[\s\S]*?font: inherit;/);
   assert.match(sources.main, /\.contact-email-copy i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
-  assert.match(sources.actionButtons, /\.abs-labelled-action > i \{[\s\S]*?font-size: var\(--abs-labelled-action-icon-size\);/);
+  assert.match(sources.actionButtons, /\.abs-labelled-action > :is\(i, svg\) \{[\s\S]*?font-size: var\(--abs-action-icon-size\);/);
   assert.doesNotMatch(sources.main, /\.contact-linkedin-action i \{/);
   assert.match(sources.about, /<CopyEmailAction/);
   assert.match(sources.about, /<LinkedInAction/);

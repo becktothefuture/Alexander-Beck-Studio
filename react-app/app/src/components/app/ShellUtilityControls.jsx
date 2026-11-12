@@ -77,7 +77,7 @@ function getButtonClassName(kind, inButtonBar) {
     'shell-utility-control',
     `shell-utility-control--${kind}`,
     kind === 'theme' ? 'button-bar__theme-toggle' : 'button-bar__sound-toggle',
-    inButtonBar ? 'button-bar__secondary-button shell-tab shell-tab--icon-only' : '',
+    inButtonBar ? 'button-bar__secondary-button shell-tab shell-tab--icon-only' : 'abs-icon-btn abs-circular-utility',
   ].filter(Boolean).join(' ');
 }
 

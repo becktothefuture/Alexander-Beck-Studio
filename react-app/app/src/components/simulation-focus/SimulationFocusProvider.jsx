@@ -193,14 +193,14 @@ export function SimulationFocusSwitcher() {
       <ActionButton
         variant="secondary"
         className="simulation-focus-pill simulation-focus-switcher"
-        label="CHANGE EFFECT"
+        label="Change effect"
         data-simulation-id={activeSimulation.id}
         data-sound-action="manual"
         data-sound-source="simulation-next"
         data-advancing={String(isAdvancing)}
         data-phase={isAdvancing ? 'switching' : 'idle'}
         data-transition-phase={simulationTransitionPhase}
-        aria-label={`${isAdvancing ? 'Changing' : 'Change'} visual effect. Current effect: ${activeSimulation.name}`}
+        aria-label={`${isAdvancing ? 'Changing' : 'Change'} effect. Current effect: ${activeSimulation.name}`}
         aria-busy={isAdvancing ? 'true' : undefined}
         aria-disabled={isAdvancing ? 'true' : undefined}
         onClick={() => { if (!isAdvancing) advanceSimulation(); }}

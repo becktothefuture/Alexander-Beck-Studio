@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActionButton } from '../../components/app/ActionButton.jsx';
+import { ActionLabel } from '../../components/app/ActionLabel.jsx';
 import { useButtonInteractions } from '../../lib/useButtonInteractions.js';
 import homeContent from 'virtual:abs-content/home';
 import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
+import { ShellUtilityControls } from '../../components/app/ShellUtilityControls.jsx';
 import { SimulationFocusSwitcher } from '../../components/simulation-focus/SimulationFocusProvider.jsx';
 import { SimulationFocusContext } from '../../components/simulation-focus/SimulationFocusContext.js';
 import { getDailyFocusSimulations } from '../../data/simulationCatalog.js';
+import { ButtonStyleEditor } from './ButtonStyleEditor.jsx';
+import '../../components/app/shell-utility-rail.css';
 import './button-audit.css';
 
 const AUDIT_SIMULATIONS = getDailyFocusSimulations();
@@ -26,10 +30,10 @@ function AuditSimulationSwitcher() {
   );
 }
 
-function Specimen({ children, id, variant = '' }) {
+function Specimen({ children, id }) {
   return (
     <article
-      className={['button-audit-specimen', variant].filter(Boolean).join(' ')}
+      className="button-audit-specimen"
       data-audit-control={id}
     >
       <div className="button-audit-specimen__stage">{children}</div>
@@ -73,8 +77,8 @@ export function ButtonAudit() {
   useButtonInteractions();
   const fileInputRef = useRef(null);
   const [theme, setTheme] = useState('dark');
-  const [blur, setBlur] = useState(16);
   const [imageUrl, setImageUrl] = useState(null);
+  const [showPhoto, setShowPhoto] = useState(true);
   useEffect(() => () => { if (imageUrl) URL.revokeObjectURL(imageUrl); }, [imageUrl]);
   const contact = homeContent.contact || {};
   const email = contact.email || 'alexander@beck.fyi';
@@ -91,121 +95,74 @@ export function ButtonAudit() {
   }, [theme]);
 
   return (
-    <main
-      className="button-audit"
-      data-audit-theme={theme}
-      style={{ '--abs-soft-control-blur': `${blur}px` }}
-    >
-      <img
-        className="button-audit__background"
-        src={imageUrl || '/images/about/interactive-stack/preview-01.webp'}
-        alt=""
-      />
+    <main className="button-audit" data-audit-theme={theme}>
       <header className="button-audit__header">
-        <div><p className="button-audit__eyebrow">Studio / Interaction study</p><h1>Feel the difference.</h1><p>Press, hold, release. Same touch, every time.</p></div>
-        <ActionButton
-          variant="secondary"
-          label={theme === 'dark' ? 'Dark' : 'Light'}
-          className="button-audit__theme-toggle"
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          aria-pressed={theme === 'dark'}
-          onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
-        />
+        <div>
+          <h1>Button Playground</h1>
+          <p>Review the outlined buttons here. Editor overrides also preview on open site tabs and can be saved to the site.</p>
+        </div>
+        <a href="/index.html" target="_blank" rel="noopener">Open site ↗</a>
       </header>
 
-      <section className="button-audit__settings" aria-label="Preview settings">
-        <label className="button-audit__blur">
-          <span>Backdrop blur <output>{blur}px</output></span>
-          <input type="range" min="0" max="40" step="1" value={blur}
-            onChange={(event) => setBlur(Number(event.target.value))} />
-        </label>
-        <div className="button-audit__upload">
-          <span>Use your own image</span>
-          <ActionButton variant="secondary" label="Choose image" onClick={() => fileInputRef.current?.click()} />
-          <input ref={fileInputRef} hidden aria-label="Use your own image" type="file" accept="image/*" onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) setImageUrl(URL.createObjectURL(file));
-          }} />
-        </div>
-        <ActionButton variant="secondary" label="Reset preview" className="button-audit__reset" onClick={() => {
-          setBlur(16);
-          setImageUrl(null);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        }} />
-        <p>Preview settings stay on this page.</p>
-      </section>
-      <section className="button-audit-family button-audit-family--actions" aria-label="Labelled action buttons">
-        <div className="button-audit__grid">
-          <EmailSpecimen
-            copyText={contact.copy}
-            email={email}
-            statusId="button-audit-copy-status"
-          />
+      <div className="button-audit__layout">
+        <div className="button-audit__preview">
+          <div className="button-audit__settings" aria-label="Preview settings">
+            <label>
+              Backdrop
+              <select value={showPhoto ? 'photo' : 'solid'} onChange={event => setShowPhoto(event.currentTarget.value === 'photo')}>
+                <option value="photo">Photo</option>
+                <option value="solid">Solid</option>
+              </select>
+            </label>
+            <ActionButton variant="secondary" label="Choose image" onClick={() => fileInputRef.current?.click()} />
+            <input ref={fileInputRef} hidden aria-label="Use your own image" type="file" accept="image/*" onChange={event => {
+              const file = event.currentTarget.files?.[0];
+              if (file) { setImageUrl(URL.createObjectURL(file)); setShowPhoto(true); }
+              event.currentTarget.value = '';
+            }} />
+            <ShellUtilityControls previewTheme={theme} onPreviewThemeChange={setTheme} />
+          </div>
+          <div className="button-audit__surface">
+            {showPhoto ? <img className="button-audit__background"
+              src={imageUrl || '/images/about/interactive-stack/preview-01.webp'} alt="" /> : null}
+            <section className="button-audit-family button-audit-family--actions" aria-label="Contact and effect actions">
+              <div className="button-audit__grid">
+                <EmailSpecimen copyText={contact.copy} email={email} statusId="button-audit-copy-status" />
+                <LinkedInSpecimen href={linkedin} />
+                <Specimen id="home-simulation-switcher">
+                  <AuditSimulationSwitcher />
+                </Specimen>
+              </div>
+            </section>
 
-          <LinkedInSpecimen href={linkedin} />
-          <Specimen id="home-simulation-switcher">
-            <AuditSimulationSwitcher />
-          </Specimen>
-        </div>
-      </section>
+            <section className="button-audit-family" aria-label="Circular utility buttons">
+              <div className="button-audit__grid">
+                <Specimen id="portfolio-gate-close">
+                  <ActionButton variant="icon" className="portfolio-access-gate__close" aria-label="Close portfolio gate specimen">
+                    <i className="ti ti-x" aria-hidden="true" />
+                  </ActionButton>
+                </Specimen>
+                <Specimen id="lab-media-close">
+                  <ActionButton variant="icon" className="playground-lightbox__close" aria-label="Close Lab media specimen">
+                    <i className="ti ti-x" aria-hidden="true" />
+                  </ActionButton>
+                </Specimen>
+                <Specimen id="project-view-return">
+                  <ActionButton variant="icon" className="button-audit-utility" aria-label="Back to portfolio projects specimen">
+                    <i className="ti ti-arrow-left" aria-hidden="true" />
+                  </ActionButton>
+                </Specimen>
+              </div>
+            </section>
 
-      <section className="button-audit-family" aria-label="Circular utility buttons">
-        <p className="button-audit__utility-heading">Utility controls / Same material and rebound</p>
-        <div className="button-audit__grid">
-          <Specimen
-            id="portfolio-gate-close"
-            variant="button-audit-specimen--corner-control"
-          >
-            <ActionButton
-              variant="icon"
-              className="portfolio-access-gate__close"
-              aria-label="Close portfolio gate specimen"
-            >
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-                <path
-                  fill="currentColor"
-                  d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
-                />
-              </svg>
-            </ActionButton>
-          </Specimen>
-
-          <Specimen
-            id="lab-media-close"
-            variant="button-audit-specimen--corner-control"
-          >
-            <div className="button-audit-playground-context">
-              <ActionButton
-                variant="icon"
-                className="playground-lightbox__close"
-                aria-label="Close Lab media specimen"
-              >
-                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
-                  <path
-                    fill="currentColor"
-                    d="M6.22 4.93 12 10.71l5.78-5.78 1.29 1.29L13.29 12l5.78 5.78-1.29 1.29L12 13.29l-5.78 5.78-1.29-1.29L10.71 12 4.93 6.22z"
-                  />
-                </svg>
-              </ActionButton>
+            <div className="button-audit__native">
+              <button type="button" className="abs-labelled-action"><ActionLabel>Native button</ActionLabel></button>
+              <ActionButton disabled label="Disabled" />
             </div>
-          </Specimen>
-
-          <Specimen
-            id="project-view-return"
-            variant="button-audit-specimen--corner-control"
-          >
-            <ActionButton
-              variant="icon"
-              className="button-audit-utility"
-              aria-label="Back to portfolio projects specimen"
-            >
-              <i className="ti ti-arrow-left" aria-hidden="true" />
-            </ActionButton>
-          </Specimen>
+          </div>
         </div>
-      </section>
-
-      <p className="button-audit__note">Real site components. Try keyboard focus and a long press.</p>
+        <ButtonStyleEditor />
+      </div>
     </main>
   );
 }

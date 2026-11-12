@@ -29,11 +29,11 @@ export function attachButtonInteractions(root = document) {
     release();
     active = control;
     pointerId = event.pointerId;
-    // Compare against the original target, not its moving/squashing face.
-    // Include the labelled control's existing invisible 48px minimum hit area.
+    // Include the invisible area around the fixed face.
     const rect = control.getBoundingClientRect();
-    const extra = control.matches('.abs-labelled-action') ? Math.max(0, (48 - rect.height) / 2) : 0;
-    pressBounds = { left: rect.left - 5, right: rect.right + 5, top: rect.top - extra, bottom: rect.bottom + extra };
+    const extraX = Math.max(5, (48 - rect.width) / 2);
+    const extraY = Math.max(0, (48 - rect.height) / 2);
+    pressBounds = { left: rect.left - extraX, right: rect.right + extraX, top: rect.top - extraY, bottom: rect.bottom + extraY };
     active.setAttribute('data-action-pressed', 'true');
   };
   const pointerUp = (event) => { if (event.pointerId === pointerId) release(); };
