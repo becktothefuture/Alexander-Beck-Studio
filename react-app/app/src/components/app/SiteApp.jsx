@@ -304,24 +304,25 @@ function shouldDeferBootStateForHold() {
 }
 
 const ABOUT_SCENE_READY_EVENT = 'abs:about-scene-ready';
-const ABOUT_SCENE_READY_TIMEOUT_MS = 3200;
 const PLAYGROUND_ROUTE_READY_TIMEOUT_MS = 3200;
 
-function waitForAboutSceneReady(isCancelled) {
+function waitForAboutSceneReady(isCancelled, signal) {
+  if (isCancelled?.() || signal?.aborted) return Promise.resolve(false);
   if (isAboutSceneReady()) return Promise.resolve(true);
   return new Promise((resolve) => {
     let settled = false;
-    let timeoutId = 0;
     const finish = (ready) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timeoutId);
       window.removeEventListener(ABOUT_SCENE_READY_EVENT, handleReady);
+      signal?.removeEventListener('abort', handleAbort);
       resolve(ready);
     };
-    const handleReady = () => finish(!isCancelled?.());
-    timeoutId = window.setTimeout(() => finish(false), ABOUT_SCENE_READY_TIMEOUT_MS);
+    const handleReady = () => { if (isAboutSceneReady()) finish(!isCancelled?.()); };
+    const handleAbort = () => finish(false);
     window.addEventListener(ABOUT_SCENE_READY_EVENT, handleReady);
+    signal?.addEventListener('abort', handleAbort, { once: true });
+    if (signal?.aborted) handleAbort();
   });
 }
 
@@ -339,8 +340,13 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   if (typeof document === 'undefined') return;
   if (isStandaloneRoute || routeId === 'home') return;
 
-  const fontsReady = await waitForFonts();
-  if (options.isCancelled?.()) return;
+  // About owns its font, physical preparation and paint barrier together.
+  // A second font wait here could reflow an already validated scene.
+  const waitsForAboutScene = routeId === 'about';
+  const fontsReady = waitsForAboutScene
+    ? await waitForAboutSceneReady(options.isCancelled, options.signal)
+    : await waitForFonts();
+  if (options.isCancelled?.() || (waitsForAboutScene && !fontsReady)) return;
   if (!fontsReady) {
     console.warn('[shell] Critical fonts unavailable; revealing the route with fallback fonts');
     await failDirectBoot({
@@ -364,17 +370,14 @@ async function markDirectShellRouteReady(routeId, isStandaloneRoute, options = {
   // Work owns its direct-load release because its measured
   // card geometry and authored entrance must be ready before the boot overlay leaves.
   const isAboutRoute = routeId === 'about';
-  const waitsForAboutScene = routeId === 'about' && import.meta.env.DEV;
-  if (waitsForAboutScene) {
-    await waitForAboutSceneReady(options.isCancelled);
-    if (options.isCancelled?.()) return;
-  }
   if (isPortfolioWorkCanvas) {
     await waitForSpatialRouteReady(routeId);
     if (options.isCancelled?.()) return;
   }
 
-  const routeContent = document.querySelector(`[data-route-content="${routeId}"]`);
+  const routeContent = document.querySelector(isAboutRoute
+    ? '[data-route-content="about"][data-about-scene-ready="true"]'
+    : `[data-route-content="${routeId}"]`);
   const directEntrance = (
     isAboutRoute
     || routeId === 'portfolio'
@@ -579,12 +582,15 @@ export function SiteApp() {
 
   useLayoutEffect(() => {
     let cancelled = false;
+    const directBootController = new AbortController();
     void markDirectShellRouteReady(routeView.runtimeRouteId || routeState.route.id, isStandaloneRoute, {
       deferBootState: isDailyFocusRoute,
       isCancelled: () => cancelled,
+      signal: directBootController.signal,
     });
     return () => {
       cancelled = true;
+      directBootController.abort();
     };
   }, [isDailyFocusRoute, isStandaloneRoute, routeState.route.id, routeView.runtimeRouteId]);
 

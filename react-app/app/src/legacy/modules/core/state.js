@@ -4,6 +4,7 @@
 // ╚══════════════════════════════════════════════════════════════════════════════╝
 
 import { CONSTANTS, FEATURED_MODES, MODES } from './constants.js';
+import { normalizeAboutPortrait } from '../../../lib/aboutPortrait.js';
 import { getStudioWindowInsets, STUDIO_WINDOW_DEFAULTS } from '../../../lib/studio-window.js';
 import { readTokenNumber, readTokenPx, readTokenVar } from '../utils/tokens.js';
 import {
@@ -103,6 +104,7 @@ const state = {
   REST: 0.31,
   FRICTION: 0.011,
   ballMassKg: 240,
+  ...normalizeAboutPortrait(),
   MASS_BASELINE_KG: 240,
   MASS_REST_EXP: 0.15,
   MASS_GRAVITY_EXP: 0.35,

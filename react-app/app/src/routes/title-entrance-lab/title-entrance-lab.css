@@ -487,7 +487,7 @@ body.title-entrance-lab-page .title-entrance-specimen__title {
   display: block;
   width: var(--route-title-rule-width, 2rem);
   height: var(--route-title-rule-thickness, 2px);
-  margin-top: var(--route-title-rule-offset, clamp(8px, 0.8vw, 12px));
+  margin-top: var(--route-title-rule-offset, clamp(16px, 1.6vw, 24px));
   border-radius: 999px;
   background: currentColor;
   transform: scaleX(0);

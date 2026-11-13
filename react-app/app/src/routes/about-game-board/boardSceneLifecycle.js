@@ -16,6 +16,11 @@ export function boardOwnsMountedSurface(owner, currentOwner, surface) {
   return Boolean(owner?.isConnected && owner === currentOwner && surface?.isConnected);
 }
 
+/** Safari can round native scrollTop down while bounds retain subpixels. */
+export function boardMachineIsVisible(scrollTop, worldBottom) {
+  return scrollTop < worldBottom - 1;
+}
+
 export function boardSceneActivity({ scrollTop, viewportHeight, worldBottom,
   stageTop, stageHeight, spatialReady }) {
   const spatialVisible = scrollTop + viewportHeight >= stageTop

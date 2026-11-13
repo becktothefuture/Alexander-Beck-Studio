@@ -47,7 +47,7 @@ test('About history progress is entry-local, clamped, and safely persisted', () 
   assert.equal(writeAboutNarrativeHistoryProgress(0.4567894, history), false);
 });
 
-test('the lazy frame shows the opener only at scroll top and hides restoration setup', () => {
+test('the lazy frame keeps loading and restoration behind the boot cover', () => {
   assert.match(loadingFrameSource, /hasAboutNarrativeRestoredProgress\(\)/);
   assert.match(loadingFrameSource, /data-about-opening-frame="restoring"/);
   assert.match(experienceSource, /readAboutNarrativeHistoryProgress\(\)/);

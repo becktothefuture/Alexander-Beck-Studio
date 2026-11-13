@@ -27,6 +27,7 @@ export function createBoardRenderer(canvas, {
   getPalette,
   getLayout,
   getRadiusScale = () => 1,
+  getRoleAssignments = null,
 }) {
   // A normal synchronized context keeps presentation ordering deterministic.
   // Desynchronized mode allowed an old viewport bitmap to outrun the SVG.
@@ -54,11 +55,12 @@ export function createBoardRenderer(canvas, {
   let appearanceTheme = '';
   let materialDirty = true;
   let roleColours = resolveBoardBallRoleColours(getPalette());
-  let roleAssignments = createBoardBallRoleAssignments(getBalls(), getPalette());
+  let roleAssignments = getRoleAssignments?.() || createBoardBallRoleAssignments(getBalls(), getPalette());
   let socketColour = '#d3d3d3';
   let paintCount = 0;
   let reusedPaintCount = 0;
   let rebaseCount = 0;
+  let visibleBallCount = 0;
   let paintedRevision = -1;
   let paintedBodiesRevision = null;
   let paintedGridProgress = null;
@@ -134,23 +136,24 @@ export function createBoardRenderer(canvas, {
 
   function drawBall(x, y, radius, colour) {
     if (x + radius < 0 || x - radius > cssWidth
-      || y + radius < 0 || y - radius > cssHeight) return;
+      || y + radius < 0 || y - radius > cssHeight) return false;
     if (atlas) {
       const slot = atlas.getSlot(colour);
       const size = atlas.detailPx;
       const sourceX = slot * atlas.cellStridePx + atlas.gutterPx;
       context.drawImage(atlas.canvas, sourceX, atlas.gutterPx, size, size,
         x - radius, y - radius, radius * 2, radius * 2);
-      return;
+      return true;
     }
     context.fillStyle = colour;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
+    return true;
   }
 
   function draw() {
-    if (!context || disposed || !applyCanvasGeometry()) return;
+    if (!context || disposed || !applyCanvasGeometry()) return 0;
 
     const scale = viewport.pixelsPerBoardUnit;
     const layout = getLayout();
@@ -164,7 +167,7 @@ export function createBoardRenderer(canvas, {
       appearanceTheme = theme;
       materialDirty = false;
       roleColours = resolveBoardBallRoleColours(palette);
-      roleAssignments = createBoardBallRoleAssignments(getBalls(), palette);
+      roleAssignments = getRoleAssignments?.() || createBoardBallRoleAssignments(getBalls(), palette);
       const architecture = canvas.closest('.about-game-board');
       socketColour = getComputedStyle(architecture || canvas)
         .getPropertyValue('--about-architecture-fixture').trim() || '#d3d3d3';
@@ -176,7 +179,7 @@ export function createBoardRenderer(canvas, {
     }
     const radiusScale = normalizeBoardBallRadiusScale(getRadiusScale());
     const active = getBodies();
-    const grid = getGrid();
+    const grid = getGrid() || { entries: [] };
     const occupiedCount = grid.occupied?.size ?? 0;
     const capturingCount = grid.capturing?.size ?? 0;
     if (!pixelsDirty && Number.isFinite(active.revision)
@@ -188,10 +191,11 @@ export function createBoardRenderer(canvas, {
       // acknowledges that presentation without reporting another Canvas paint.
       renderedScrollTop = viewport.sampledScroll;
       reusedPaintCount += 1;
-      return;
+      return visibleBallCount;
     }
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, cssWidth, cssHeight);
+    visibleBallCount = 0;
 
     // Paint empty recesses first. Never cut holes through the Canvas: that
     // erased nearby balls and made sockets appear to sit above arrivals.
@@ -220,8 +224,10 @@ export function createBoardRenderer(canvas, {
       const px = x * scale;
       const py = layout.mapY(y) * scale - viewport.stripOriginCssPx;
       const ballRadius = Math.max(1.35, resolveBoardBallRadius(radius, radiusScale) * scale);
-      drawBall(px, py, ballRadius,
-        occupant.colour || ballColourFromRoleColours(cell, roleColours, roleAssignments));
+      if (drawBall(px, py, ballRadius,
+        occupant.colour || ballColourFromRoleColours(cell, roleColours, roleAssignments))) {
+        visibleBallCount += 1;
+      }
       const shadow = grid.socketShadowOpacity ?? 1;
       if (shadow > .001) {
         context.save();
@@ -241,8 +247,10 @@ export function createBoardRenderer(canvas, {
       if (y < firstY || y > lastY) continue;
       const renderScale = Number.isFinite(body.plugin?.boardRenderScale)
         ? body.plugin.boardRenderScale : 1;
-      drawBall(x * scale, layout.mapY(y) * scale - viewport.stripOriginCssPx,
-        Math.max(.25, body.circleRadius * scale * renderScale), body.plugin.boardColour);
+      if (drawBall(x * scale, layout.mapY(y) * scale - viewport.stripOriginCssPx,
+        Math.max(.25, body.circleRadius * scale * renderScale), body.plugin.boardColour)) {
+        visibleBallCount += 1;
+      }
     }
     paintCount += 1;
     pixelsDirty = false;
@@ -257,6 +265,7 @@ export function createBoardRenderer(canvas, {
       rebaseCount += 1;
     }
     renderedScrollTop = viewport.sampledScroll;
+    return visibleBallCount;
   }
 
   const unsubscribeMaterial = subscribeSimulationBodyMaterial(() => {
@@ -285,6 +294,8 @@ export function createBoardRenderer(canvas, {
       stripEndCssPx: viewport.stripEndCssPx,
       backingBytes: canvas.width * canvas.height * 4,
       paintCount,
+      visibleBallCount,
+      materialAtlasActive: Boolean(atlas),
       reusedPaintCount,
       rebaseCount,
       sampledScroll: viewport.sampledScroll,

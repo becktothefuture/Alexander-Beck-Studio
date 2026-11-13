@@ -97,14 +97,16 @@ test('every published copy field is retained in the approved story order, includ
   assert.equal(new Set(retained.map(field => field.id)).size, 10);
   for (const field of document.tracks.text.fields) assert.ok(retained.includes(field));
   assert.deepEqual(copy.background[0].block.modules.map(module => module.kind), ['prose', 'prose', 'logo-grid']);
-  assert.equal(copy.background[0].block.modules[2].items.length, 15);
+  assert.equal(copy.background[0].block.modules[2].items.length, 16);
   assert.deepEqual(copy.disciplines.map(field => field.id), ['text-background-unit', 'text-discipline-labels']);
-  assert.deepEqual(copy.disciplines[0].block.modules.map(module => module.kind), ['prose', 'prose', 'prose']);
-  assert.ok(copy.disciplines[0].block.modules.every(module => module.text.trim().length > 0));
+  const practice = copy.disciplines[0].block.modules;
+  assert.deepEqual(practice.map(module => module.kind), ['prose', 'career-sequence', 'prose', 'prose']);
+  assert.ok(practice.filter(module => module.kind === 'prose').every(module => module.text.trim().length > 0));
+  assert.deepEqual(practice[1].items.map(item => item.id), ['dennerlein', 'yoti', 'hugo-and-cat', 'mrm', 'critical-mass']);
   assert.equal(copy.disciplines[1].block.items.length, 6);
   assert.deepEqual([...copy.curiosity, ...copy.release].map(field => field.text), ['I follow ideas…', '…across disciplines.']);
   assert.deepEqual(copy.statements.map(field => field.text), ['Design direction.', 'Hands-on delivery.']);
-  assert.equal(copy.ending[0].description, 'Get in touch to discuss a project or collaboration.');
+  assert.equal(copy.ending[0].description, 'I’m interested in hearing about new projects and collaborations.');
 });
 
 test('the source supplies the baseline distance, rather than an inherited world duration', () => {

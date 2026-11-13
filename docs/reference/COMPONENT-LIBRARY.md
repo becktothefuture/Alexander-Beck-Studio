@@ -81,7 +81,7 @@ Work, About, and Contact pair this title with `.route-centered-page__description
 
 Contact applies one intentional responsive override: its centred description uses 75% of the shared intro measure, capped at `37.8ch`. Its short title rule also uses a fluid optical offset that compensates for the Instrument Serif title's lower whitespace, keeping the rule visually midway between title and description from phone through desktop.
 
-The Work and About Coming soon components use `.route-title-lockup` with the same short separator rule and a brief route description. They follow the shared title, rule, then description entrance. Route configuration controls whether each placeholder is shown.
+The Work Coming soon screen and the About machine opening both use `.route-title-lockup`. They follow the shared title, rule and description entrance.
 
 ## Work item and presentation
 
@@ -92,3 +92,11 @@ Work renders one semantic ordered collection. Each logical item has one accessib
 The snippet stage is a named `role="dialog"` inside the studio window. It uses one close control, traps focus, makes the world inert, and restores focus to the exact logical item after reversal. Image, video, and local code media keep their intrinsic aspect ratio. The field uses posters; only the selected media can own an active video or sandboxed code iframe. Case studies use the protected Work gate and existing full project drawer. See [`PORTFOLIO.md`](PORTFOLIO.md) and [`PLAYGROUND.md`](PLAYGROUND.md).
 
 Resolved values come from the headline tokens. Project titles remain Geist so the route voice and the project-information hierarchy do not compete.
+
+## About machine
+
+The About progress bar sits 16px inside the scene edge. It contains only a faint track and a filling bar, with no handle, outline or shadow. Its accessible progress value is retained.
+
+About’s selected-client grid uses sixteen optically sized marks, with McCANN last. It is centred at 1.5 times the experience-copy width, capped at its container on mobile, with 80–120px of space above. `BoardEditorial.jsx` stores the visible artwork bounds and optical widths; source artwork is preserved. The new McCANN agency wordmark comes from https://mccann.com/wp-content/themes/mccann/dist/images/mccann-logo.svg (monochrome fill adapted to match the other marks).
+
+About’s career timeline occupies its own reading interval after the alternating ramps. The experience paragraphs and selected-client grid appear before those ramps, so logos and job history have a complete mechanical section between them. The timeline keeps the existing six-column desktop and ten-column phone reading measure. It presents five milestones, newest first, with a year, a neutral marker, employer, role and short job description. Employer names reuse the Geist reading role; dates and roles reuse the shared description size with opaque semantic muted ink. Job descriptions use that size with primary ink and a separate paragraph gap. Entries reuse the discipline row gap, and a faint dashed line connects their markers. The canonical `career-sequence` module in `contents-about.json` stores the jobs oldest first. The timeline uses the supplied career history and interview summaries. The timeline's measured height moves the following grid without stretching the ramps or handoff. Normal-flow reader mode retains the complete list with extra space before and after it; years stack above each job to keep more width for enlarged text.

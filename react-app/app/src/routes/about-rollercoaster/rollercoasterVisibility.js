@@ -4,6 +4,17 @@ import { resolveHomeSimulationBodyRadius } from '../../lib/homeSimulationSizing.
 export const HOME_SIZE_REFERENCE_DEPTH_WU = 8;
 export const ABOUT_HOME_BODY_SCALE = 0.5;
 
+// A CSS-pixel ceiling is enabled by the board on phones. Use the live lens and
+// depth, so resize, camera pitch and DPR cannot enlarge a ball past Home's size.
+export const ROLLERCOASTER_RADIUS_LIMIT_GLSL = `
+  uniform float uMaximumRadiusPx;
+  float screenLimitedRadius(float radius, float depth) {
+    if (uMaximumRadiusPx <= 0.0) return radius;
+    float focalLength = uViewportPx.y * projectionMatrix[1][1] * 0.5;
+    return min(radius, uMaximumRadiusPx * max(0.001, depth) / max(0.001, focalLength));
+  }
+`;
+
 export function resolveRollercoasterBodySize(appearance, width, height, focalLengthPx) {
   const radiusPx = resolveHomeSimulationBodyRadius(appearance.homeSimulationBodyRadiusPx,
     appearance, { cssWidth: width, cssHeight: height }) * (appearance.circleScale ?? ABOUT_HOME_BODY_SCALE);

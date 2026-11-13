@@ -1,5 +1,6 @@
 import { measureRollercoasterEndingCircle } from '../about-rollercoaster/rollercoasterEnding.js';
 import { BOARD_HANDOFF_PHASES } from './boardGridHandoffScene.js';
+import { resolveBoardSpatialBallRadiusLimit } from './boardBallPresentation.js';
 import {
   BOARD_BAND_JOURNEY, createBoardBandJourney, selectBoardTunnelGeometry,
   smoothBandProgress,
@@ -13,11 +14,23 @@ function clamp01(value) {
 
 /** Map the board's final passage onto the authored Blender ending.
  * The source starts at tunnel-b and continues through its approach and final wall. */
-export function boardAuthoredEndingProgress(progress, sourceStart = BOARD_AUTHORED_ENDING_SOURCE_START) {
+export function boardAuthoredEndingProgress(progress, sourceStart = BOARD_AUTHORED_ENDING_SOURCE_START,
+  sourceArrival = 1) {
   const start = clamp01(sourceStart);
-  const local = clamp01((clamp01(progress) - BOARD_HANDOFF_PHASES.authoredStart)
-    / (1 - BOARD_HANDOFF_PHASES.authoredStart));
-  return start + (1 - start) * local;
+  const arrival = Math.max(start, clamp01(sourceArrival));
+  if (start === arrival) return start;
+  const speed = (1 - start)
+    / (BOARD_BAND_JOURNEY.authoredEnd - BOARD_HANDOFF_PHASES.authoredStart);
+  const cruiseArrival = BOARD_HANDOFF_PHASES.authoredStart + (arrival - start) / speed;
+  const brakeStart = 2 * cruiseArrival - 1;
+  const p = clamp01(progress);
+  const t = clamp01((p - brakeStart) / (1 - brakeStart));
+  // Integrate a smooth velocity falloff: cruise speed at the join, then zero
+  // speed and acceleration at scroll end. Use the actual final station, not
+  // the source track's stationary ending hold, which would still stop early.
+  const landed = 2 * t - 2 * t * t * t + t * t * t * t;
+  const travel = p <= brakeStart ? p : brakeStart + (cruiseArrival - brakeStart) * landed;
+  return Math.max(start, Math.min(arrival, start + speed * (travel - BOARD_HANDOFF_PHASES.authoredStart)));
 }
 
 /** Measure the actual contact content so the final Blender wall keeps a clear opening. */
@@ -52,13 +65,15 @@ export async function createBoardAuthoredEndingScene(options) {
   const { createRollercoasterScene } = await import('../about-rollercoaster/rollercoasterScene.js');
   const { entries, radiusScale, sourceBalls, getGridState, onReady, ...sceneOptions } = options;
   let wrapper;
+  let sourceArrival = 1;
   function wrap(scene) {
     if (wrapper) return wrapper;
     wrapper = Object.freeze({
       ...scene,
       render(frame = {}) {
         const progress = clamp01(frame.progress);
-        return scene.render({ ...frame, progress: boardAuthoredEndingProgress(progress),
+        return scene.render({ ...frame, progress: boardAuthoredEndingProgress(progress,
+          BOARD_AUTHORED_ENDING_SOURCE_START, sourceArrival),
           boardJourneyProgress: progress });
       },
       dispose({ retireSurface = false } = {}) {
@@ -80,9 +95,15 @@ export async function createBoardAuthoredEndingScene(options) {
     scrollOwnedCamera: true,
     boardJourney: {
       selectGeometry: selectBoardTunnelGeometry,
-      create: context => createBoardBandJourney({ ...context, entries, radiusScale, sourceBalls, getGridState }),
+      maximumBallRadiusPx: resolveBoardSpatialBallRadiusLimit,
+      create: context => {
+        sourceArrival = context.meta.beats.find(beat => beat.kind === 'ending')?.start ?? 1;
+        return createBoardBandJourney({ ...context, entries, radiusScale, sourceBalls, getGridState });
+      },
       openingReveal: progress => smoothBandProgress(progress,
         BOARD_BAND_JOURNEY.endingRevealStart, BOARD_BAND_JOURNEY.endingRevealEnd),
+      arrivalProgress: progress => clamp01((progress - BOARD_BAND_JOURNEY.endingRevealStart)
+        / (BOARD_BAND_JOURNEY.endingRevealEnd - BOARD_BAND_JOURNEY.endingRevealStart)),
     },
     onReady: value => onReady?.(wrap(value)),
   });

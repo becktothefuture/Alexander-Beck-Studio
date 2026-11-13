@@ -16,7 +16,7 @@ const sources = Object.fromEntries(await Promise.all([
   ['playgroundStyles', '../react-app/app/src/routes/playground/playground.css'],
   ['playgroundResponsive', '../react-app/app/src/routes/playground/spatial/responsiveProfile.js'],
   ['about', '../react-app/app/src/routes/about-rollercoaster/AboutRollercoasterExperience.jsx'],
-  ['aboutComingSoon', '../react-app/app/src/routes/about/AboutComingSoon.jsx'],
+  ['aboutBoard', '../react-app/app/src/routes/about-game-board/AboutGameBoardExperience.jsx'],
   ['aboutRoute', '../react-app/app/src/routes/about/AboutRoute.jsx'],
   ['aboutStyles', '../react-app/app/src/routes/about-rollercoaster/about-rollercoaster.css'],
   ['siteApp', '../react-app/app/src/components/app/SiteApp.jsx'],
@@ -38,8 +38,9 @@ test('every production route lockup consumes the shared title, rule, and descrip
   assert.match(sources.playground, /className="route-title-lockup__rule"/);
   assert.match(sources.playground, /className="route-centered-page__description route-intro-description"/);
 
-  assert.match(sources.aboutComingSoon, /route-centered-page__title route-bookend-title/);
-  assert.match(sources.aboutComingSoon, /id="about-coming-soon-title"/);
+  assert.match(sources.aboutBoard, /route-centered-page__title route-bookend-title/);
+  assert.match(sources.aboutBoard, /className="route-title-lockup__rule"/);
+  assert.match(sources.aboutBoard, /route-centered-page__description route-intro-description/);
   assert.match(sources.about, /function TitleField\(\{ field, opening = false, ending = false/);
   assert.match(sources.about, /rollercoaster-title route-centered-page__title/);
   assert.match(sources.about, /data-title-ink/);
@@ -106,7 +107,7 @@ test('every production bookend uses one cached paint endpoint and glyph-only tra
     2,
   );
   assert.match(sources.contact, /data-route-enter-variant="bookend-title"/);
-  assert.match(sources.aboutComingSoon, /data-route-enter-variant="bookend-title"/);
+  assert.match(sources.aboutBoard, /data-route-enter-variant="bookend-title"/);
   assert.match(sources.about, /rollercoasterTitleOpacity\(/);
   assert.match(sources.about, /applyRollercoasterTitlePresentation\(record, opacity\)/);
   assert.doesNotMatch(sources.about, /data-route-enter-variant="bookend-title"/,
@@ -152,11 +153,12 @@ test('bookend palette frames stay fully opaque before their quieter resting endp
   );
 });
 
-test('About readiness accepts the production hold and waits for the development scene', () => {
+test('About readiness waits for the painted scene before direct boot', () => {
   assert.match(sources.siteApp, /import \{ isAboutSceneReady, waitForObservedRouteReady \}/);
-  assert.match(sources.routeReadiness, /\[data-route-content="about"\]/);
-  assert.match(sources.routeReadiness, /\[data-about-publication="held"\] #about-coming-soon-title/);
-  assert.match(sources.siteApp, /const waitsForAboutScene = routeId === 'about' && import\.meta\.env\.DEV/);
+  assert.match(sources.routeReadiness, /\[data-route-content="about"\]\[data-about-scene-ready="true"\]/);
+  assert.match(sources.routeReadiness, /body\.classList\.contains\('about-page'\) && isAboutSceneReady\(\)/);
+  assert.match(sources.siteApp, /const waitsForAboutScene = routeId === 'about';/);
+  assert.match(sources.siteApp, /const fontsReady = waitsForAboutScene\s*\? await waitForAboutSceneReady/);
 });
 
 test('Work holds production at Coming soon and prewarms the canvas only in development', () => {
@@ -174,15 +176,13 @@ test('Work holds production at Coming soon and prewarms the canvas only in devel
   assert.match(sources.siteApp, /const isPortfolioWorkCanvas = routeId === 'portfolio' && import\.meta\.env\.DEV/);
 });
 
-test('About holds production and prewarms its code-split scene in development or local certification', () => {
-  assert.match(sources.aboutRoute, /prewarm: \(\{ stage \} = \{\}\) => \{/);
+test('About lazy-loads its scene and prewarms physics on navigation intent', () => {
+  assert.match(sources.aboutRoute, /prewarm: \(\{ stage, reason \} = \{\}\) => \{/);
   assert.match(sources.aboutRoute, /stage === 'data'/);
-  assert.match(sources.aboutRoute, /return loadAboutNarrativeExperience\(\)/);
+  assert.match(sources.aboutRoute, /if \(reason === 'idle'\) return experience/);
+  assert.match(sources.aboutRoute, /return Promise\.all\(\[experience, prewarmAboutPhysics\(\)\]\)/);
   assert.match(sources.aboutRoute, /import\('\.\.\/about-game-board\/AboutGameBoardExperience\.jsx'\)/);
-  assert.match(sources.aboutRoute, /const FULL_JOURNEY = import\.meta\.env\.DEV \|\| import\.meta\.env\.MODE === 'certification'/);
-  assert.match(sources.aboutRoute, /const AboutNarrativeExperience = FULL_JOURNEY \? lazy/);
-  assert.match(sources.aboutRoute, /if \(!FULL_JOURNEY\) return Promise\.resolve\(\)/);
-  assert.match(sources.aboutRoute, /if \(!FULL_JOURNEY\) \{[\s\S]*?secondary: <AboutComingSoon \/>/);
+  assert.match(sources.aboutRoute, /const AboutNarrativeExperience = lazy\(loadAboutNarrativeForRender\)/);
   assert.doesNotMatch(sources.aboutRoute, /searchParams|localStorage|sessionStorage/);
   assert.match(sources.entranceEvents, /routeContent\.dataset\.routeEntranceStarted = 'true'/);
   assert.match(

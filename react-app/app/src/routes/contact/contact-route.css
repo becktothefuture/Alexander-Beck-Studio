@@ -22,14 +22,9 @@
 
 .contact-route__inner {
   --contact-route-description-width: min(75%, 37.8ch);
-  --contact-route-rule-optical-offset:
-    clamp(11px, calc(20.714px - 0.9524vw), 15px);
+  --route-title-rule-offset: clamp(22px, 41.428px - 1.9048vw, 30px);
   position: relative;
   z-index: 1;
-}
-
-.contact-route__inner > .route-title-lockup__rule {
-  margin-top: var(--contact-route-rule-optical-offset);
 }
 
 .contact-route__inner > .route-intro-description {

@@ -6,8 +6,9 @@ import Matter from '../react-app/app/node_modules/matter-js/build/matter.js';
 import * as THREE from '../react-app/app/node_modules/three/build/three.module.js';
 import { createRollercoasterSurfaceBatches } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterSurfaceBatches.js';
 import { sampleRollercoasterMotion } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterMotion.js';
+import { createRollercoasterCameraPose, sampleRollercoasterCamera } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterContract.js';
 import { createBoardGrid, gridHandoffProgress, boardSocketMetrics, boardGridCaptureDuration,
-  sampleBoardGridCapture } from '../react-app/app/src/routes/about-game-board/boardGrid.js';
+  nearestBoardGridCell, sampleBoardGridCapture } from '../react-app/app/src/routes/about-game-board/boardGrid.js';
 import {
   BOARD_HANDOFF_PHASES,
   boardHandoffPhaseState,
@@ -20,10 +21,12 @@ import { createBoardInventory } from '../react-app/app/src/routes/about-game-boa
 import { createBoardReservoirPreparation, createBoardSupportSafety } from '../react-app/app/src/routes/about-game-board/boardRestingState.js';
 import { createBoardArtwork } from '../react-app/app/src/routes/about-game-board/boardArtwork.js';
 import { resolveHomeSimulationBodyRadius } from '../react-app/app/src/lib/homeSimulationSizing.js';
+import { resolveRollercoasterProjection } from '../react-app/app/src/routes/about-rollercoaster/rollercoasterProjection.js';
 import { createBoardLayout } from '../react-app/app/src/routes/about-game-board/boardLayout.js';
+import { BOARD_PORTRAIT_CHUTE_HEIGHT } from '../react-app/app/src/routes/about-game-board/boardPortraitChute.js';
 import { createQuietIntervals } from '../react-app/app/src/routes/about-game-board/boardQuietIntervals.js';
 import { createBoardRigidBodyWorld, loadBoardRigidBodyBackend } from '../react-app/app/src/routes/about-game-board/boardRigidBodyWorld.js';
-import { BOARD_DIRECTION_RAMPS, BOARD_GARDEN, BOARD_SEESAWS, stepBoardSeesaw, strikeBoardSeesaw } from '../react-app/app/src/routes/about-game-board/boardMachineParts.js';
+import { BOARD_DIRECTION_RAMPS, BOARD_GARDEN, BOARD_PINBALL_BUMPERS, BOARD_SEESAWS, stepBoardSeesaw, strikeBoardSeesaw } from '../react-app/app/src/routes/about-game-board/boardMachineParts.js';
 import { boardMechanismProgress, boardValveSweepSteps } from '../react-app/app/src/routes/about-game-board/boardScrollMotion.js';
 import {
   BOARD_ARCHITECTURE_PALETTE_DEFAULTS,
@@ -31,13 +34,12 @@ import {
   boardArchitecturePaletteFromRuntimeConfig,
 } from '../react-app/app/src/routes/about-game-board/boardArchitecturePalette.js';
 import {
-  BOARD_AUTHORED_MAX_MOVING_BALL_RADIUS,
   boardBallPresentationFromRuntimeConfig,
   resolveBoardBallRadius,
   resolveBoardBallRadiusScale,
+  resolveBoardSpatialBallRadiusLimit,
 } from '../react-app/app/src/routes/about-game-board/boardBallPresentation.js';
 import {
-  boardScrollCueOpacity,
   boardTextDrawProgressAtViewportRatio,
   boardTextPresentationFromRuntimeConfig,
 } from '../react-app/app/src/routes/about-game-board/boardTextPresentation.js';
@@ -46,22 +48,18 @@ import {
   boardMechanismBallMaterial,
   shouldKeepBoardPhysicsActive,
 } from '../react-app/app/src/routes/about-game-board/boardPhysics.js';
-import {
-  BOARD_DRUMS,
-  createBoardDrumSpecs,
-  createBoardDrumPhysics,
-  drumVaneSegments,
-  DRUM_BALL_DIAMETER,
-  drumPortEdges,
-  drumRadialClearance,
-} from '../react-app/app/src/routes/about-game-board/boardDrums.js';
-import { resolveFieldBumperRadius, reservoirGateForBallRadius } from '../react-app/app/src/routes/about-game-board/boardHandoffs.js';
-import { createDrumTransferCanal } from '../react-app/app/src/routes/about-game-board/boardTransferCanal.js';
+import { createBoardDrumPhysics } from '../react-app/app/src/routes/about-game-board/boardDrums.js';
+import { createBoardAssemblyGeometry } from '../react-app/app/src/routes/about-game-board/boardAssemblyGeometry.js';
+import { resolveFieldBumperRadius, reservoirFloorPolygons, reservoirGateForBallRadius } from '../react-app/app/src/routes/about-game-board/boardHandoffs.js';
+import { reservoirSealIsClear } from '../react-app/app/src/routes/about-game-board/boardFlow.js';
 import {
   BOARD_BAND_JOURNEY,
   boardBandCentre,
   boardBandCrossSection,
+  boardBandGateFrame,
+  boardBandRibbonPose,
   selectBoardTunnelGeometry,
+  sampleBoardDroneMotion,
   smoothBandProgress,
 } from '../react-app/app/src/routes/about-game-board/boardBandJourney.js';
 import { OPENING_COPY } from '../react-app/app/src/routes/about-game-board/boardCopy.js';
@@ -84,6 +82,7 @@ import {
   boardBallRoleIndex,
   createBoardBallRoleAssignments,
   decodeBalls,
+  GRID_START_Y,
   MECHANISM,
   resolveBoardBallRoleColours,
 } from '../react-app/app/src/routes/about-game-board/boardScene.js';
@@ -320,6 +319,28 @@ test('fixture rebound has mild, high and non-elastic material levels', () => {
   assert.equal(reboundLevelForFixture('reservoir-left-floor'), 'default');
 });
 
+test('phone flight caps nearby balls at Home size and enlarges the retained gate framing', () => {
+  const presentation = boardBallPresentationFromRuntimeConfig(designSystem.runtime);
+  for (const width of [300, 370, 410]) {
+    const viewport = { cssWidth: width, cssHeight: 746, isMobileDevice: true };
+    assert.equal(resolveBoardSpatialBallRadiusLimit(presentation, viewport),
+      resolveHomeSimulationBodyRadius(presentation.homeSimulationBodyRadiusPx, presentation, viewport));
+  }
+  assert.equal(resolveBoardSpatialBallRadiusLimit(presentation,
+    { cssWidth: 1412, cssHeight: 916, isMobileDevice: false }), 0,
+  'desktop perspective keeps its existing ball size');
+
+  const source = { horizontalFov: 70, portraitVerticalFov: 95 };
+  const lens = { portraitVerticalFov: designSystem.runtime.aboutCameraPortraitFov };
+  const previous = resolveRollercoasterProjection(source, 370, 746);
+  const phone = resolveRollercoasterProjection(source, 370, 746, lens);
+  assert.ok(phone.focalLengthPx / previous.focalLengthPx > 1.4,
+    'the same gate and camera position must appear at least 40% larger on phones');
+  assert.deepEqual(resolveRollercoasterProjection(source, 1412, 916, lens),
+    resolveRollercoasterProjection(source, 1412, 916),
+    'the phone lens cap must not change the desktop framing');
+});
+
 test('board balls share responsive size controls and semantic palette roles', () => {
   const presentation = boardBallPresentationFromRuntimeConfig(designSystem.runtime);
   for (const [boardWidth, isMobileDevice] of [[300, true], [370, true], [740, true], [1412, false]]) {
@@ -493,28 +514,48 @@ test('a missing cold-pack support cannot certify an initial resting ball', () =>
   Sleeping.set(ball, true);
   const support = createBoardSupportSafety(engine, [ball], []);
   assert.deepEqual(support.inspect(), { unsupportedSleeping: 1, supported: 0, recovered: 0 });
-  support.update(100);
+  assert.deepEqual(support.inspect(true), { unsupportedSleeping: 1, supported: 0, recovered: 1 });
   assert.equal(ball.isSleeping, false,
     'a missing referenced support must wake the seed instead of freezing it in empty space');
   Engine.clear(engine);
 });
 
-test('the smaller reservoir valve preserves the Figma neck and clears a physical phone ball', () => {
+test('the reservoir seal waits for the live circle to leave the valve pocket', () => {
+  const radius = 6.65609065;
+  const gate = reservoirGateForBallRadius(radius);
+  const bounds = {
+    min: { x: gate.pivot[0] - 8, y: gate.pivot[1] - 10 },
+    max: { x: 960 - gate.pivot[0] + 8, y: gate.pivot[1] + 10 },
+  };
+  const ball = Matter.Bodies.circle(506.94, 1090, radius);
+  assert.equal(reservoirSealIsClear([ball], bounds, gate), true, 'upstream ball');
+  // Rapier exports the centre without moving the Matter display vertices.
+  ball.position.y = 1102.11;
+  assert.equal(reservoirSealIsClear([ball], bounds, gate), false, 'ball between arm and seal');
+  ball.position.y = 1121;
+  assert.equal(reservoirSealIsClear([ball], bounds, gate), false, 'ball crossing the seal');
+  ball.position.y = 1141;
+  assert.equal(reservoirSealIsClear([ball], bounds, gate), true, 'ball clear downstream');
+});
+
+test('the reservoir valve leaves four ball diameters clear and opens away from the pile', () => {
   for (const radius of [6.5, 13, 20.32, 25.1]) {
     const gate = reservoirGateForBallRadius(radius);
-    const opening = (478 - gate.pivot[0]) * 2 - gate.pivotRadius - 10 / 3;
-    assert.ok(opening >= radius * 2.08 - 1e-8, 'a phone ball must clear both the hinge and right rail');
-    if (radius <= 20.32) assert.equal(gate.pivot[0], 447, 'authored desktop/mobile neck stays 62 units');
+    const [leftFloor, rightFloor] = reservoirFloorPolygons(gate);
+    const opening = rightFloor[1][0] - leftFloor[1][0] - gate.pivotRadius - 10 / 3;
+    assert.ok(opening >= radius * 8 - 1e-8,
+      'the hinge and right rail must leave enough passage to avoid a single-ball arch');
     const dx = gate.end[0] - gate.pivot[0];
     const dy = gate.end[1] - gate.pivot[1];
     const foldedEnd = [gate.pivot[0] + Math.cos(gate.openAngle) * dx - Math.sin(gate.openAngle) * dy,
       gate.pivot[1] + Math.sin(gate.openAngle) * dx + Math.cos(gate.openAngle) * dy];
     assert.ok(gate.openAngle > 0 && Math.abs(foldedEnd[0] - gate.pivot[0]) < 1e-6,
       'opening must swing down into a vertical hanging pose, away from the pile');
-    const slope = (1102 - 891) / (gate.pivot[0] - 51);
+    const [[shoulderX, shoulderY], [neckX, neckY]] = leftFloor;
+    const slope = (neckY - shoulderY) / (neckX - shoulderX);
     const normalLength = Math.hypot(slope, 1);
     for (const [x, y] of [gate.pivot, foldedEnd]) {
-      const depthBelowFloor = (y - (891 + (x - 51) * slope)) / normalLength;
+      const depthBelowFloor = (y - (shoulderY + (x - shoulderX) * slope)) / normalLength;
       assert.ok(depthBelowFloor > gate.width / 2,
         'the entire folded arm must clear the ball-facing side of the floor');
     }
@@ -681,12 +722,11 @@ test('editorial copy shares one reading size and fails safely on architecture ov
   assert.match(routeCss, /--about-board-type-main:/);
   assert.doesNotMatch(routeCss, /--about-board-type-small/);
   assert.match(routeCss, /--about-board-copy-measure: 32ch/);
-  assert.match(routeCss,
-    /\.about-board-intro h1[\s\S]*?font-family: var\(--abs-font-headline\)/,
-    'the opening title must use the shared serif title role');
-  assert.match(routeCss,
-    /\.about-board-ending h2[\s\S]*?font-family: var\(--abs-font-headline\)/,
-    'the final invitation must use the same serif title role');
+  assert.match(experienceSource,
+    /about-board-intro__copy route-title-lockup[\s\S]*?route-centered-page__title route-bookend-title[\s\S]*?data-route-enter-variant="bookend-title"[\s\S]*?route-title-lockup__rule[\s\S]*?data-route-enter-variant="bookend-description"/,
+    'the opening uses the shared title, separator and description sequence');
+  assert.match(experienceSource, /about-board-ending__invitation[\s\S]*?<h2 className="route-centered-page__title route-bookend-title"/,
+    'the invitation must use the shared serif bookend role');
   assert.match(routeCss, /width: min\(var\(--about-board-copy-measure\), 76%\)/,
     'all reading passages must use the same central measure');
   assert.match(routeCss, /--about-board-type-main: 1\.25rem/,
@@ -704,16 +744,20 @@ test('editorial copy shares one reading size and fails safely on architecture ov
     'discipline text must stay outside the rotary drums');
 });
 
-test('alternating direction ramps leave a full ball corridor and all eight beams respond to impact', () => {
+test('the revised pinball and direction ramps leave a full ball corridor and all eight beams respond to impact', () => {
   const diameter = resolveBoardBallRadius(13, resolveBoardBallRadiusScale({}, {
     cssWidth: 320, cssHeight: 740, boardWidth: 300,
   })) * 2;
+  assert.equal(BOARD_PINBALL_BUMPERS.length, 10);
+  assert.ok(BOARD_PINBALL_BUMPERS.some(([x, y]) => Math.abs(x - 480) < 1 && y > 3780),
+    'the lower centre bumper must remain in the revised pinball pattern');
+  assert.equal(BOARD_DIRECTION_RAMPS.length, 6);
   for (let i = 0; i < BOARD_DIRECTION_RAMPS.length - 1; i += 1) {
-    const current = BOARD_DIRECTION_RAMPS[i], next = BOARD_DIRECTION_RAMPS[i + 1];
-    assert.notEqual(Math.sign(current.end[0] - current.start[0]), Math.sign(next.end[0] - next.start[0]));
-    const x = current.end[0];
-    const y = next.start[1] + (x - next.start[0]) / (next.end[0] - next.start[0]) * (next.end[1] - next.start[1]);
-    assert.ok(y - current.end[1] - 25 / 3 > diameter + 8, 'ramp ends must not pinch phone balls');
+    const { vertices } = BOARD_DIRECTION_RAMPS[i];
+    const { vertices: following } = BOARD_DIRECTION_RAMPS[i + 1];
+    assert.notEqual(Math.sign(vertices[0][0] - 480), Math.sign(following[0][0] - 480));
+    const gap = Math.min(...following.map(([, y]) => y)) - Math.max(...vertices.map(([, y]) => y));
+    assert.ok(gap > diameter + 8, 'the solid ramp faces must not pinch phone balls');
   }
   assert.equal(BOARD_SEESAWS.length, 8);
   for (const spec of BOARD_SEESAWS) {
@@ -726,74 +770,19 @@ test('alternating direction ramps leave a full ball corridor and all eight beams
   }
 });
 
-test('compartment wheels admit batches and retain balls behind their paddle tips', () => {
-  assert.equal(BOARD_DRUMS.length, 2);
-  assert.equal(DRUM_BALL_DIAMETER, BOARD_AUTHORED_MAX_MOVING_BALL_RADIUS * 2);
-  for (const radius of [6.66, 13, 20.32, 25.06]) for (const drum of createBoardDrumSpecs(radius)) {
-    const diameter = radius * 2;
-    assert.ok(drum.throatOpening > diameter * 2, 'outlets must pass a multi-ball stream');
-    assert.ok(drum.inletOpening >= drum.throatOpening);
-    assert.ok(drum.carrierOuterRadius - drum.carrierInnerRadius > diameter * 2.5,
-      'compartments must have depth for several full-size balls');
-    assert.ok(drumRadialClearance(drum) > 0 && drumRadialClearance(drum) < radius,
-      'paddles must clear the casing without letting balls bypass their tips');
-    for (const { end } of drumVaneSegments(drum)) {
-      assert.ok(Math.hypot(end[0] - drum.centre[0], end[1] - drum.centre[1])
-        + drum.vaneWidth / 2 <= drum.carrierOuterRadius + 1e-6,
-      'rounded tips must stay entirely inside the casing');
+test('the authored wheel carriers fit their chambers at both reference sizes', () => {
+  for (const radius of [6.66, 20.32, 25.06]) {
+    const geometry = createBoardAssemblyGeometry(radius);
+    const drums = createBoardDrumPhysics({ geometry });
+    assert.deepEqual(drums.specs.map(wheel => wheel.compartmentCount), [6, 4]);
+    for (const [index, wheel] of drums.specs.entries()) {
+      const eccentricity = Math.hypot(wheel.centre[0] - wheel.casingCentre[0],
+        wheel.centre[1] - wheel.casingCentre[1]);
+      assert.ok(wheel.carrierOuterRadius + eccentricity < wheel.casingRadius);
+      assert.ok(wheel.carrierOuterRadius - wheel.carrierInnerRadius > radius * 5);
+      assert.ok(drums.carrierBodies[index].parts.length <= 14,
+        'wheel motion must use a bounded number of convex parts');
     }
-  }
-});
-
-test('the drum transfer canal joins both ports with constant width and gravity drop', () => {
-  for (const radius of [6.66, 13, 20.32, 25.06]) {
-    const [large, small] = createBoardDrumSpecs(radius);
-    const canal = createDrumTransferCanal(large, small);
-    const outlet = drumPortEdges(large).outlet;
-    const inlet = drumPortEdges(small).inlet;
-    assert.deepEqual(canal.centre[0], [large.centre[0], outlet[0][1]],
-      'the canal must start on the large drum outlet centre');
-    assert.deepEqual(canal.centre.at(-1), [small.centre[0], inlet[0][1]],
-      'the canal must finish on the small drum inlet centre');
-    assert.equal(canal.centre.length, 81);
-    assert.equal(canal.left.length, canal.centre.length);
-    assert.equal(canal.right.length, canal.centre.length);
-    assert.equal(canal.clearWidth, large.throatOpening);
-    assert.ok(canal.clearWidth > radius * 4,
-      'the transfer must carry at least two full-size balls beside one another');
-    for (let index = 0; index < canal.centre.length; index += 1) {
-      const centre = canal.centre[index];
-      const left = canal.left[index];
-      const right = canal.right[index];
-      const wallDistance = Math.hypot(left[0] - right[0], left[1] - right[1]);
-      assert.ok(Math.abs(wallDistance - (canal.clearWidth + canal.width)) < 1e-8,
-        'sampled walls must preserve one constant passage width');
-      assert.ok(Math.abs(Math.hypot(left[0] - centre[0], left[1] - centre[1])
-        - wallDistance / 2) < 1e-8);
-      assert.ok(Math.abs(Math.hypot(right[0] - centre[0], right[1] - centre[1])
-        - wallDistance / 2) < 1e-8);
-      if (!index) continue;
-      assert.ok(centre[0] < canal.centre[index - 1][0],
-        'the passage must progress continuously toward the small drum');
-      assert.ok(centre[1] > canal.centre[index - 1][1],
-        'every sample must fall under world gravity without a reverse slope');
-      if (index >= canal.centre.length - 1) continue;
-      const a = canal.centre[index - 1], c = canal.centre[index + 1];
-      const first = Math.hypot(centre[0] - a[0], centre[1] - a[1]);
-      const second = Math.hypot(c[0] - centre[0], c[1] - centre[1]);
-      const chord = Math.hypot(c[0] - a[0], c[1] - a[1]);
-      const twiceArea = Math.abs((centre[0] - a[0]) * (c[1] - a[1])
-        - (centre[1] - a[1]) * (c[0] - a[0]));
-      const bendRadius = first * second * chord / (2 * twiceArea);
-      assert.ok(bendRadius > canal.clearWidth / 2 + canal.width,
-        'the inner wall must not fold over itself at the wider canal bends');
-    }
-    assert.deepEqual(canal.bounds, {
-      minX: Math.min(...canal.left.map(point => point[0]), ...canal.right.map(point => point[0])),
-      maxX: Math.max(...canal.left.map(point => point[0]), ...canal.right.map(point => point[0])),
-      minY: canal.centre[0][1],
-      maxY: canal.centre.at(-1)[1],
-    });
   }
 });
 
@@ -854,8 +843,8 @@ test('one deterministic band carries the flat field into the authored tunnel', (
   assert.ok(new Set(folded.map(point => point.join(','))).size > 4,
     'the closed cross-section must retain walls, floor and ceiling');
 
-  const distances = [0, 32, 44, 56, 68, 84, 100];
-  const centres = distances.map(boardBandCentre);
+  const distances = [0, 32, 88, 110, 140, 180, BOARD_BAND_JOURNEY.length];
+  const centres = distances.map(distance => boardBandCentre(distance));
   centres.forEach((centre, index) => {
     assert.equal(centre[2], -distances[index]);
     if (index) assert.ok(centre[2] < centres[index - 1][2],
@@ -866,7 +855,7 @@ test('one deterministic band carries the flat field into the authored tunnel', (
     'the band must develop its authored S-curve before meeting the tunnel');
   assert.ok(centres[1][1] > centres[4][1] && centres[4][1] > centres[5][1],
     'the band must descend the tower wall into the tunnel');
-  const end = boardBandCentre(100);
+  const end = boardBandCentre(BOARD_BAND_JOURNEY.length);
   assert.ok(Math.abs(end[0]) < 1e-12 && Math.abs(end[1]) < 1e-12,
     'the S-curve must meet the authored rail without a lateral offset');
 
@@ -875,63 +864,130 @@ test('one deterministic band carries the flat field into the authored tunnel', (
     { id: 'approach-platform' }, { id: 'final-wall' },
   ] });
   assert.deepEqual(selected.objects.map(object => object.id), [
-    'b-climb-gate-1', 'b-tunnel-wall', 'approach-platform', 'final-wall',
+    'b-climb-gate-1', 'b-tunnel-wall', 'final-wall',
   ], 'the same scene must continue into the authored tunnel and final station');
 });
 
-test('the 2D world stops at the first grid and Three resumes from the same record', () => {
-  assert.match(layoutSource, /sceneHeight = placeY\(BOARD_2D_END_Y\)/,
-    'the 2D world must crop at the first complete socket field');
-  assert.match(experienceSource,
-    /createBoardGridHandoffScene\(threeCanvasRef\.current,\s*grid\.entries/,
-    'Three must consume the exact validated 2D grid record');
-  assert.match(experienceSource, /gridState\.progress = 0/,
-    'the 2D grid must remain flat while Three owns the spatial bend');
-  assert.match(experienceSource,
-    /layout\.mapY\(layout\.placeY\(BOARD_2D_END_Y\)\) - layout\.mapY\(layout\.placeY\(GRID_START_Y\)\)/,
-    'the Three stage must overlap the full responsive height of the 2D grid');
-  assert.match(experienceSource, /handoffCentreError/);
-  assert.match(routeCss, /margin-top: calc\(-1 \* var\(--about-board-grid-overlap\)\)/,
-    'the first Three frame must replace the last 2D grid with no layout gap');
-  assert.match(handoffSource, /getSimulationBodyMaterialAtlas/);
-  assert.match(handoffSource,
-    /ballColourFromRoleColours\(entry, roleColours, roleAssignments\)/);
-  assert.match(handoffSource, /renderer\.setClearColor\(0x000000, 0\)/,
-    'Three must reveal the same live Studio surface as the transparent 2D canvas');
-  assert.match(handoffSource, /renderer: 'three'/);
-  assert.match(handoffSource, /cells: entries\.length/);
-  assert.match(handoffSource, /maximumCentreErrorPx/);
-  assert.match(handoffSource, /maximumRadiusErrorPx/);
+test('pigment lanes never capture another colour or reuse an occupied cell', () => {
+  const cells = [{ id: 'red-near', flatX: 0, flatY: 0, laneIndex: 0 },
+    { id: 'blue-near', flatX: 2, flatY: 0, laneIndex: 1 },
+    { id: 'blue-far', flatX: 20, flatY: 0, laneIndex: 1 }];
+  assert.equal(nearestBoardGridCell({ x: 0, y: 0 }, 1, cells, new Set()).id, 'blue-near');
+  assert.equal(nearestBoardGridCell({ x: 0, y: 0 }, 1, cells, new Set(['blue-near'])).id, 'blue-far');
+  assert.equal(nearestBoardGridCell({ x: 0, y: 0 }, 1, cells, new Set(['blue-near', 'blue-far'])), null);
 });
 
-test('the exact grid hands off to the authored Blender ending', () => {
-  assert.ok(BOARD_HANDOFF_PHASES.authoredStart < BOARD_HANDOFF_PHASES.ceilingExitEnd,
-    'the authored scene must crossfade while the exact grid clears');
-  assert.ok(BOARD_HANDOFF_PHASES.authoredVisible < BOARD_HANDOFF_PHASES.endingStart,
-    'the authored journey must be fully visible before the contact invitation');
-  const handoff = boardHandoffPhaseState(BOARD_HANDOFF_PHASES.authoredVisible);
-  assert.ok(handoff.ceilingVisibility < 0.1);
-  assert.equal(handoff.authoredVisibility, 1);
-  assert.equal(handoff.endingVisibility, 0);
-  const ending = boardHandoffPhaseState(BOARD_HANDOFF_PHASES.endingEnd);
-  assert.equal(ending.ceilingVisibility, 0);
-  assert.equal(ending.authoredVisibility, 1);
-  assert.equal(ending.endingVisibility, 1);
-  assert.deepEqual(boardHandoffPhaseState(0.72), boardHandoffPhaseState(0.72),
-    'reverse scroll must resolve to the same visual state');
-  assert.equal(boardAuthoredEndingProgress(BOARD_HANDOFF_PHASES.authoredStart),
-    BOARD_AUTHORED_ENDING_SOURCE_START);
-  assert.equal(boardAuthoredEndingProgress(1), 1);
-  assert.match(authoredEndingSource, /createRollercoasterScene/,
-    'the bottom scene must reuse the authored Blender runtime');
-  assert.match(authoredEndingSource, /measureRollercoasterEndingCircle/,
-    'the final wall opening must fit the real contact content');
-  assert.doesNotMatch(handoffSource, /createGateFrame|createWeavePoints|portalInstances/,
-    'the generated gate and weave substitute must not remain in the handoff');
-  assert.match(routeCss, /height: 460cqh;/,
-    'the spatial sequence needs enough scroll distance to read as separate phases');
-  assert.match(experienceSource, /--about-board-ending-reveal/,
-    'the contact invitation must wait for its explicit Three phase');
+test('the career timeline fills the former purpose pause and grows before the grid', () => {
+  const normal = createQuietIntervals(960);
+  const road = createQuietIntervals(960, { 'career-timeline': 600 });
+  const expanded = createQuietIntervals(960, { 'career-timeline': 800 });
+  assert.ok(normal.intervals.some(interval => interval.id === 'career-timeline'));
+  assert.ok(!road.intervals.some(interval => interval.id === 'final-statement'));
+  const timeline = road.intervals.find(interval => interval.id === 'career-timeline');
+  const experience = road.intervals.find(interval => interval.id === 'working-together');
+  assert.equal(timeline.after, 9910, 'the complete ramp module separates clients from job history');
+  assert.ok(timeline.top > experience.top + experience.height);
+  assert.equal(timeline.height, 800, 'measured copy retains 100px of padding on each side');
+  assert.equal(expanded.modules.at(-1).top - road.modules.at(-1).top, 200);
+  assert.equal(expanded.modules.at(-2).top, road.modules.at(-2).top,
+    'description growth must not move the preceding ramps');
+  assert.equal(expanded.modules.at(-1).height, road.modules.at(-1).height,
+    'the flat-to-spatial handoff keeps its physical dimensions');
+});
+
+test('the ribbon has continuous tangents and visits both sides and below the flight', () => {
+  const step = .0001;
+  for (const u of [-.75, -.5, -.25, 0, .25, .5, .75]) {
+    const a = boardBandCrossSection(u - step, 1, 5);
+    const b = boardBandCrossSection(u, 1, 5);
+    const c = boardBandCrossSection(u + step, 1, 5);
+    const acceleration = Math.hypot(c[0] - 2 * b[0] + a[0], c[1] - 2 * b[1] + a[1]) / step;
+    assert.ok(acceleration < .01, 'a gate fold must have no corner impulse');
+  }
+  const poses = Array.from({ length: 118 }, (_, index) => boardBandRibbonPose(88 + index));
+  assert.ok(poses.some(pose => Math.sin(pose.orbit) > .99));
+  assert.ok(poses.some(pose => Math.cos(pose.orbit) < -.99));
+  assert.ok(poses.some(pose => Math.sin(pose.orbit) < -.99));
+  assert.deepEqual(boardBandRibbonPose(32), { orbit: 0, clearance: 2.55, widthScale: 1, camber: 0 });
+  assert.ok(poses.every(pose => pose.clearance <= 2.9),
+    'the bending road must remain close to the camera');
+});
+
+test('the ribbon preserves the original gates and enters with their camera orientation', async () => {
+  const geometry = JSON.parse(await readFile(resolve('react-app/app/public/models/about-rollercoaster-world/geometry.json'), 'utf8'));
+  const selected = selectBoardTunnelGeometry(geometry);
+  const gates = geometry.objects.filter(object => object.id.startsWith('b-'));
+  assert.equal(gates.length, 12);
+  gates.forEach(gate => {
+    const retained = selected.objects.find(object => object.id === gate.id);
+    assert.equal(retained, gate, 'authored gate vertices, faces, depth and motion must stay untouched');
+    assert.equal(retained.positions.length, 48);
+  });
+  const entrance = gates.find(object => object.id === 'b-climb-gate-1');
+  const frame = boardBandGateFrame(entrance);
+  const track = JSON.parse(await readFile(resolve('react-app/app/public/models/about-rollercoaster-world/camera.json'), 'utf8'));
+  const station = createRollercoasterCameraPose();
+  sampleRollercoasterCamera(track, BOARD_BAND_JOURNEY.sourceStart, station);
+  const orientation = new THREE.Quaternion().fromArray(station.quaternion);
+  assert.ok(frame.right.dot(new THREE.Vector3(1, 0, 0).applyQuaternion(orientation)) > .95,
+    'the gate join must not turn the lanes across the opening');
+  assert.ok(frame.up.dot(new THREE.Vector3(0, 1, 0).applyQuaternion(orientation)) > .95,
+    'the gate ceiling must stay on the same side as the arriving ribbon');
+  assert.ok(Math.abs(frame.halfWidth - 2.55) < .001);
+  assert.ok(Math.abs(frame.halfHeight - 2.55) < .001);
+});
+
+test('the active finale is a 2D portrait fed by the finite machine inventory', () => {
+  assert.match(experienceSource, /createPortraitMap\(source\.portraitMask, inventory\.balls\)/);
+  assert.match(experienceSource, /portrait: capture, getRoleAssignments/);
+  assert.doesNotMatch(experienceSource, /transferToPortrait|Every piece, in place/);
+  assert.match(physicsSource, /portrait\?\.acceptBody\(body, gridCaptureY\)/);
+  assert.match(experienceSource, /portraitRenderer\.draw\(\)/);
+  assert.doesNotMatch(experienceSource, /createBoardAuthoredEndingScene|createBoardGridHandoffScene|threeCanvasRef/);
+});
+
+test('drone flight stays close, retraces its arcs and eases to a stationary final pose', async () => {
+  const reuse = {};
+  for (let step = 0; step <= 200; step += 1) {
+    const progress = step / 200;
+    const motion = sampleBoardDroneMotion(progress, false, reuse);
+    assert.equal(motion, reuse, 'flight sampling must reuse its bounded scratch state');
+    assert.ok(Math.hypot(motion.sway, motion.lift) < .35,
+      'camera drift must keep the ribbon within its close flight envelope');
+    assert.ok(Math.abs(motion.bank) < .05 && Math.abs(motion.pitch) < .013 && Math.abs(motion.yaw) < .01);
+    assert.ok(motion.lookAhead >= 4.4 && motion.lookAhead <= 5.6);
+    for (const still of [sampleBoardDroneMotion(progress, true),
+      sampleBoardDroneMotion(progress <= BOARD_BAND_JOURNEY.flatEnd ? progress : 1)]) {
+      assert.ok(['sway', 'lift', 'bank', 'pitch', 'yaw'].every(key => Math.abs(still[key]) === 0),
+        'flat reading, reduced motion and the final station must have no added drift');
+    }
+  }
+  const forward = sampleBoardDroneMotion(.52);
+  sampleBoardDroneMotion(.8);
+  assert.deepEqual(sampleBoardDroneMotion(.52), forward);
+  assert.ok(Math.hypot(forward.sway, forward.lift) > .05, 'the middle of the flight must develop an organic arc');
+
+  const track = JSON.parse(await readFile(resolve('react-app/app/public/models/about-rollercoaster-world/camera.json'), 'utf8'));
+  const meta = JSON.parse(await readFile(resolve('react-app/app/public/models/about-rollercoaster-world/meta.json'), 'utf8'));
+  const arrival = meta.beats.find(beat => beat.kind === 'ending').start;
+  const poseAt = progress => sampleRollercoasterCamera(track,
+    boardAuthoredEndingProgress(progress, BOARD_AUTHORED_ENDING_SOURCE_START, arrival));
+  const end = poseAt(1);
+  assert.deepEqual(end.position, sampleRollercoasterCamera(track, 1).position);
+  const epsilon = .00001;
+  let previousSpeed = Infinity;
+  for (const progress of [.93, .95, .97, .99, .999]) {
+    const before = poseAt(progress - epsilon), after = poseAt(progress + epsilon);
+    const speed = Math.hypot(...after.position.map((value, axis) => value - before.position[axis])) / (2 * epsilon);
+    assert.ok(speed > 0 && speed < previousSpeed, 'the actual camera must keep advancing while smoothly slowing');
+    previousSpeed = speed;
+  }
+  const nearEnd = poseAt(1 - .0001);
+  assert.ok(Math.hypot(...end.position.map((value, axis) => value - nearEnd.position[axis])) / .0001 < .001,
+    'final camera speed must tend to zero, including the source track ending hold');
+  const settled = sampleBoardDroneMotion(1 - .0001);
+  assert.ok(['sway', 'lift', 'bank', 'pitch', 'yaw'].every(key => Math.abs(settled[key]) / .0001 < .0001),
+    'added drift and banking must ease out without an angular or lateral stop');
 });
 
 test('the Three handoff retains a Canvas path when WebGL is unavailable', () => {
@@ -989,7 +1045,7 @@ test('grid suction has continuous endpoints and gives distant cells more travel 
 test('responsive geometry keeps visual and physical coordinates identical', () => {
   for (const compact of [false, true]) {
     const layout = createBoardLayout(compact);
-    assert.equal(layout.sceneHeight, 11140);
+    assert.equal(layout.sceneHeight, GRID_START_Y + BOARD_PORTRAIT_CHUTE_HEIGHT);
     for (const y of [0, 80, 625, 1124, 1412, 4397, 10070, 14140]) {
       assert.equal(layout.mapY(y), y);
       assert.equal(layout.inverseY(y), y);
@@ -1099,8 +1155,6 @@ test('quiet intervals keep static text and retain the independent progress indic
   assert.ok(Math.abs(boardTextDrawProgressAtViewportRatio(0.85, presentation) - 0.5) < 1e-12);
   assert.equal(boardTextDrawProgressAtViewportRatio(0.7, presentation), 1);
   assert.equal(boardTextDrawProgressAtViewportRatio(-0.1, presentation), 1);
-  assert.equal(boardScrollCueOpacity(0), 1);
-  assert.equal(boardScrollCueOpacity(0.08), 0);
   assert.match(experienceSource, /querySelectorAll\('\[data-about-scroll-text\]'\)/,
     'every marked text group must share the same scroll sampler');
   assert.doesNotMatch(experienceSource, /createBoardTextDrawLayers/,
@@ -1109,24 +1163,20 @@ test('quiet intervals keep static text and retain the independent progress indic
     'narrative text must remain fully readable in both themes');
   assert.match(routeCss, /transform: scaleY\(var\(--about-board-progress\)\)/,
     'the progress channel must fill downwards from the top');
-  assert.match(routeCss,
-    /top: calc\(\(100% - 14px\) \* var\(--about-board-progress\)\)/,
-    'the leading ball must stay attached to the end of the fill');
-  assert.match(experienceSource, /about-board-entry-cue[\s\S]*?Follow me/,
-    'the desktop entrance cue must use the edited Figma label');
+  assert.doesNotMatch(experienceSource, /about-board-scroll-indicator__ball/,
+    'the progress bar must not include a separate handle');
   assert.match(routeCss, /prefers-reduced-motion: reduce/,
     'the progress treatment must retain a static reduced-motion state');
 });
 
-test('the opening permits readable reflow and the entrance cue scrolls away', () => {
+test('the opening permits readable reflow with a single progress indicator', () => {
   assert.doesNotMatch(routeCss, /--about-board-intro-height/);
-  assert.match(routeCss, /\.about-board-entry-cue[\s\S]*?margin: 117\.125px 5% 0/);
-  assert.match(experienceSource, /const reservoirReadingHeight = Math\.min/);
+  assert.match(routeCss, /\.about-board-intro[\s\S]*?min-height: 60cqh/);
+  assert.match(experienceSource, /settledOpening\.surfaceY - inventory\.radius - layout\.reservoirTop/,
+    'the prepared pile must meet the bottom of the intro');
   assert.doesNotMatch(experienceSource, /inventory\.surfaceY - layout\.reservoirTop/,
     'settling balls must not shift the intro or editorial layout');
-  assert.match(experienceSource, /about-board-intro[\s\S]*?about-board-entry-cue/);
-  assert.doesNotMatch(experienceSource, /about-board-scroll-arrow/,
-    'Follow me must not follow the visitor down the page');
+  assert.doesNotMatch(experienceSource, /about-board-entry-cue|about-board-scroll-arrow|Follow me/);
   assert.doesNotMatch(experienceSource, /const physics = reducedMotion \? null/);
 });
 
@@ -1147,7 +1197,7 @@ test('quiet intervals translate complete mechanisms without scaling collisions o
     assert.deepEqual(placePoint([715, 2940]), [715, placeY(2940)]);
     const layout = createBoardLayout(boardWidth < 900,
       { boardWidth, viewportHeight: 844, quietHeights: {} });
-    assert.equal(layout.sceneHeight, layout.placeY(11140) - layout.reservoirTop);
+    assert.equal(layout.sceneHeight, layout.placeY(GRID_START_Y) - layout.reservoirTop + BOARD_PORTRAIT_CHUTE_HEIGHT);
     assert.ok(Math.abs(layout.mapY(layout.placeY(11140))
       - layout.mapY(layout.placeY(10030)) - 1110) < 1e-8,
     'only placement may change; the 2D/3D field keeps its exact height');
@@ -1156,7 +1206,7 @@ test('quiet intervals translate complete mechanisms without scaling collisions o
 
 test('the uninterrupted machine keeps compact joins when editorial content grows', () => {
   for (const boardWidth of [300, 370, 820, 1412]) {
-    const heights = { disciplines: 700, 'working-together': 600, 'final-statement': 80 };
+    const heights = { disciplines: 700, 'working-together': 600, 'career-timeline': 80 };
     const before = createQuietIntervals(boardWidth, heights);
     const after = createQuietIntervals(boardWidth, { ...heights, disciplines: 850 });
     const added = 150 * 960 / boardWidth;
@@ -1165,7 +1215,7 @@ test('the uninterrupted machine keeps compact joins when editorial content grows
       assert.ok(Math.abs(after.placeY(y) - before.placeY(y) - added) < 1e-8,
         'copy growth must move every subsequent mechanism and the handoff together');
     }
-    for (const [index, clearance] of [[0, 80], [3, 0], [5, 90]]) {
+    for (const [index, clearance] of [[0, 157.8889], [3, 114.3203]]) {
       for (const layout of [before, after]) {
         const current = layout.modules[index], next = layout.modules[index + 1];
         assert.ok(Math.abs(next.top - current.top - current.height - clearance) < 1e-8,
@@ -1179,166 +1229,52 @@ test('the uninterrupted machine keeps compact joins when editorial content grows
       assert.ok(Math.abs(interval.top + interval.height - next.top) < 1e-8);
     }
     assert.deepEqual(before.intervals.map(interval => interval.id),
-      ['garden-ideas', 'disciplines', 'practice', 'making', 'working-together', 'final-statement']);
+      ['garden-ideas', 'disciplines', 'practice', 'making', 'working-together', 'career-timeline']);
   }
 });
 
 
-test('both compartment wheels release a lone ball without a jam or deep overlap', () => {
-  for (const radius of [6.66, 20.32, 25.06]) for (const spec of createBoardDrumSpecs(radius)) {
-    const drums = createBoardDrumPhysics({ specs: [spec], setRotation() {} });
-    const engine = Matter.Engine.create({ positionIterations: 10, velocityIterations: 8 });
-    const ball = Matter.Bodies.circle(spec.centre[0], spec.centre[1] - spec.casingRadius - 70,
-      radius, { ...matterBallMaterial(), restitution: 0 });
-    const fixtures = [...drums.fixedBodies, ...drums.carrierBodies];
-    Matter.Composite.add(engine.world, [...fixtures, ball]);
-    let passed = false;
-    let deepest = 0;
-    for (let t = 0; t < 22000; t += BOARD_WORLD_PHYSICS.fixedStepMs) {
-      drums.update(t);
-      stepBoardWorld(engine, [ball], BOARD_WORLD_PHYSICS.fixedStepMs, fixtures);
-      for (const contact of Matter.Query.collides(ball, fixtures)) deepest = Math.max(deepest, contact.depth);
-      if (ball.position.y > spec.centre[1] + spec.casingRadius + 120) { passed = true; break; }
-    }
-    assert.ok(passed, `${spec.id} at radius ${radius} must release through its outlet`);
-    assert.ok(deepest < 1, `${spec.id} contact must remain below one board unit`);
-    Matter.Composite.clear(engine.world, false);
-    Matter.Engine.clear(engine);
-  }
-});
-
-test('loaded compartment wheels clear a loose batch at desktop and phone ball sizes', async () => {
-  // Neither wheel gets a synthetic one-at-a-time feed. Loose batches must
-  // travel through the actual compartments with sleeping enabled.
-  await loadBoardRigidBodyBackend();
-  for (const radius of [7.51, 20.32, 25.06]) for (const spec of createBoardDrumSpecs(radius)) {
-    const [cx, cy] = spec.centre;
-    const drums = createBoardDrumPhysics({ specs: [spec] });
-    const engine = Matter.Engine.create({ enableSleeping: true,
-      positionIterations: 12, velocityIterations: 8 });
-    const [inletLeft, inletRight] = drumPortEdges(spec).inlet;
-    const approach = inletLeft[1];
-    const half = (spec.inletOpening + spec.casingWidth) / 2 + 8;
-    const rail = (a, b) => Matter.Bodies.rectangle((a[0] + b[0]) / 2, (a[1] + b[1]) / 2,
-      Math.hypot(b[0] - a[0], b[1] - a[1]) + 2, spec.casingWidth,
-      { isStatic: true, angle: Math.atan2(b[1] - a[1], b[0] - a[0]), friction: .05, restitution: 0 });
-    const small = spec.id === 'small-drum';
-    // The second wheel receives a full loose column from the constant-width
-    // canal. A broad hopper here would introduce an unrelated granular arch.
-    const feed = small
-      ? [rail([inletLeft[0], approach - 1800], inletLeft),
-        rail(inletRight, [inletRight[0], approach - 1800])]
-      : [rail([cx - 320, approach - 190], inletLeft),
-        rail(inletRight, [cx + 320, approach - 190]),
-        rail([cx - 320, approach - 190], [cx - 320, approach - 1000]),
-        rail([cx + 320, approach - 190], [cx + 320, approach - 1000])];
-    if (small) for (const body of feed) { body.friction = 0; body.frictionStatic = 0; }
-    const fixtures = [...drums.fixedBodies, ...drums.carrierBodies, ...feed];
-    const columns = small ? 2 : 6;
-    const balls = Array.from({ length: 36 }, (_, index) => Matter.Bodies.circle(
-        cx + (index % columns - (columns - 1) / 2) * radius * 2.1,
-        approach - 240 - Math.floor(index / columns) * radius * 2.1, radius,
-        { ...matterBallMaterial(), restitution: 0 }));
-    Matter.Composite.add(engine.world, [...fixtures, ...balls]);
-    const adapter = createBoardRigidBodyWorld({ engine, balls, fixtures,
-      movingFixtures: drums.carrierBodies });
-    const output = [];
-    let released = 0;
-    let escaped = 0;
-    try {
-      for (let step = 0; step < 3600; step += 1) {
-        drums.update((step + 1) * adapter.fixedStepMs);
-        adapter.step(adapter.fixedStepMs);
-        for (let index = balls.length - 1; index >= 0; index -= 1) {
-          const ball = balls[index];
-          if (ball.position.y <= cy + spec.casingRadius + 100) continue;
-          if (Math.abs(ball.position.x - cx) > half + 30) escaped += 1;
-          released += 1;
-          Matter.Composite.remove(engine.world, ball);
-          balls.splice(index, 1);
-        }
-        if (step % 600 === 599) output.push(released);
-      }
-      const label = `${spec.id} at radius ${radius}`;
-      assert.equal(escaped, 0, `${label} must release through its outlet, not around its casing`);
-      assert.equal(released, 36, `${label} must clear the entire loaded batch: ${output}`);
-      assert.ok(output.slice(1).every((count, index) => output[index] === 36 || count > output[index]),
-        `${label} must keep releasing in every ten-second interval: ${output}`);
-    } finally {
-      adapter.dispose();
-      Matter.Composite.clear(engine.world, false);
-      Matter.Engine.clear(engine);
-    }
-  }
-});
-
-test('the connected compartment wheels move batches through their canal without trapping or losing balls', async () => {
+test('the integrated assembly releases a loaded batch through both wheels', async () => {
   await loadBoardRigidBodyBackend();
   for (const radius of [6.66, 20.32, 25.06]) {
-    const specs = createBoardDrumSpecs(radius);
-    const drums = createBoardDrumPhysics({ specs });
-    const canal = createDrumTransferCanal(...specs);
-    const rail = (a, b, width, label) => Matter.Bodies.rectangle(
-      (a[0] + b[0]) / 2, (a[1] + b[1]) / 2,
-      Math.hypot(b[0] - a[0], b[1] - a[1]) + 2, width,
-      { isStatic: true, angle: Math.atan2(b[1] - a[1], b[0] - a[0]),
-        friction: 0, restitution: 0, label });
-    const fixtures = [...drums.fixedBodies, ...drums.carrierBodies];
-    for (const [side, points] of [canal.left, canal.right].entries()) {
-      for (let i = 1; i < points.length; i += 1) fixtures.push(
-        rail(points[i - 1], points[i], canal.width, `rail:drum-transfer-${side}`));
-    }
-    const [left, right] = drumPortEdges(specs[0]).inlet;
-    const cx = specs[0].centre[0], approach = left[1];
-    fixtures.push(rail([cx - 340, approach - 250], left, 18, 'feed-left'),
-      rail(right, [cx + 340, approach - 250], 18, 'feed-right'),
-      rail([cx - 340, approach - 250], [cx - 340, approach - 1400], 18, 'feed-left-wall'),
-      rail([cx + 340, approach - 250], [cx + 340, approach - 1400], 18, 'feed-right-wall'));
+    const geometry = createBoardAssemblyGeometry(radius > 10 ? 25.06 : radius);
+    const drums = createBoardDrumPhysics({ geometry });
+    const fixtures = [...drums.fixedBodies, ...drums.carrierBodies,
+      Matter.Bodies.rectangle(-25, 900, 50, 3000, { isStatic: true }),
+      Matter.Bodies.rectangle(985, 900, 50, 3000, { isStatic: true })];
     const balls = Array.from({ length: 96 }, (_, index) => Matter.Bodies.circle(
-      cx + (index % 8 - 3.5) * radius * 2.12 + (Math.floor(index / 8) % 2) * radius * .12,
-      approach - 300 - Math.floor(index / 8) * radius * 2.12, radius,
-      { ...matterBallMaterial(), restitution: 0, plugin: { boardId: `batch-${index}` } }));
+      480 + (index % 8 - 3.5) * radius * 2.12 + (Math.floor(index / 8) % 2) * radius * .12,
+      -180 - Math.floor(index / 8) * radius * 2.12, radius,
+      { ...matterBallMaterial(), friction: 0, frictionStatic: 0, restitution: 0,
+        plugin: { boardId: 'assembly-batch-' + index } }));
     const engine = Matter.Engine.create({ enableSleeping: true });
     Matter.Composite.add(engine.world, [...fixtures, ...balls]);
     const adapter = createBoardRigidBodyWorld({ engine, balls, fixtures,
       movingFixtures: drums.carrierBodies });
-    let released = 0, escaped = 0, afterThirtySeconds = 0;
-    const peak = [0, 0];
+    const settledIds = new Set();
+    const peakLoads = drums.specs.map(() => 0);
     try {
-      for (let step = 0; step < 3600; step += 1) {
+      for (let step = 0; step < 5400 && balls.length; step += 1) {
         const time = (step + 1) * adapter.fixedStepMs;
         drums.update(time);
         adapter.step(adapter.fixedStepMs);
-        if (step % 6 === 0) for (const [wheel, spec] of specs.entries()) {
-          const load = Array(spec.compartmentCount).fill(0);
-          for (const ball of balls) {
-            const dx = ball.position.x - spec.centre[0], dy = ball.position.y - spec.centre[1];
-            const distance = Math.hypot(dx, dy);
-            if (distance < spec.carrierInnerRadius + radius
-              || distance > spec.carrierOuterRadius - radius) continue;
-            const angle = ((Math.atan2(dy, dx) - time * spec.speed + Math.PI / 2)
-              % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-            load[Math.floor(angle / (Math.PI * 2) * load.length)] += 1;
-          }
-          peak[wheel] = Math.max(peak[wheel], ...load);
+        if (step % 12 === 0) for (const [index, wheel] of drums.specs.entries()) {
+          const inWheel = balls.filter(ball => Math.hypot(ball.position.x - wheel.casingCentre[0],
+            ball.position.y - wheel.casingCentre[1]) < wheel.casingRadius - radius);
+          peakLoads[index] = Math.max(peakLoads[index], inWheel.length);
         }
-        for (let i = balls.length - 1; i >= 0; i -= 1) {
-          const ball = balls[i], small = specs[1];
-          if (ball.position.y <= small.centre[1] + small.casingRadius + 130) continue;
-          if (Math.abs(ball.position.x - small.centre[0]) > small.throatOpening / 2 + 60) escaped += 1;
-          released += 1;
+        for (let index = balls.length - 1; index >= 0; index -= 1) {
+          const ball = balls[index];
+          if (ball.position.y <= geometry.height) continue;
+          assert.ok(ball.position.x > 240 && ball.position.x < 720, 'the batch exits through the channel');
+          settledIds.add(ball.plugin.boardId);
           Matter.Composite.remove(engine.world, ball);
-          balls.splice(i, 1);
+          balls.splice(index, 1);
         }
-        if (step === 1799) afterThirtySeconds = released;
       }
-      assert.equal(escaped, 0, `radius ${radius}: the full load must stay inside the machine`);
-      assert.equal(released, 96, `radius ${radius}: no ball may remain trapped after the batch`);
-      assert.ok(afterThirtySeconds >= 32,
-        `radius ${radius}: the pair must sustain batch throughput, got ${afterThirtySeconds}`);
-      assert.ok(peak.every(count => count >= 2), 'both wheels must carry multi-ball compartments');
-      assert.ok(drums.carrierBodies.every(body => body.parts.length <= 32),
-        'rotors must remain simple convex parts, not hundreds of animated triangles');
+      assert.equal(settledIds.size, 96, 'all identities drain at radius ' + radius
+        + ': ' + JSON.stringify(balls.map(ball => [ball.plugin.boardId, ball.position, ball.velocity])));
+      assert.ok(peakLoads.every(count => count >= 2), 'both wheels carry a loose batch');
     } finally {
       adapter.dispose();
       Matter.Composite.clear(engine.world, false);

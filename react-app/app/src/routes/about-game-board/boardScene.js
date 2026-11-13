@@ -5,8 +5,6 @@ import {
   resolveSimulationMaterialColorIndex,
   resolveSimulationPaletteColors,
 } from '../../palette/simulationPaletteContract.js';
-import { PRODUCT_RECEIVER_LIFT } from './boardPinball.js';
-import { BOARD_DIRECTION_RAMPS } from './boardMachineParts.js';
 import { BOARD_ARCHITECTURE_LINE_SCALE } from './boardArchitectureWeight.js';
 
 const RESERVOIR_MIX_MIN_Y = 90;
@@ -24,16 +22,6 @@ export const GRID_START_Y = 10030;
 export const GRID_END_Y = 11140;
 export const BOARD_2D_END_Y = GRID_END_Y;
 
-// Only these paths have a physical rail. The rest of the exact Figma export
-// remains artwork until its particular mechanism is modelled explicitly.
-export const RAIL_PATH_IDS = Object.freeze([
-  'reservoir-left-floor', 'reservoir-right-floor',
-  ...BOARD_DIRECTION_RAMPS.map(ramp => ramp.id),
-  'Vector_152', 'Vector_153',
-  'Vector_156', 'Vector_157',
-  'drum-transfer-left', 'drum-transfer-right',
-]);
-
 export const MECHANISM = Object.freeze({
   reservoirGate: {
     id: 'geometry-fixture-0001',
@@ -45,7 +33,6 @@ export const MECHANISM = Object.freeze({
     // across the outlet and creates a shelf that traps the released queue.
     openAngle: -2.2,
   },
-  meterGate: { id: 'geometry-fixture-0004', pivot: [349, 5544 - PRODUCT_RECEIVER_LIFT] },
 });
 
 /** The six Figma source pigments identify semantic roles, not final colours.

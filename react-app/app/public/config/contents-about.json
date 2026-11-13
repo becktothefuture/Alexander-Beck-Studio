@@ -692,17 +692,59 @@
               {
                 "id": "practice",
                 "kind": "prose",
-                "text": "I work across product design, art direction and design systems, using code, motion, 3D and AI to explore possibilities and develop distinctive experiences. I care about how they work and how they feel to use, with beauty and character playing a part in both."
+                "text": "I work across product design, art direction and design systems. I use code, motion, 3D and AI to explore what’s possible and develop distinctive experiences. I care about how they work and how they feel to use. Beauty and character play a part in both."
+              },
+              {
+                "id": "career-sequence",
+                "kind": "career-sequence",
+                "label": "Career timeline",
+                "items": [
+                  {
+                    "id": "dennerlein",
+                    "yearLabel": "2014",
+                    "employer": "Dennerlein",
+                    "role": "Art Director",
+                    "description": "I shaped digital experiences that brought brand and the customer journey together."
+                  },
+                  {
+                    "id": "yoti",
+                    "yearLabel": "2017",
+                    "employer": "Yoti",
+                    "role": "Senior Product Designer",
+                    "description": "I explored how to make digital identity feel clear, private and easy to use."
+                  },
+                  {
+                    "id": "hugo-and-cat",
+                    "yearLabel": "2020",
+                    "employer": "Hugo & Cat",
+                    "role": "Senior Designer → Associate Design Director",
+                    "description": "I helped shape digital projects for established brands."
+                  },
+                  {
+                    "id": "mrm",
+                    "yearLabel": "2024",
+                    "employer": "MRM (McCann)",
+                    "role": "Associate Design Director",
+                    "description": "I led design for digital products and brand experiences, from research and art direction to design systems and front-end development. I built interactive prototypes with motion and 3D and championed AI for early concept exploration."
+                  },
+                  {
+                    "id": "critical-mass",
+                    "yearLabel": "2026",
+                    "employer": "Critical Mass",
+                    "role": "Associate Design Director",
+                    "description": "I brought a more tactile feel to digital services, working with engineers to turn that direction into reusable components and motion. I also built AI prototypes to explore how people could find the right information or service."
+                  }
+                ]
               },
               {
                 "id": "collaboration",
                 "kind": "prose",
-                "text": "That range helps me connect creative direction with how an experience actually works. It also gives teams something tangible to discuss and test, bringing different perspectives into the process before committing to a direction."
+                "text": "That range helps me connect creative direction with how an experience works in practice. I give teams something tangible to discuss and test, so different perspectives can shape the work before the team commits to a direction."
               },
               {
                 "id": "making",
                 "kind": "prose",
-                "text": "Ideas take shape through making, testing and refining."
+                "text": "I shape ideas through making, testing and refining."
               }
             ]
           }
@@ -774,32 +816,32 @@
               {
                 "id": "experience-design",
                 "label": "Design Strategy",
-                "description": "Understanding the challenge, identifying worthwhile opportunities and helping a team decide where to focus."
+                "description": "I help teams understand the challenge, identify worthwhile opportunities and decide where to focus."
               },
               {
                 "id": "art-direction",
                 "label": "Creative Direction",
-                "description": "Giving the work a clear point of view and guiding the people and decisions that shape it."
+                "description": "I give the work a clear point of view and guide the team through the decisions that shape it."
               },
               {
                 "id": "product-design",
                 "label": "Product Design",
-                "description": "Connecting user needs with business priorities, then developing products that make sense for both."
+                "description": "I design products around what people need and what the business needs to achieve."
               },
               {
                 "id": "parametric-systems",
                 "label": "Brand Identity",
-                "description": "Creating a recognisable identity and defining how it comes through in products, services and communications."
+                "description": "I create recognisable identities and define how they come through in products, services and communications."
               },
               {
                 "id": "creative-engineering",
                 "label": "Creative Technology",
-                "description": "Exploring what code, AI and generative systems can offer, then building working prototypes to test their value."
+                "description": "I explore what code, AI and generative systems can contribute to a project, then build working prototypes to test their value."
               },
               {
                 "id": "motion-and-3d",
                 "label": "Motion & 3D",
-                "description": "Using movement, space and timing to explain ideas and give digital experiences character."
+                "description": "I use movement, space and timing to explain ideas and give digital experiences character."
               }
             ]
           },
@@ -830,7 +872,7 @@
               {
                 "id": "context",
                 "kind": "prose",
-                "text": "My experience spans agencies, startups and established brands, across luxury, automotive, financial intelligence and digital identity."
+                "text": "I’ve worked with agencies, startups and established brands in luxury, automotive, financial intelligence and digital identity."
               },
               {
                 "id": "approach",
@@ -932,6 +974,12 @@
                     "src": "/images/about/client-logos/figma/think-money-think-life.png",
                     "alt": "Think Money Think Life",
                     "scale": 0.92
+                  },
+                  {
+                    "id": "mccann-agency",
+                    "label": "McCANN",
+                    "src": "/images/about/client-logos/mccann-agency.svg",
+                    "alt": "McCANN"
                   }
                 ]
               }
@@ -1008,7 +1056,7 @@
               {
                 "id": "purpose",
                 "kind": "prose",
-                "text": "I help teams make considered decisions about what to pursue and how to develop it. My aim is to create work that serves a clear purpose, communicates its value and earns its place in people’s lives."
+                "text": "I help teams decide what’s worth pursuing and how to develop it. I aim to create work that serves a clear purpose, communicates its value and earns its place in people’s lives."
               }
             ]
           }
@@ -1034,7 +1082,7 @@
           "preset": "finale-v1",
           "titleStyle": "display",
           "text": "Let’s talk.",
-          "description": "Get in touch to discuss a project or collaboration."
+          "description": "I’m interested in hearing about new projects and collaborations."
         }
       ]
     },

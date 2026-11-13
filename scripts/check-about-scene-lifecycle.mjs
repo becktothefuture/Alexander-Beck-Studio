@@ -5,6 +5,7 @@ import {
   boardShouldKeepMachineWarm,
   boardOwnsMountedSurface,
   createBoardFramePacer,
+  boardMachineIsVisible,
 } from '../react-app/app/src/routes/about-game-board/boardSceneLifecycle.js';
 
 const scene = {
@@ -14,6 +15,13 @@ const scene = {
   stageHeight: 4160,
   spatialReady: true,
 };
+
+test('fractional Safari scroll bounds release the fully offscreen machine', () => {
+  assert.equal(boardMachineIsVisible(10841, 10841.359375), false);
+  assert.equal(boardMachineIsVisible(10840, 10841.359375), true);
+  assert.equal(boardMachineIsVisible(8000, 8000), false);
+  assert.equal(boardMachineIsVisible(7998, 8000), true);
+});
 
 test('queued work rejects detached route refs but accepts a mounted keyed canvas', () => {
   const route = { isConnected: true };

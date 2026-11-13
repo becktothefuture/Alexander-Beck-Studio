@@ -1,9 +1,27 @@
 import {
-  BOARD_2D_END_Y,
+  GRID_START_Y,
   BOARD_HEIGHT,
   BOARD_WIDTH,
 } from './boardScene.js';
+import { BOARD_PORTRAIT_CHUTE_HEIGHT } from './boardPortraitChute.js';
 import { createQuietIntervals } from './boardQuietIntervals.js';
+
+/** Keep real ball positions within the same module when reading gaps reflow. */
+export function remapBoardY(y, previous, next) {
+  const before = previous?.placement?.modules, after = next?.placement?.modules;
+  if (!before || !after) return y;
+  for (let index = 0; index < before.length; index += 1) {
+    const source = before[index], target = after[index];
+    if (y <= source.top + source.height) return y + target.top - source.top;
+    const following = before[index + 1], nextFollowing = after[index + 1];
+    if (following && y < following.top) {
+      const end = source.top + source.height;
+      const fraction = (y - end) / Math.max(1, following.top - end);
+      return target.top + target.height + fraction * (nextFollowing.top - target.top - target.height);
+    }
+  }
+  return y + after.at(-1).top - before.at(-1).top;
+}
 
 /** Artwork and collisions share one coordinate space at every viewport. */
 export function createBoardLayout(compact, {
@@ -19,7 +37,8 @@ export function createBoardLayout(compact, {
   const placeY = placement?.placeY || (y => y);
   const placePoint = placement?.placePoint || (point => point);
   const height = placeY(BOARD_HEIGHT) - reservoirTop;
-  const sceneHeight = placeY(BOARD_2D_END_Y) - reservoirTop;
+  const portraitChuteTop = placeY(GRID_START_Y);
+  const sceneHeight = portraitChuteTop + BOARD_PORTRAIT_CHUTE_HEIGHT - reservoirTop;
   const mapY = y => y - reservoirTop;
   const inverseY = y => y + reservoirTop;
 
@@ -38,6 +57,6 @@ export function createBoardLayout(compact, {
     });
   }
 
-  return { compact, height, sceneHeight, reservoirTop, mapY, inverseY, applyToSvg,
+  return { compact, height, sceneHeight, portraitChuteTop, reservoirTop, mapY, inverseY, applyToSvg,
     placement, placeY, placePoint };
 }

@@ -27,7 +27,7 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     }),
   }),
   about: Object.freeze({
-    identitySelector: '[data-about-publication="held"] #about-coming-soon-title',
+    identitySelector: '[data-route-content="about"][data-about-scene-ready="true"] .about-board-intro #about-route-title',
     renderedRouteId: 'about',
     runtime: false,
     representativeFocus: Object.freeze({
@@ -35,7 +35,7 @@ const RELEASE_SMOKE_ROUTE_CONTRACTS = Object.freeze({
     }),
     semanticContract: Object.freeze({
       mainSelector: '#simulations[role="main"][data-route-content="about"]',
-      headingSelector: 'h1#about-coming-soon-title[data-route-focus-target]',
+      headingSelector: 'h1#about-route-title[data-route-focus-target]',
       labelHostSelector: '#simulations',
     }),
   }),

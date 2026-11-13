@@ -24,10 +24,10 @@ const VERTICAL_FOV = 50;
 
 /** The exact board grid continues as a band, then joins the Blender tunnel. */
 export const BOARD_HANDOFF_PHASES = Object.freeze({
-  bendStart: 0.06,
-  bendEnd: 0.42,
-  ceilingExitStart: 0.40,
-  ceilingExitEnd: 0.54,
+  bendStart: BOARD_BAND_JOURNEY.flatEnd,
+  bendEnd: BOARD_BAND_JOURNEY.tiltEnd,
+  ceilingExitStart: 0.65,
+  ceilingExitEnd: 0.76,
   authoredStart: BOARD_BAND_JOURNEY.authoredStart,
   authoredVisible: BOARD_BAND_JOURNEY.authoredStart,
   endingStart: BOARD_BAND_JOURNEY.endingRevealEnd,

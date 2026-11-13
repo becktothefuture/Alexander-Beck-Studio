@@ -1,68 +1,33 @@
-# About game board development route
+# About game board
 
-This directory owns the local About experience at `http://localhost:8012/about.html`.
-The reviewed [Figma frame](https://www.figma.com/design/5WbJdwCYLbs3HBqhJopRet?node-id=2-2)
-is the visible geometry source. Reviewed captures live under
-`docs/plans/about-game-board-20260921/figma-geometry/`. Run
-`node scripts/sync-about-game-board-geometry.mjs` after a new capture is
-approved. Never hand-edit generated files in `public/models/about-game-board/`.
-The [editable modular reference](https://www.figma.com/design/5WbJdwCYLbs3HBqhJopRet?node-id=81-2)
-has seven full-width architecture masters. Desktop uses them at 1412 px;
-mobile uses the same masters scaled to 370 px. The funnel and valve share one
-master, as do both compartment drums and their connecting canal. Text, logos
-and the captured ball piles remain separate responsive layers. This is the
-Figma handoff structure; the live renderer still owns its responsive physics.
-
-The local route remains behind the existing production launch boundary. The
-main physics path is still being profiled, so passing a focused check does not
-make this scene production-ready and does not authorize a publish.
+This directory owns the About experience at `/about.html`.
+The [current About Figma page](https://www.figma.com/design/5WbJdwCYLbs3HBqhJopRet?node-id=228-2)
+is the design reference. See the repository’s About Figma component map for the
+adopted module IDs. The existing SVG and ball snapshot remain generated from the
+reviewed captures under docs/plans/about-game-board-20260921/figma-geometry/.
+Runtime geometry supplies the revised fixtures and combined assembly.
 
 ## Experience contract
 
-**Architecture** means every visible machine fixture inside the About window,
-excluding balls, text, controls and the Studio shell.
+- The opening uses the shared title role, a grey surface and a settled finite
+  ball inventory at the shared Home size. The phone reference adds a band of
+  page surface above the introduction. The centred title group starts lower
+  in both layouts and the settled pile begins at the foot of the introduction.
+- The filled reservoir, mirrored garden exit, ten pinball bumpers, combined
+  assembly, and six tapered ramps share their visible and physical geometry.
+  Both valves follow scroll and reverse. The automatic wheels have six and
+  four paddles. The receiver grades toward the outlet, and the feed throat
+  grows for the larger ball radius.
+- Reading intervals use the shared grid and measure their content. The ending
+  pairs a central chute and clear drop with a flat grey ledge. The portrait
+  builds upward from the ledge as the original balls arrive. Phone visitors
+  can pan the portrait. The invitation offers Contact Me, Download CV and
+  LinkedIn. The CV action uses the existing invite gate.
+- The production build serves the full journey. Authoring tools and diagnostics
+  are available locally.
 
-- Architecture uses exactly three monochrome roles in each theme: fixture,
-  wall and action. Canonical values live in `public/config/design-system.json`;
-  `boardArchitecturePalette.js` resolves them and `about-game-board.css` maps
-  them into the scene. Visible strokes and matching collision rails use the
-  shared one-third line scale in `boardArchitectureWeight.js`; drum centres,
-  pinball rims and empty socket lips follow that scale. Ball colours remain
-  under the shared Canvas palette.
-- The first screen reserves 70% for the opening copy and reveals the supported
-  reservoir surface in the lower 30%. The visible reservoir is the funnel;
-  side bounds remain physical but are not drawn. Its finite inventory uses half
-  of the former chamber capacity at the shared Home ball size, so the resting
-  pile is about half as tall. Balls begin supported in the funnel.
-- The opening and final “Let’s talk” titles use Instrument Serif. All narrative
-  copy, discipline headings, descriptions and instructions share one Geist
-  reading size. At viewport widths up to 640 px, the title and reading sizes
-  use `--about-board-mobile-type-scale: .8`. Shared navigation and action
-  controls retain their normal text and touch sizes. Measures stay within
-  32 characters. Mobile copy uses wider gutters beside the drums; the pinball
-  sling tips and lower bumper row leave a larger central reading pocket.
-  Visible slings and collisions use the same rounded vertices. Selected-client
-  logos use the canonical assets in four columns with extra mobile row spacing.
-- Both automatic wheels have six open compartments. Radial paddles carry
-  several loose balls per compartment around a smaller central hub. Each
-  rotor uses 13 convex collision parts instead of the old 272-triangle ring.
-  Its rounded tips, casing clearance and inlet/outlet follow the Home radius.
-- The transfer between the drums is one smooth, constant-width downhill canal,
-  wide enough for at least two balls together. Its inner bends cannot fold
-  over themselves; drawing and colliders consume the same sampled walls.
-  The later pinball bank contains five symmetric high-rebound bumpers.
-- A filled grid cell owns one ball. Its socket disappears while occupied, and
-  the 2D socket shadow fades as the 3D seam takes over.
-- The socket grid continues into one curved band and refines into the retained
-  Blender tunnel in the same Three.js world and camera. The contact passage
-  clears through organic movement and shrink, rather than a detached scene cut.
-- The final centred action group contains email, LinkedIn and Download CV. The
-  CV action reuses the Work invite grant and CV-specific gate copy. This is a
-  client-side invitation boundary only: the public PDF remains retrievable by
-  its direct static URL.
-
-`contents-about.json` remains the content source for the selected-client logo
-module and contact details. `boardCopy.js` owns the shorter scene beats.
+The editorial copy comes from contents-about.json and boardCopy.js. Geometry
+adoption stays local to this route.
 
 ## Runtime ownership
 
@@ -80,20 +45,17 @@ module and contact details. `boardCopy.js` owns the shorter scene beats.
 | `boardPhysics.js` | Scene orchestration plus Matter authoring and render-facing proxies. |
 | `boardCircleContacts.js` | Allocation-bounded circle/circle position guard. |
 | `boardCircleFixtureContacts.js` | Circle/fixture boundary resolution for the same guard. |
-| `boardDrums.js` | Six-compartment wheel art, rounded paddles and batch ports. |
-| `boardTransferCanal.js` | Shared art/collider samples for the smooth drum canal. |
-| `boardHandoffs.js` | Reservoir, valves, pipelines, seesaw, leaves and five bumpers. |
+| `boardDrums.js` | Filled assembly artwork, wall bodies and moving wheel carriers. |
+| `boardAssemblyGeometry.js` | Shared valve, receiver, wheel and channel geometry. |
+| `boardHandoffs.js` | Filled reservoir, valve and supporting fixture artwork. |
 | `boardMaterials.js` | Default, high and zero-rebound fixture roles. |
 | `boardRenderer.js` | Bounded Canvas strip inside the native scroll world, with the shared material atlas. |
 | `boardViewportWindow.js` | Pure strip placement and overscan bounds; at most three viewport heights. |
 | `boardSceneLifecycle.js` | Scene preparation/release margins, reverse prewarming and frame pacing. |
 | `boardTextSafety.js` | Painted-shape and semantic keep-out checks for editorial slots. |
-| `boardTextPresentation.js` | Global lower-viewport line-draw sampling. |
-| `boardTextDrawing.js` | Measured line masks that follow scroll and responsive wrapping. |
-| `boardGrid.js` | Stable socket identity and occupancy record. |
-| `boardGridHandoffScene.js` | 2D-grid replacement and organic contact clearing. |
-| `boardBandJourney.js` | Continuous curved band, camera path and Blender-tunnel join. |
-| `boardAuthoredEnding.js` | Scroll-owned retained tunnel and final-wall adapter. |
+| `boardPortraitMap.js` | Portrait targets and original pigment totals. |
+| `boardPortraitCapture.js` | Physical outlet transfer and bounded placement. |
+| `boardPortraitRenderer.js` | Cached 2D portrait rendering and viewport pan. |
 | `AboutGameBoardExperience.jsx` | Route lifecycle, scroll, input and renderer ownership. |
 | `about-game-board.css` | Responsive composition, three type roles and themed materials. |
 
@@ -103,8 +65,8 @@ Rapier 2D is the motion source of truth. Its fixed integration step is 1/60 s
 under world gravity of `9.81 m/s²`. The target is 60 steps per wall-clock second;
 the performance report also measures actual simulated time because overloaded
 frames currently slow dense desktop release. Dynamic balls use native exact-circle
-colliders with continuous collision detection. Drawn and collision radii are identical,
-and one shared responsive radius feeds Canvas, fixtures, sockets and Three.js.
+colliders with continuous collision detection. The active machine and portrait
+use the same ball radius for paint and collision.
 
 Matter remains useful for source-derived fixture authoring, mechanism state,
 events and render-facing body proxies. It does not integrate the active balls.
@@ -123,10 +85,11 @@ the material response and continuous motion.
 Initial reservoir positions are packed against real architecture and already
 supported neighbours. The support chain is validated before display. A ball
 whose support disappears returns to normal dynamic motion; there are no pinned
-or frozen rows. Sleeping is physical rest only. There is no feeder. Mechanisms
-must not use timed nudges or nonphysical steering to clear a queue. Each initial
-identity has exactly one owner: live, capturing, captured or retired. The
-initially occupied socket uses a real identity from this same population.
+or frozen rows. Sleeping is physical rest only. The machine uses a finite
+starting inventory. The existing arch recovery can give a nearly stationary
+body a small impulse once both valves are open. Each identity is live,
+capturing, captured or retired. Only a physical outlet crossing can enter the
+portrait.
 
 `boardMaterials.js` exposes three fixture responses: `default`, `high` and
 non-elastic `zero`. Ball mass, restitution and friction remain configurable
@@ -161,36 +124,27 @@ retains the same passes and contact correction order: it may reuse its spatial
 grid within one solve only while cell membership and bottom-to-top order match
 a fresh build. It always starts a new grid after the next native step.
 
-The full machine remains active through the visible 2D journey. Once the opaque
-3D stage covers it, native bodies/colliders are freed, physics time stops and the
-2D bitmap shrinks to 1 × 1. Matter authoring/render proxies and a compact typed
-checkpoint remain; shared WASM heap pages are not guaranteed to shrink.
-
-Three.js prepares within three viewports and retires beyond four viewports on
-return. Its Canvas loading fallback is disposed after the authored scene paints.
-Reverse travel rebuilds physics one viewport before exposure and retains it
-across small seam reversals. This prewarm does not simulate an invisible machine.
-An abrupt jump can still incur synchronous rebuild time. Responsive width
-changes retain the existing full-world reconstruction behaviour.
+Released balls continue through the offscreen machine until they reach the live
+portrait. Canvas paint stays bounded to the visible strip, and a drained
+machine releases its native bodies and colliders. Responsive reflow restores
+the checkpoint against the same local assembly geometry for the current
+inventory.
 
 ## Editorial and responsive safeguards
 
 Text belongs in purposeful openings in the architecture. `boardTextSafety.js`
 checks rendered line boxes against painted SVG geometry after fonts load,
-responsive resize and text mutation. Art Direction sits to the left of the
-large drum; Motion & 3D sits to the right of the small drum. At enlarged text or
-when a safe slot cannot hold the copy, the route uses its accessible normal-flow
-reader before the board.
+responsive resize and text mutation. At enlarged text or when a safe slot
+cannot hold the copy, the route uses its accessible normal-flow reader before
+the board.
 
-All scroll text uses the same globally configurable faint-to-focus-to-faint
-contrast sampler. The progress track remains on the left and the opening arrow
-stays separate at the lower right. The Studio utility rail and Button Bar stay
-outside this route's ownership.
+Scroll text stays readable at each position. The progress track runs along
+the left. The Studio shell owns
+the utility rail and Button Bar.
 
 Temporary zero-width measurements during route removal retain the last real
-board scale. Reduced Motion keeps gravity and uses stable handoff checkpoints.
-If WebGL or retained assets fail, the stable-height fallback must leave the
-contact content reachable.
+board scale. Reduced Motion keeps gravity and places each arrived ball
+directly. Asset failures use the route's readable error state.
 
 ## Verification
 
@@ -198,22 +152,18 @@ Run focused checks from the repository root:
 
 ```bash
 npm run check:about-game-board
-npm run lint --prefix react-app/app
-ABS_BROWSER=chromium node scripts/audit-about-scroll-motion.mjs
-ABS_BROWSER=webkit node scripts/audit-about-scroll-motion.mjs
-node scripts/capture-about-scene-map.mjs
-node scripts/audit-about-performance.mjs
-node scripts/audit-about-render-cache.mjs
-node scripts/audit-about-scene-lifecycle.mjs
+npm run studio:check
+npm run audit:about-game-board
+node scripts/audit-about-opening-readiness.mjs
+ABS_ASSEMBLY_REFLOW=1 node scripts/audit-about-assembly-gate.mjs
+node scripts/audit-about-figma-sync.mjs
+ABS_DRAIN_TIMEOUT_MS=180000 npm run audit:about-portrait
 ```
 
 Use `window.__ABS_ABOUT_GAME_BOARD__.getStats()` in development to inspect
-inventory, gravity, contacts, grid occupancy, handoff projection and frame
-timings. Inspect the route at desktop, phone and short-landscape sizes in both
-themes. Record the exact checks and screenshots that pass. Performance profiling
-of the full physical inventory remains open; do not report full test coverage,
-frame-rate certification or production readiness until that work is complete.
-See the source-attributed investigation in
+inventory, gravity, contacts, portrait arrivals and frame timings. Run browser
+audits serially with `ABS_BROWSER=chromium` and `ABS_BROWSER=webkit`. See the
+earlier performance investigation in
 [`docs/qa/about-performance-20260925.md`](../../../../../docs/qa/about-performance-20260925.md).
 The follow-up cache changes, measured gains and remaining desktop limit are in
 [`docs/qa/about-performance-followup-20260925.md`](../../../../../docs/qa/about-performance-followup-20260925.md).

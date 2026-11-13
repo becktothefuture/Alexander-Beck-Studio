@@ -7,10 +7,12 @@ import {
 } from 'react';
 import aboutContent from 'virtual:abs-content/about';
 import homeContent from 'virtual:abs-content/home';
-import { CopyEmailAction } from '../../components/app/CopyEmailAction.jsx';
+import { ActionButton } from '../../components/app/ActionButton.jsx';
 import { CvDownloadAction } from '../../components/app/CvDownloadAction.jsx';
 import { LinkedInAction } from '../../components/app/LinkedInAction.jsx';
 import { useSimulationPalette } from '../../hooks/useSimulationPalette.js';
+import { buildRouteHref } from '../../lib/routes.js';
+import { trySpaNavigate } from '../../lib/spa-navigation.js';
 import { THEME_CHANGE_EVENT } from '../../lib/theme-state.js';
 import {
   createSmoothScroll, createSmoothScrollMediaQueries, shouldUseNativeSmoothScroll,
@@ -36,40 +38,33 @@ import { loadBoardRigidBodyBackend } from './boardRigidBodyWorld.js';
 import { installBoardDrumArt } from './boardDrums.js';
 import { installBoardHandoffArt } from './boardHandoffs.js';
 import { installBoardArchitectureLineWeight } from './boardArchitectureWeight.js';
-import { createBoardGrid, gridHandoffProgress } from './boardGrid.js';
-import {
-  BOARD_HANDOFF_PHASES,
-  boardHandoffPhaseState,
-  createBoardGridHandoffScene,
-} from './boardGridHandoffScene.js';
-import {
-  createBoardAuthoredEndingScene,
-  measureBoardEndingOpening,
-} from './boardAuthoredEnding.js';
-import { BOARD_BAND_JOURNEY } from './boardBandJourney.js';
-import { createBoardLayout } from './boardLayout.js';
+import { ABOUT_PORTRAIT_CHANGE_EVENT, normalizeAboutPortrait } from '../../lib/aboutPortrait.js';
+import { createPortraitMap, decodePortraitMask, portraitPaletteRoles, portraitRoleAssignments } from './boardPortraitMap.js';
+import { createPortraitCapture } from './boardPortraitCapture.js';
+import { createPortraitChute, installPortraitChute } from './boardPortraitChute.js';
+import { createPortraitRenderer } from './boardPortraitRenderer.js';
+import { portraitFieldGeometry } from './boardPortraitGeometry.js';
+import { ballColliderRadius } from './boardDynamics.js';
+import { createBoardLayout, remapBoardY } from './boardLayout.js';
 import { installQuietIntervalGeometry } from './boardQuietIntervals.js';
 import { createBoardInventory } from './boardInventory.js';
 import { boardMechanismProgress } from './boardScrollMotion.js';
 import { createBoardRenderer } from './boardRenderer.js';
+import { prepareBoardFonts } from './boardOpeningReadiness.js';
 import {
-  createBoardFramePacer, boardOwnsMountedSurface, boardSceneActivity, boardShouldKeepMachineWarm,
+  createBoardFramePacer, boardOwnsMountedSurface, boardMachineIsVisible,
 } from './boardSceneLifecycle.js';
 import { findTextArchitectureOverlaps } from './boardTextSafety.js';
 import {
-  boardScrollCueOpacity,
-} from './boardTextPresentation.js';
-import {
-  BOARD_2D_END_Y,
   BOARD_WIDTH,
   decodeBalls,
-  GRID_START_Y,
-  MECHANISM,
   RESERVOIR_GATE_Y,
+  resolveBoardBallRoleColours,
 } from './boardScene.js';
 import './about-game-board.css';
 
 const ASSET_ROOT = '/models/about-game-board';
+const BOARD_DIAGNOSTICS = import.meta.env.DEV || import.meta.env.MODE === 'certification';
 const fieldById = new Map(aboutContent.tracks.text.fields.map(field => [field.id, field]));
 const copy = id => fieldById.get(id);
 const BALL_VIEWPORT_QUERY = [
@@ -78,12 +73,21 @@ const BALL_VIEWPORT_QUERY = [
   '(hover: none) and (pointer: coarse)',
 ].join(', ');
 
+function compactClearanceRadius(presentation) {
+  return 13 * resolveBoardBallRadiusScale(presentation, { isMobileDevice: true, boardWidth: 300 });
+}
+
+function navigateToContact(event) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.altKey
+    || event.ctrlKey || event.shiftKey) return;
+  if (trySpaNavigate(event.currentTarget.href)) event.preventDefault();
+}
+
 function ScrollIndicator({ cueRef }) {
   return <div ref={cueRef} className="about-board-scroll-ui" role="progressbar"
     aria-label="About story progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <span className="about-board-scroll-indicator" aria-hidden="true">
       <span className="about-board-scroll-indicator__track" />
-      <span className="about-board-scroll-indicator__ball" />
     </span>
 
   </div>;
@@ -92,6 +96,7 @@ function ScrollIndicator({ cueRef }) {
 export function AboutGameBoardExperience({ routeContentId = 'about' }) {
   const [source, setSource] = useState(null);
   const [sceneReady, setSceneReady] = useState(false);
+  const [physicsReady, setPhysicsReady] = useState(false);
   const [settledOpening, setSettledOpening] = useState(null);
   // The machine installs live mechanism layers into this SVG. Keep React's
   // HTML prop stable across palette/layout renders, so it cannot replace those
@@ -107,7 +112,6 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
   const [quietHeights, setQuietHeights] = useState({});
   const [boardWidth, setBoardWidth] = useState(() => Math.max(1, window.innerWidth - 20));
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
-  const [authoredCanvasGeneration, setAuthoredCanvasGeneration] = useState(0);
   const narrow = compact && boardWidth <= 340;
   const layout = useMemo(() => ({ ...createBoardLayout(compact,
     { viewportHeight, boardWidth, quietHeights }), readerMode, narrow, mobile }),
@@ -119,19 +123,23 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
   const worldRef = useRef(null);
   const artRef = useRef(null);
   const canvasRef = useRef(null);
-  const threeStageRef = useRef(null);
-  const threeCanvasRef = useRef(null);
-  const authoredCanvasRef = useRef(null);
-  const endingRef = useRef(null);
+  const portraitStageRef = useRef(null);
+  const portraitCanvasRef = useRef(null);
+  const portraitPanRef = useRef(null);
+  const portraitSurfaceRef = useRef(null);
+  const portraitSessionRef = useRef(null);
   const cueRef = useRef(null);
   const physicsRef = useRef(null);
   const rendererRef = useRef(null);
-  const threeRef = useRef(null);
+  const portraitRef = useRef(null);
   const drawRef = useRef(() => {});
   const textSafetyRef = useRef([]);
   const userHasScrolledRef = useRef(false);
   const lastScrollAnchorRef = useRef(null);
   const pendingReaderAnchorRef = useRef(null);
+  const portraitAnchorRef = useRef(null);
+  const portraitReflowAnchorRef = useRef(null);
+  const openingFontsReadyRef = useRef(false);
 
   // Publish after React commits the readiness attribute. Direct loads and
   // Button Bar transitions use this same contract, including readable errors.
@@ -164,7 +172,9 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
 
   const enableReaderMode = useCallback(() => {
     const scrollport = scrollRef.current;
-    if (scrollport && userHasScrolledRef.current && pendingReaderAnchorRef.current === null) {
+    if (portraitAnchorRef.current !== null) portraitReflowAnchorRef.current = portraitAnchorRef.current;
+    if (scrollport && userHasScrolledRef.current && portraitAnchorRef.current === null
+      && pendingReaderAnchorRef.current === null) {
       if (!lastScrollAnchorRef.current) rememberScrollAnchor();
       pendingReaderAnchorRef.current = lastScrollAnchorRef.current
         ? { ...lastScrollAnchorRef.current }
@@ -180,7 +190,7 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
         const scrollport = scrollRef.current;
         const anchor = pendingReaderAnchorRef.current;
         pendingReaderAnchorRef.current = null;
-        if (!scrollport || !anchor) return;
+        if (!scrollport || !anchor || portraitAnchorRef.current !== null) return;
         const target = [...scrollport.querySelectorAll('[data-board-text-slot]')]
           .find(element => element.dataset.boardTextSlot === anchor.slot);
         if (target && anchor.offset !== null) {
@@ -236,10 +246,30 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
 
   useEffect(() => {
     paletteRef.current = palette;
+    portraitRef.current?.setPalette(palette);
     physicsRef.current?.setPalette(palette);
-    threeRef.current?.setPalette(palette);
     drawRef.current();
   }, [palette]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !source) return undefined;
+    let cancelled = false, manager = null;
+    Promise.all([
+      import('../../legacy/modules/ui/panel-popup-manager.js'),
+      import('../../legacy/modules/core/state.js'),
+    ]).then(([panelManager, state]) => {
+      if (cancelled) return;
+      manager = panelManager;
+      if (!Object.keys(state.getConfig() || {}).length) state.initState(source.runtimeConfig);
+      Object.assign(state.getGlobals(), source.portraitSettings);
+      manager.registerDevPanelRoute({ page: 'about', pageLabel: 'About',
+        productLabel: 'Alexander Beck Studio', panelTitle: 'About Controls',
+        masterGroupIds: ['palette', 'balls', 'physics', 'motion', 'audio'],
+        footerHint: '<kbd>/</kbd> panel · live apply · save to design JSON',
+        syncInitialControlSideEffects: false });
+    }).catch(reason => console.warn('About controls could not load.', reason));
+    return () => { cancelled = true; manager?.unregisterDevPanelRoute('about'); };
+  }, [source]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -252,11 +282,19 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
         if (!response.ok) throw new Error(`Ball request failed: ${response.status}`);
         return response.json();
       }),
+      fetch(`${ASSET_ROOT}/portrait-map.json`, { signal: controller.signal }).then(response => {
+        if (!response.ok) throw new Error(`Portrait request failed: ${response.status}`);
+        return response.json();
+      }),
       loadRuntimeConfig(),
       loadBoardRigidBodyBackend(),
-    ]).then(([svg, rows, runtimeConfig]) => {
-      if (!svg.includes('viewBox="0 0 960 14140"')) throw new Error('Unexpected board geometry.');
-      setSource({ svg, balls: decodeBalls(rows),
+    ]).then(([svg, rows, portraitMask, runtimeConfig]) => {
+      const geometry = new DOMParser().parseFromString(svg, 'image/svg+xml');
+      if (!geometry.querySelector('svg[viewBox="0 0 960 14140"] > #Geometry')) {
+        throw new Error('Unexpected board geometry.');
+      }
+      setSource({ svg, balls: decodeBalls(rows), portraitMask: decodePortraitMask(portraitMask), runtimeConfig,
+        portraitSettings: normalizeAboutPortrait(runtimeConfig),
         ballDynamics: ballDynamicsFromRuntimeConfig(runtimeConfig),
         ballPresentation: boardBallPresentationFromRuntimeConfig(runtimeConfig),
         architectureStyle: boardArchitectureCssVariables(
@@ -268,22 +306,37 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    if (!source || !scrollRef.current) return undefined;
+    let cancelled = false;
+    openingFontsReadyRef.current = false;
+    prepareBoardFonts(scrollRef.current).then(() => {
+      if (cancelled) return;
+      openingFontsReadyRef.current = true;
+      drawRef.current();
+    }).catch(reason => { if (!cancelled) setError(reason); });
+    return () => { cancelled = true; };
+  }, [source]);
+
   const radiusScale = useMemo(() => resolveBoardBallRadiusScale(
     source?.ballPresentation,
     { isMobileDevice: mobileBallViewport, boardWidth },
   ), [source?.ballPresentation, mobileBallViewport, boardWidth]);
-  const inventory = useMemo(() => source
-    ? createBoardInventory(source.balls, radiusScale, { reservoirTop: layout.reservoirTop }) : null,
-  [source, radiusScale, layout.reservoirTop]);
-  // Figma's opening supplies the preferred visible depth above the funnel.
-  const reservoirReadingHeight = Math.min(viewportHeight / 2, mobile ? 420.177094 : 322.635406);
-  // Tall windows hold more Home-sized balls. Limit the overlap using the
-  // settled pile so the full inventory cannot cover the introduction.
-  const pileClearancePx = inventory && settledOpening?.inventory === inventory
+  const inventory = useMemo(() => {
+    const current = portraitSessionRef.current?.inventory;
+    if (current || !source) return current || null;
+    const next = createBoardInventory(source.balls, radiusScale, { reservoirTop: layout.reservoirTop });
+    // Restored bodies retain their x positions and valve angles. Keep the
+    // assembly clearance stable for the same inventory across breakpoints.
+    next.assemblyRadius = mobile ? Math.max(next.radius, compactClearanceRadius(source.ballPresentation))
+      : next.radius;
+    return next;
+  }, [source, radiusScale, layout.reservoirTop, mobile]);
+  // Align the prepared pile's highest ball with the end of the 60vh intro.
+  // Sample once per inventory; moving balls must never reposition the page.
+  const openingLiftPx = inventory && settledOpening?.inventory === inventory
     ? (settledOpening.surfaceY - inventory.radius - layout.reservoirTop) * boardWidth / BOARD_WIDTH
-    : Infinity;
-  const openingLiftPx = Math.max(0, Math.min(pileClearancePx,
-    (800 - layout.reservoirTop) * boardWidth / BOARD_WIDTH - reservoirReadingHeight));
+    : 0;
 
   useEffect(() => {
     const world = worldRef.current;
@@ -309,357 +362,216 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
 
   useEffect(() => {
     if (!source || !scrollRef.current || !worldRef.current || !artRef.current
-      || !canvasRef.current || !threeStageRef.current || !threeCanvasRef.current
-      || !authoredCanvasRef.current || !endingRef.current) return;
+      || !canvasRef.current || !portraitStageRef.current || !portraitCanvasRef.current) return;
     const scrollport = scrollRef.current;
     const world = worldRef.current;
-    const threeStage = threeStageRef.current;
-    const ending = endingRef.current;
-    let authoredCanvas = authoredCanvasRef.current;
+    const stage = portraitStageRef.current;
+    const portraitCanvas = portraitCanvasRef.current;
+    delete world.dataset.machineCovered;
     const svg = artRef.current.querySelector('svg');
-    const canvas = canvasRef.current;
     if (!svg) return;
     setSceneReady(false);
-    let firstPaintReady = false;
+    setPhysicsReady(false);
     layout.applyToSvg(svg);
-    // Authored SVG rails feed both drawing and collision import. Keep their
-    // reduced weight identical before runtime fixtures and physics are built.
     const restoreLineWeight = installBoardArchitectureLineWeight(svg);
-    // One architecture in code and Figma. Size its openings for the narrowest
-    // supported 320px viewport (300px inner window), rather than redrawing
-    // each mechanism at every breakpoint. Balls keep Home's screen size.
-    const clearanceRadius = Math.max(inventory.radius, 13 * resolveBoardBallRadiusScale(
-      source.ballPresentation, { isMobileDevice: true, boardWidth: 300 },
-    ));
-    const drumArt = installBoardDrumArt(svg, { ballRadius: clearanceRadius });
+    const clearanceRadius = Math.max(inventory.radius, compactClearanceRadius(source.ballPresentation));
+    const assembly = layout.placement.modules.find(module => module.id === 'assembly');
+    const drumArt = installBoardDrumArt(svg, { ballRadius: inventory.assemblyRadius, top: assembly.top });
     const handoffArt = installBoardHandoffArt(svg,
-      { ballRadius: clearanceRadius, reservoirBallRadius: inventory.radius, drums: drumArt.specs,
+      { ballRadius: clearanceRadius, reservoirBallRadius: inventory.radius,
         compact: layout.compact, narrow: layout.narrow, mobile: layout.mobile });
-    const grid = createBoardGrid(svg, source.balls);
     const restoreQuietGeometry = installQuietIntervalGeometry(svg, layout.placement, inventory.radius);
-    const gridState = { ...grid, entries: grid.entries.map(entry => ({ ...entry,
-      flatY: layout.placeY(entry.flatY), bentY: layout.placeY(entry.bentY) })), progress: 0, socketShadowOpacity: 1,
-      occupied: new Map([[grid.entries[0].id, { sourceId: grid.entries[0].id }]]),
-      capturing: new Set() };
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const portraitChute = createPortraitChute(layout.portraitChuteTop, inventory.radius);
+    const removePortraitChute = installPortraitChute(svg, portraitChute);
+    let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const scrollMediaQueries = createSmoothScrollMediaQueries();
-    let smoothScroll = null;
-    let physicsWorld;
+    let session = portraitSessionRef.current;
+    if (!session || session.inventory !== inventory || session.map.version !== 2) {
+      const map = createPortraitMap(source.portraitMask, inventory.balls);
+      session = { inventory, map, capture: createPortraitCapture(map, source.portraitSettings, reducedMotion),
+        roles: [], colours: [], assignments: null, checkpoint: null, layout: null, pan: .5 };
+      portraitSessionRef.current = session;
+    }
+    const capture = session.capture;
+    const restoringPreparedView = Boolean(session.checkpoint) && userHasScrolledRef.current;
+    const portraitPan = portraitPanRef.current;
+    const portraitSurface = portraitSurfaceRef.current;
+    capture.setReducedMotion(reducedMotion);
+    const updatePalette = next => {
+      session.roles = portraitPaletteRoles(next);
+      const colours = resolveBoardBallRoleColours(next);
+      session.colours = session.roles.map(role => colours[role]);
+      session.assignments = portraitRoleAssignments(session.map, session.roles);
+    };
+    updatePalette(paletteRef.current);
+    let physics;
     try {
-      physicsWorld = createBoardPhysics(svg, source.balls, paletteRef.current,
+      physics = createBoardPhysics(svg, source.balls, paletteRef.current,
         { compact: layout.compact, drumArt, ballDynamics: source.ballDynamics,
-          grid: gridState, radiusScale, inventory, handoffArt, originY: layout.reservoirTop,
+          portraitChute, portrait: capture, getRoleAssignments: () => session.assignments,
+          initialCheckpoint: session.checkpoint, remapY: y => remapBoardY(y, session.layout, layout),
+          radiusScale, inventory, handoffArt, originY: layout.reservoirTop,
           placement: layout.placement });
     } catch (reason) {
-      // A failed graphics/physics setup must release the boot screen and keep
-      // the existing readable contact fallback available.
-      restoreQuietGeometry();
-      handoffArt.dispose();
-      drumArt.dispose();
-      restoreLineWeight();
+      removePortraitChute(); restoreQuietGeometry(); handoffArt.dispose(); drumArt.dispose(); restoreLineWeight();
       let cancelled = false;
       queueMicrotask(() => { if (!cancelled) setError(reason); });
-      if (import.meta.env.DEV) console.error('About physics could not start.', reason);
       return () => { cancelled = true; };
     }
-    // Reduced Motion retains gravity; the handoff below uses discrete states.
-    const physics = physicsWorld;
-    let threeScene = null;
-    let authoredScene = null;
-    let authoredLoadError = null;
-    let authoredController = null;
-    let authoredReady = false;
-    let authoredGeneration = 0;
-    let disposed = false;
-    function ownsSceneSurface(surface = authoredCanvasRef.current) {
-      return boardOwnsMountedSurface(scrollport, scrollRef.current, surface);
-    }
-    delete threeStage.dataset.authoredEndingFailed;
-    authoredCanvas.dataset.authoredEndingReady = 'false';
-    threeStage.dataset.handoffReady = 'false';
-    function prepareGridHandoff() {
-      if (threeScene || authoredReady) return;
-      try {
-        threeScene = createBoardGridHandoffScene(threeCanvasRef.current,
-          grid.entries, paletteRef.current, { radiusScale, sourceBalls: source.balls,
-            getGridState: () => gridState, preferCanvas: true });
-        lifecycle.fallbackCreates += 1;
-        threeRef.current = threeScene;
-        threeStage.dataset.handoffReady = 'true';
-        const seam = threeScene.inspect();
-        threeStage.dataset.handoffCells = String(seam.cells);
-        threeStage.dataset.handoffCentreError = seam.maximumCentreErrorPx.toFixed(4);
-        threeStage.dataset.handoffRadiusError = seam.maximumRadiusErrorPx.toFixed(4);
-      } catch (reason) {
-        if (import.meta.env.DEV) console.error('About grid handoff failed.', reason);
-      }
-    }
-    let authoredLoadStarted = false;
-    function loadAuthoredEnding() {
-      if (authoredLoadStarted || disposed) return;
-      authoredCanvas = authoredCanvasRef.current;
-      if (!authoredCanvas?.isConnected) return;
-      authoredLoadStarted = true;
-      authoredController = new AbortController();
-      const controller = authoredController;
-      const generation = ++authoredGeneration;
-      const started = performance.now();
-      lifecycle.authoredLoads += 1;
-      void createBoardAuthoredEndingScene({
-        canvas: authoredCanvas,
-        entries: grid.entries, radiusScale, sourceBalls: source.balls,
-        getGridState: () => gridState,
-        signal: controller.signal,
-        onReady: scene => {
-          if (disposed || controller.signal.aborted || generation !== authoredGeneration
-            || !ownsSceneSurface()) {
-            // Layout effects can reuse this attached canvas. Only the explicit
-            // keyed-surface retirement below may permanently lose its context.
-            scene.dispose();
-            return;
-          }
-          authoredScene = scene;
-          authoredReady = true;
-          lifecycle.lastAuthoredLoadMs = performance.now() - started;
-          authoredLoadError = null;
-          delete threeStage.dataset.authoredEndingFailed;
-          authoredCanvas.dataset.authoredEndingReady = 'true';
-          scrollDirty = true;
-          requestFrame();
-        },
-        onError: reason => {
-          if (disposed || controller.signal.aborted || generation !== authoredGeneration
-            || !ownsSceneSurface()) return;
-          authoredReady = false;
-          authoredLoadError = reason;
-          authoredCanvas.dataset.authoredEndingReady = 'false';
-          // Keep scroll geometry stable while Three restores its resources or
-          // the readable Canvas fallback takes over after a failed load.
-          if (!reason.recoverable) threeStage.dataset.authoredEndingFailed = 'true';
-          scrollDirty = true;
-          requestFrame();
-          if (import.meta.env.DEV) console.error('About authored ending failed.', reason);
-        },
-      }).catch(reason => {
-        if (reason.name !== 'AbortError' && !disposed && generation === authoredGeneration
-          && ownsSceneSurface()) {
-          authoredLoadError = reason;
-          threeStage.dataset.authoredEndingFailed = 'true';
-          scrollDirty = true;
-          requestFrame();
-        }
-      });
-    }
-    const renderer = createBoardRenderer(canvas, {
-      getBalls: () => source.balls,
-      getBodies: () => physicsWorld.getBodies(),
-      getGrid: () => gridState,
-      getPalette: () => paletteRef.current,
-      getLayout: () => layout,
-      getRadiusScale: () => radiusScale,
+    const renderer = createBoardRenderer(canvasRef.current, {
+      getBalls: () => inventory.balls, getBodies: () => physics.getBodies(), getGrid: () => null,
+      getPalette: () => paletteRef.current, getRoleAssignments: () => session.assignments,
+      getLayout: () => layout, getRadiusScale: () => radiusScale,
     });
-    physicsRef.current = physicsWorld;
+    const portraitRenderer = createPortraitRenderer(portraitCanvas, capture,
+      () => session.colours, () => requestFrame());
+    physicsRef.current = physics;
     rendererRef.current = renderer;
-    threeRef.current = threeScene;
+    portraitRef.current = { setPalette: next => {
+      updatePalette(next); portraitRenderer.invalidate();
+    } };
     drawRef.current = () => { scrollDirty = true; requestFrame(); };
-    let frameId = 0;
-    let preparationTimer = 0;
-    const framePacer = createBoardFramePacer(reducedMotion);
-    let lastPhysicsFrameTime = 0;
-    let gateProgress = 0;
-    let boardVisible = true;
-    let handoffVisible = false;
-    let authoredProgress = 0;
-    let authoredOpening = null;
-    let handledScrollTop = Number.NaN;
-    let scrollDirty = true;
-    let layoutDirty = true;
-    // The ending stays in the sticky viewport and never borrows scroll offset.
-    const endingShift = 0;
-    let pendingSurfaceReplacement = false;
-    let machinePrewarmed = false;
-    let previousOccupiedCount = -1;
+    let disposed = false, physicsFailed = false, openingPublished = false;
+    let settledPhysicsPublished = false, frameId = 0, preparationTimer = 0;
+    let framePacer = createBoardFramePacer(reducedMotion), lastFrameTime = 0;
+    let smoothScroll = null, gateProgress = 0, boardVisible = true, portraitVisible = false;
+    let scrollDirty = true, layoutDirty = true, handledScrollTop = Number.NaN;
+    let restorePortraitAnchor = (portraitReflowAnchorRef.current ?? portraitAnchorRef.current) !== null;
     const metrics = { scrollTop: 0, worldTop: 0, worldWidth: 0, worldHeight: 0,
-      viewportHeight: 0, scrollHeight: 0, stageTop: 0, stageHeight: 0 };
-    const lifecycle = { state: 'machine-active', transitions: 0, physicsSuspends: 0,
-      physicsResumes: 0, prewarmRestores: 0, authoredLoads: 0, authoredDisposals: 0, authoredCancellations: 0, fallbackCreates: 0,
-      fallbackDisposals: 0, layoutMeasurements: 0, pacedFrames: 0,
-      lastSuspendMs: 0, lastResumeMs: 0, lastAuthoredLoadMs: 0 };
-    const timing = { frames: 0, meanPhysicsMs: 0, recentPhysicsMs: 0,
-      meanDrawMs: 0, worstFrameMs: 0 };
+      viewportHeight: 0, scrollHeight: 0, stageTop: 0, stageHeight: 0,
+      portraitScrollStart: 0, portraitScrollRange: 0 };
+    const lifecycle = { state: 'machine-active', physicsSuspends: 0, physicsResumes: 0,
+      layoutMeasurements: 0, pacedFrames: 0 };
+    const timing = { frames: 0, meanPhysicsMs: 0, recentPhysicsMs: 0, meanDrawMs: 0, worstFrameMs: 0 };
     const textElements = [...scrollport.querySelectorAll('[data-about-scroll-text]')];
+    const boardTextElements = [...world.querySelectorAll('[data-board-text-slot]')];
     let textMetrics = [];
-
-    const diagnostics = Object.freeze({
-      getStats: () => ({ ...physicsWorld.getStats(), gridCells: grid.entries.length,
+    const ownsSurface = () => boardOwnsMountedSurface(scrollport, scrollRef.current, portraitCanvasRef.current);
+    const diagnostics = BOARD_DIAGNOSTICS ? Object.freeze({
+      getStats: () => ({ ...physics.getStats(), gateOpened: gateProgress > 0, radiusScale,
+        openingFontsReady: openingFontsReadyRef.current,
+        reservoir: { topY: layout.reservoirTop, shoulderY: 825,
+          straightHeightPx: layout.mapY(825) * metrics.worldWidth / BOARD_WIDTH },
+        portrait: capture.inspect(), portraitRenderer: portraitRenderer.inspect(),
+        portraitChute: { top: layout.portraitChuteTop,
+          left: portraitChute.left, right: portraitChute.right, outletY: portraitChute.outletY },
+        portraitRoles: [...session.roles], portraitCounts: [...session.map.counts],
+        portraitColours: [...session.colours],
+        lifecycle: { ...lifecycle, nativeAllocated: !physics.isSuspended(),
+          activeWebglContexts: 0, activeFallbacks: 0, machineSuspended: physics.isSuspended() },
+        gridHandoff: null, boardRenderer: renderer.inspect(),
         smoothScroll: { active: Boolean(smoothScroll), state: smoothScroll?.isScrolling || 'native',
           target: smoothScroll?.targetScroll ?? scrollport.scrollTop },
-        gridBend: gridState.progress, gridOccupied: gridState.occupied.size,
-        socketShadowOpacity: gridState.socketShadowOpacity,
-        gateOpened: gateProgress > 0, radiusScale,
-        reservoir: { topY: layout.reservoirTop, shoulderY: 825,
-          straightHeightPx: layout.mapY(825) * world.clientWidth / BOARD_WIDTH },
-        gridHandoff: threeScene?.inspect() || null,
-        authoredEnding: authoredScene?.inspect({ pointIndices: [] }) || null,
-        authoredEndingError: authoredLoadError?.message || null,
-        lifecycle: { ...lifecycle, authoredReady,
-          authoredLoading: authoredLoadStarted && !authoredScene && !authoredLoadError,
-          authoredGeneration, activeWebglContexts: authoredScene ? 1 : 0,
-          activeFallbacks: threeScene ? 1 : 0,
-          nativeAllocated: !physics.isSuspended(), threeAllocated: Boolean(authoredScene),
-          restores: lifecycle.physicsResumes, suspensions: lifecycle.physicsSuspends,
-          machineSuspended: physics.isSuspended(), machinePrewarmed,
-          retainedPhysics: 'render-proxies-and-checkpoint' },
-        boardRenderer: renderer.inspect(),
-        boardVisible, handoffVisible, scrollTop: scrollport.scrollTop, handledScrollTop,
+        boardVisible, portraitVisible, scrollTop: scrollport.scrollTop, handledScrollTop,
         textArchitectureOverlaps: [...textSafetyRef.current], ...timing }),
-      getBallMaterial: () => physicsWorld.getBallMaterial(),
-      getInventorySnapshot: () => physicsWorld.getInventorySnapshot(),
-      getContactSnapshot: () => physicsWorld.getContactSnapshot(),
-      getSupportSnapshot: () => physicsWorld.getSupportSnapshot(),
-      getMotionSnapshot: () => physicsWorld.getBodies().bodies.map(body => ({
+      getBallMaterial: () => physics.getBallMaterial(),
+      getOpeningSnapshot: () => ({
+        published: openingPublished,
+        preparationPublished: settledPhysicsPublished,
+        ready: scrollport.closest('.about-game-board').dataset.aboutSceneReady,
+        inert: scrollport.inert,
+        width: boardWidth,
+        expectedLift: (inventory.surfaceY - inventory.radius - layout.reservoirTop) * boardWidth / BOARD_WIDTH,
+        appliedLift: -Number.parseFloat(world.style.marginTop || '0'),
+        boardVisible, portraitVisible,
+        visibleBalls: renderer.inspect().visibleBallCount,
+        portraitAnchor: portraitAnchorRef.current,
+        reflowAnchor: portraitReflowAnchorRef.current,
+        text: boardTextElements.map(element => ({ slot: element.dataset.boardTextSlot,
+          retained: quietHeights[element.dataset.boardTextSlot],
+          measured: Math.ceil(element.getBoundingClientRect().height) })),
+      }),
+      getInventorySnapshot: () => physics.getInventorySnapshot(),
+      getPortraitSnapshot: () => capture.snapshot().map(record => ({ ...record,
+        colour: session.colours[record.pigment] })),
+      getContactSnapshot: () => physics.getContactSnapshot(),
+      getSupportSnapshot: () => physics.getSupportSnapshot(),
+      getMotionSnapshot: () => physics.getBodies().bodies.map(body => ({
         id: body.plugin.boardId, x: body.position.x, y: body.position.y,
-        radius: body.circleRadius, sleeping: body.isSleeping,
-        colour: body.plugin.boardColour,
+        radius: body.circleRadius, sleeping: body.isSleeping, colour: body.plugin.boardColour,
         captured: Boolean(body.isSensor || body.collisionFilter.mask === 0),
       })),
-    });
-    window.__ABS_ABOUT_GAME_BOARD__ = diagnostics;
+    }) : null;
+    if (diagnostics) window.__ABS_ABOUT_GAME_BOARD__ = diagnostics;
 
-    let physicsFailed = false;
     function advancePhysics(delta) {
-      if (physicsFailed) return false;
-      try {
-        physics.update(delta);
-        return true;
-      } catch (reason) {
-        physicsFailed = true;
-        setError(reason);
-        if (import.meta.env.DEV) console.error('About physics could not continue.', reason);
-        return false;
-      }
+      try { physics.update(delta, boardVisible); return true; }
+      catch (reason) { physicsFailed = true; setError(reason); return false; }
     }
-
-    function disposeFallback() {
-      if (!threeScene) return;
-      threeScene.dispose();
-      threeScene = null;
-      threeRef.current = null;
-      lifecycle.fallbackDisposals += 1;
-    }
-
-    function retireSpatialScene() {
-      if (!authoredLoadStarted && !threeScene) return;
-      authoredGeneration += 1;
-      // Retire this canvas before cancelling the factory so its context can be
-      // released explicitly. A new React key supplies a clean canvas on return.
-      authoredScene?.dispose({ retireSurface: true });
-      if (authoredScene) lifecycle.authoredDisposals += 1;
-      else if (authoredController) lifecycle.authoredCancellations += 1;
-      authoredController?.abort();
-      authoredController = null;
-      authoredScene = null;
-      authoredReady = false;
-      authoredLoadStarted = false;
-      authoredLoadError = null;
-      authoredCanvas.dataset.authoredEndingReady = 'false';
-      authoredCanvas.style.setProperty('--about-board-layer-opacity', '0');
-      disposeFallback();
-      pendingSurfaceReplacement = true;
-      setAuthoredCanvasGeneration(value => value + 1);
-    }
-
-    function setLifecycleState(next) {
-      if (lifecycle.state === next) return;
-      lifecycle.state = next;
-      lifecycle.transitions += 1;
-    }
-
     function measureLayout() {
       const scrollRect = scrollport.getBoundingClientRect();
-      const stageRect = threeStage.getBoundingClientRect();
+      const worldRect = world.getBoundingClientRect();
+      const previousTop = metrics.stageTop, previousHeight = metrics.stageHeight;
+      const previousRange = metrics.portraitScrollRange;
       metrics.scrollTop = scrollport.scrollTop;
-      metrics.worldTop = world.offsetTop;
-      metrics.worldWidth = world.clientWidth;
-      metrics.worldHeight = world.offsetHeight;
+      metrics.worldTop = worldRect.top - scrollRect.top + metrics.scrollTop;
+      metrics.worldWidth = worldRect.width; metrics.worldHeight = worldRect.height;
       metrics.viewportHeight = scrollport.clientHeight;
+      if (metrics.worldWidth <= 0 || metrics.viewportHeight <= 0) return false;
+      const boardScale = metrics.worldWidth / BOARD_WIDTH;
+      const field = portraitFieldGeometry(capture.map, metrics.worldWidth,
+        ballColliderRadius(inventory.radius) * boardScale, capture.getSettings().aboutPortraitSpacing);
+      const oldPanRange = portraitPan.scrollWidth - portraitPan.clientWidth;
+      if (oldPanRange > 0) session.pan = portraitPan.scrollLeft / oldPanRange;
+      const nextWidth = `${field.width}px`, nextHeight = `${field.height}px`;
+      if (portraitSurface.style.width !== nextWidth) portraitSurface.style.width = nextWidth;
+      if (stage.style.height !== nextHeight) stage.style.height = nextHeight;
+      const { outlet, ledge } = field;
+      stage.style.marginTop = `-${outlet}px`;
+      stage.style.setProperty('--portrait-ledge-thickness', `${ledge.thickness}px`);
+      const stageRect = stage.getBoundingClientRect();
+      portraitPan.scrollLeft = Math.max(0, field.width - portraitPan.clientWidth) * session.pan;
       metrics.scrollHeight = scrollport.scrollHeight;
       metrics.stageTop = stageRect.top - scrollRect.top + metrics.scrollTop;
-      metrics.stageHeight = threeStage.offsetHeight;
+      metrics.stageHeight = stage.offsetHeight;
+      metrics.portraitScrollStart = Math.ceil(metrics.worldTop + metrics.worldHeight);
+      metrics.portraitScrollRange = Math.max(0,
+        metrics.scrollHeight - metrics.viewportHeight - metrics.portraitScrollStart);
+      const portraitAnchor = portraitReflowAnchorRef.current ?? portraitAnchorRef.current;
+      if (portraitAnchor !== null && (restorePortraitAnchor
+        || Math.abs(previousTop - metrics.stageTop) > .5 || Math.abs(previousHeight - metrics.stageHeight) > .5
+        || Math.abs(previousRange - metrics.portraitScrollRange) > .5)) {
+        scrollport.scrollTop = metrics.portraitScrollStart + portraitAnchor * metrics.portraitScrollRange;
+        smoothScroll?.reset(); metrics.scrollTop = scrollport.scrollTop;
+      }
+      restorePortraitAnchor = false;
       textMetrics = textElements.map(element => {
         const rect = element.getBoundingClientRect();
-        const isEnding = ending.contains(element);
-        return { element, isEnding, height: rect.height, slot: element.dataset.boardTextSlot,
-          top: rect.top - scrollRect.top + metrics.scrollTop - (isEnding ? endingShift : 0) };
+        return { height: rect.height, slot: element.dataset.boardTextSlot,
+          top: rect.top - scrollRect.top + metrics.scrollTop };
       });
-      const opening = measureBoardEndingOpening(authoredCanvas, ending);
-      authoredOpening = opening ? { ...opening } : null;
-      // All geometry reads above precede backing-store and SVG writes.
-      threeScene?.resize();
-      authoredScene?.resize(metrics.worldWidth, metrics.viewportHeight);
-      lifecycle.layoutMeasurements += 1;
-      layoutDirty = false;
+      portraitRenderer.resize({ ...field, boardScale,
+        outletTop: metrics.worldTop + layout.mapY(physics.getPortraitOutletY()) * boardScale - metrics.stageTop });
+      lifecycle.layoutMeasurements += 1; layoutDirty = false;
       return metrics.worldWidth > 0 && metrics.viewportHeight > 0;
     }
-
     function applyScrollState() {
-      const { scrollTop, viewportHeight, stageTop, stageHeight, worldWidth, worldTop } = metrics;
-      const visibility = boardSceneActivity({ scrollTop, viewportHeight,
-        worldBottom: worldTop + metrics.worldHeight, stageTop, stageHeight,
-        spatialReady: authoredReady || Boolean(threeScene) });
-      if (visibility.shouldRelease) retireSpatialScene();
-      else if (visibility.shouldPrepare && !pendingSurfaceReplacement) loadAuthoredEnding();
-      handoffVisible = visibility.spatialVisible;
-      if (handoffVisible && !authoredReady) prepareGridHandoff();
-      // The opaque sticky stage owns the viewport at this boundary. The source
-      // world's overlapped grid below it must not keep solving invisibly.
-      const covered = scrollTop >= stageTop && (authoredReady || Boolean(threeScene));
-      // The spatial canvas contains settled cells only. Until it owns the
-      // viewport, keep its opaque paint out of the 2D arrivals' stacking path.
-      const spatialCover = covered ? 'true' : 'false';
-      if (threeStage.dataset.spatialCover !== spatialCover) threeStage.dataset.spatialCover = spatialCover;
-      boardVisible = scrollTop < worldTop + metrics.worldHeight && !covered;
-      machinePrewarmed = boardShouldKeepMachineWarm({ scrollTop,
-        previousScrollTop: handledScrollTop, stageTop, viewportHeight,
-        suspended: physics.isSuspended(), prewarmed: machinePrewarmed });
-      if (covered && !machinePrewarmed && physics.isReady() && !physics.isSuspended()) {
-        const result = physics.suspend();
-        lifecycle.physicsSuspends += 1;
-        lifecycle.lastSuspendMs = result.durationMs;
-      } else if ((boardVisible || machinePrewarmed) && physics.isSuspended()) {
-        setLifecycleState('machine-restoring');
-        const result = physics.resume();
-        lifecycle.physicsResumes += 1;
-        if (covered) lifecycle.prewarmRestores += 1;
-        lifecycle.lastResumeMs = result.durationMs;
-        lastPhysicsFrameTime = 0;
+      const { scrollTop, viewportHeight, stageTop, stageHeight, worldTop, worldWidth,
+        portraitScrollStart, portraitScrollRange } = metrics;
+      boardVisible = boardMachineIsVisible(scrollTop, worldTop + metrics.worldHeight);
+      const covered = String(!boardVisible);
+      if (world.dataset.machineCovered !== covered) world.dataset.machineCovered = covered;
+      portraitVisible = scrollTop + viewportHeight > stageTop && scrollTop < stageTop + stageHeight;
+      if (physics.isReady() && !physics.isSuspended() && !physics.hasUncapturedBalls()) {
+        physics.suspend(); lifecycle.physicsSuspends += 1;
+      } else if (boardVisible && physics.isSuspended() && physics.hasUncapturedBalls()) {
+        physics.resume(); lifecycle.physicsResumes += 1;
       }
-      if (covered) renderer.shrink();
-      setLifecycleState(covered ? (machinePrewarmed ? 'machine-approaching' : 'spatial-active')
-        : handoffVisible ? 'seam-overlap'
-        : visibility.shouldPrepare ? 'spatial-preparing' : 'machine-active');
       if (boardVisible) {
         const strip = renderer.updateViewport(metrics);
         physics.setVisibleRange(strip.boardTop, strip.boardBottom, strip.pixelsPerBoardUnit);
-      }
-      const handoffProgress = gridHandoffProgress(scrollTop, stageTop, stageHeight, viewportHeight);
-      const handoffPhase = boardHandoffPhaseState(handoffProgress);
-      authoredProgress = reducedMotion
-        ? (handoffProgress >= BOARD_HANDOFF_PHASES.endingStart ? 1
-          : handoffProgress >= BOARD_HANDOFF_PHASES.authoredStart ? .66
-            : handoffProgress >= .2 ? .25 : 0)
-        : handoffProgress;
-      const endingVisibility = reducedMotion
-        ? Number(handoffProgress >= BOARD_HANDOFF_PHASES.endingStart) : handoffPhase.endingVisibility;
+      } else renderer.shrink();
+      lifecycle.state = portraitVisible ? 'portrait-active' : boardVisible ? 'machine-active' : 'resting';
+      portraitAnchorRef.current = scrollTop >= portraitScrollStart - 1
+        ? Math.max(0, Math.min(1, (scrollTop - portraitScrollStart)
+          / Math.max(1, portraitScrollRange))) : null;
       const progress = Math.min(1, scrollTop / Math.max(1, metrics.scrollHeight - viewportHeight));
-      let closest = null, closestDistance = Infinity;
+      let closest = null, distance = Infinity;
       for (const item of textMetrics) {
-        const top = item.top + (item.isEnding ? endingShift : 0) - scrollTop;
-        const centre = top + item.height / 2;
-        const distance = Math.abs(centre - viewportHeight / 2);
-        if (item.slot && top + item.height > 0 && top < viewportHeight && distance < closestDistance) {
-          closest = { slot: item.slot, offset: top };
-          closestDistance = distance;
+        const top = item.top - scrollTop;
+        const nextDistance = Math.abs(top + item.height / 2 - viewportHeight / 2);
+        if (item.slot && top + item.height > 0 && top < viewportHeight && nextDistance < distance) {
+          closest = { slot: item.slot, offset: top }; distance = nextDistance;
         }
       }
       if (scrollTop > 1) {
@@ -667,226 +579,173 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
         lastScrollAnchorRef.current = { slot: closest?.slot || null, offset: closest?.offset ?? null, progress };
       }
       cueRef.current?.style.setProperty('--about-board-progress', String(progress));
-      cueRef.current?.style.setProperty('--about-board-cue-opacity', boardScrollCueOpacity(progress).toFixed(4));
       cueRef.current?.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
-      gridState.progress = 0;
-      gridState.socketShadowOpacity = Math.max(0, Math.min(1,
-        (stageTop - scrollTop) / (viewportHeight * .5)));
-      threeCanvasRef.current?.style.setProperty('--about-board-layer-opacity', String(authoredReady ? 0 : 1));
-      authoredCanvas.style.setProperty('--about-board-layer-opacity', String(authoredReady ? 1 : 0));
-      ending.style.setProperty('--about-board-ending-reveal', endingVisibility.toFixed(4));
-      ending.style.visibility = endingVisibility > 0.001 ? 'visible' : 'hidden';
-      ending.inert = endingVisibility < 0.5;
       const gatePosition = worldTop + layout.mapY(RESERVOIR_GATE_Y) * worldWidth / BOARD_WIDTH;
-      const meterPosition = worldTop + layout.mapY(layout.placeY(MECHANISM.meterGate.pivot[1])) * worldWidth / BOARD_WIDTH;
-      // Each valve opens only as its own pivot crosses the scroll band.
-      // Reading-block height must not release the downstream inventory early.
+      const meterPosition = worldTop + layout.mapY(drumArt.top + drumArt.geometry.gate.pivot[1]) * worldWidth / BOARD_WIDTH;
       gateProgress = boardMechanismProgress(gatePosition, scrollTop, viewportHeight);
       physics.setScrollProgress(gateProgress, boardMechanismProgress(meterPosition, scrollTop, viewportHeight));
-      handledScrollTop = scrollTop;
-      scrollDirty = false;
+      handledScrollTop = scrollTop; scrollDirty = false;
     }
-
     function frame(now) {
       frameId = 0;
-      const currentCanvas = authoredCanvasRef.current;
-      if (document.hidden || disposed || !ownsSceneSurface(currentCanvas)) {
-        lastPhysicsFrameTime = 0;
-        framePacer.reset();
-        return;
-      }
-      if (!framePacer.takeFrame(now)) {
-        lifecycle.pacedFrames += 1;
-        requestFrame();
-        return;
-      }
-      // The shared wheel easing updates the real scrollport before the board,
-      // physics fixtures and camera sample it in this same paced frame.
+      if (document.hidden || disposed || !ownsSurface()) { lastFrameTime = 0; framePacer.reset(); return; }
+      if (!framePacer.takeFrame(now)) { lifecycle.pacedFrames += 1; requestFrame(); return; }
+      const frameStarted = performance.now();
       smoothScroll?.raf(now);
-      if (authoredCanvas !== currentCanvas) {
-        authoredCanvas = currentCanvas;
-        pendingSurfaceReplacement = false;
-        layoutDirty = true;
-      }
-      const measured = layoutDirty;
-      if (measured && !measureLayout()) return;
+      if (layoutDirty && !measureLayout()) return;
       metrics.scrollTop = scrollport.scrollTop;
-      const presentationChanged = measured || scrollDirty || handledScrollTop !== metrics.scrollTop;
-      if (presentationChanged) applyScrollState();
-      const delta = lastPhysicsFrameTime ? Math.min(50, now - lastPhysicsFrameTime) : 1000 / 60;
-      lastPhysicsFrameTime = now;
-      const start = import.meta.env.DEV ? performance.now() : 0;
-      // The retained world advances only while it can be seen. Suspension
-      // preserves its last physical state without accumulating hidden time.
-      if (boardVisible && !physics.isSuspended() && !advancePhysics(delta)) return;
-      const afterPhysics = import.meta.env.DEV ? performance.now() : 0;
-      if (boardVisible) renderer.draw();
-      if (!firstPaintReady && physics.isReady()) {
-        firstPaintReady = true;
-        // Publish a settled snapshot, not the mutable airborne packing seed.
-        // Live ball motion never changes this opening clearance.
+      if (scrollDirty || handledScrollTop !== metrics.scrollTop) applyScrollState();
+      const delta = lastFrameTime ? Math.min(50, now - lastFrameTime) : 1000 / 60;
+      lastFrameTime = now;
+      const start = performance.now();
+      if (!physics.isSuspended() && !advancePhysics(delta)) return;
+      const afterPhysics = performance.now();
+      const visibleBalls = boardVisible ? renderer.draw() : 0;
+      if (!settledPhysicsPublished && physics.isReady()) {
+        if (!physics.isOpeningReady()) {
+          physicsFailed = true;
+          setError(new Error('The opening ball pile could not settle.'));
+          return;
+        }
+        settledPhysicsPublished = true;
         setSettledOpening({ inventory, surfaceY: inventory.surfaceY });
-        setError(null);
-        setSceneReady(true);
+        setPhysicsReady(true); scrollDirty = true;
       }
-      if (handoffVisible && authoredReady && authoredScene) {
-        const rendered = authoredScene.render({
-          progress: authoredProgress,
-          ambientSeconds: now / 1000,
-          reducedMotion,
-          cameraTimeSeconds: now / 1000,
-          endingOpening: authoredProgress >= BOARD_BAND_JOURNEY.endingRevealStart
-            ? authoredOpening : null,
-          endingTitleActive: authoredProgress >= BOARD_HANDOFF_PHASES.endingStart,
-        });
-        // The replacement has actually painted. Now discard the loading
-        // surface, rather than retaining a second invisible renderer.
-        if (rendered) disposeFallback();
-      } else if (handoffVisible && threeScene
-        && (presentationChanged || previousOccupiedCount !== gridState.occupied.size)) {
-        threeScene.render(Math.min(authoredProgress, BOARD_HANDOFF_PHASES.bendEnd));
+      if (portraitVisible) {
+        // Establish framing before allocating this frame's incoming trajectories.
+        portraitRenderer.updateViewport(metrics.worldWidth, metrics.viewportHeight,
+          metrics.scrollTop - metrics.stageTop, portraitPan.scrollLeft);
+        portraitRenderer.prepare();
+        capture.advance(delta);
+        portraitRenderer.draw();
+        const complete = capture.settled.length === capture.map.count;
+        stage.dataset.portraitComplete = String(complete);
       }
-      previousOccupiedCount = gridState.occupied.size;
-      if (import.meta.env.DEV) {
+      if (!openingPublished && settledPhysicsPublished && openingFontsReadyRef.current) {
+        // Match the width React used for marginTop. Canvas measurements can
+        // retain a fractional CSS pixel that clientWidth rounds away.
+        const lift = (inventory.surfaceY - inventory.radius - layout.reservoirTop) * boardWidth / BOARD_WIDTH;
+        const liftCommitted = layout.readerMode || Math.abs(Number.parseFloat(world.style.marginTop || '0') + lift) < .5;
+        // The offscreen machine deliberately reports zero text heights while
+        // its portrait is visible. Retain its measured layout until it returns.
+        const textMeasured = layout.readerMode || !boardVisible || boardTextElements.every(element =>
+          quietHeights[element.dataset.boardTextSlot] === Math.ceil(element.getBoundingClientRect().height));
+        // React must commit the prepared pile's offset and final font metrics,
+        // then the viewport bitmap must be painted at those same coordinates.
+        // A restored lower viewport can correctly be empty while the original
+        // balls travel toward it. The cold opening still requires its pile.
+        if (liftCommitted && textMeasured && (visibleBalls > 0 || !boardVisible || restoringPreparedView)) {
+          openingPublished = true;
+          setError(null);
+          setSceneReady(true);
+        }
+      }
+      if (BOARD_DIAGNOSTICS) {
         const afterDraw = performance.now();
         timing.frames += 1;
         timing.meanPhysicsMs += ((afterPhysics - start) - timing.meanPhysicsMs) / timing.frames;
-        // A lifetime mean hides a slow release after a long resting opening.
-        // Keep a bounded recent sample for development performance checks.
         timing.recentPhysicsMs += ((afterPhysics - start) - timing.recentPhysicsMs) * .1;
         timing.meanDrawMs += ((afterDraw - afterPhysics) - timing.meanDrawMs) / timing.frames;
-        timing.worstFrameMs = Math.max(timing.worstFrameMs, afterDraw - start);
+        timing.worstFrameMs = Math.max(timing.worstFrameMs, afterDraw - frameStarted);
       }
-      if (!physics.isReady() || (boardVisible && physics.hasActivity())
-        || (handoffVisible && authoredReady) || pendingSurfaceReplacement
-        || smoothScroll?.isScrolling === 'smooth') {
-        requestFrame();
-      } else {
-        lastPhysicsFrameTime = 0;
-        framePacer.reset();
+      if (physics.isReady() && !physics.hasUncapturedBalls() && !physics.isSuspended()) {
+        physics.suspend(); lifecycle.physicsSuspends += 1;
       }
+      if (!physics.isReady() || (!openingPublished && openingFontsReadyRef.current) || scrollDirty
+        || ((boardVisible || physics.hasUncapturedBalls()) && physics.hasActivity())
+        || (portraitVisible && capture.hasActivity()) || smoothScroll?.isScrolling === 'smooth') requestFrame();
+      else { lastFrameTime = 0; framePacer.reset(); }
     }
     function requestFrame() {
-      if (document.hidden || disposed || physicsFailed || !ownsSceneSurface()) return;
-      if (!physics.isReady()) {
-        // A hidden incoming route may receive very few animation frames.
-        // Settle only its unshown seed in bounded tasks between paints, so
-        // preparation does not depend on compositor cadence or time out.
-        // Once ready, all live movement returns to the normal frame clock.
+      if (document.hidden || disposed || physicsFailed || !ownsSurface()) return;
+      if (!physics.isReady() && !boardVisible) {
         if (!preparationTimer) preparationTimer = window.setTimeout(() => {
           preparationTimer = 0;
-          if (document.hidden || disposed || !ownsSceneSurface()) return;
-          if (!advancePhysics(0)) return;
-          requestFrame();
+          if (disposed || !ownsSurface() || !advancePhysics(0)) return;
+          scrollDirty = true;
+          if (physics.isReady() && !frameId) frameId = requestAnimationFrame(frame);
+          else requestFrame();
         }, 0);
-        return;
-      }
-      if (!frameId) frameId = requestAnimationFrame(frame);
+      } else if (!frameId) frameId = requestAnimationFrame(frame);
     }
-    function onScroll() {
-      // Native and smoothed input both move the real scrollport. Coalesce
-      // events into the next paced frame; never solve or measure here.
-      scrollDirty = true;
-      requestFrame();
+    function onScroll() { scrollDirty = true; requestFrame(); }
+    // Resize can clamp native scroll before the text finishes reflowing. Keep
+    // the last portrait anchor through those layout passes until new input.
+    function rememberPortraitReflow() {
+      if (portraitAnchorRef.current !== null) portraitReflowAnchorRef.current = portraitAnchorRef.current;
     }
-    function onWheel() {
-      // Lenis can consume a wheel event before native scroll emits anything.
-      // Start the shared frame clock; it stops when the easing settles.
+    function clearPortraitReflow() { portraitReflowAnchorRef.current = null; }
+    function onScrollKey(event) {
+      if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) clearPortraitReflow();
+    }
+    function onWheel(event) {
+      if (event.deltaY) clearPortraitReflow();
       if (smoothScroll) requestFrame();
     }
     function rebuildSmoothScroll() {
-      smoothScroll?.destroy();
-      smoothScroll = null;
+      reducedMotion = scrollMediaQueries.reducedMotionQuery.matches;
+      capture.setReducedMotion(reducedMotion);
+      if (reducedMotion && stage.dataset.portraitSwing === 'swinging') stage.dataset.portraitSwing = 'settled';
+      framePacer = createBoardFramePacer(reducedMotion);
+      smoothScroll?.destroy(); smoothScroll = null;
       if (!shouldUseNativeSmoothScroll(scrollMediaQueries)) {
         smoothScroll = createSmoothScroll({ wrapper: scrollport, content: scrollport,
           autoResize: false, allowNestedScroll: true });
         smoothScroll?.resize();
       }
-      scrollDirty = true;
-      requestFrame();
+      onScroll();
     }
     function onVisibility() {
-      lastPhysicsFrameTime = 0;
-      framePacer.reset();
-      if (!document.hidden) {
-        smoothScroll?.reset();
-        requestFrame();
-      }
+      lastFrameTime = 0; framePacer.reset();
+      if (!document.hidden) { smoothScroll?.reset(); requestFrame(); }
     }
     const resizeObserver = new ResizeObserver(() => {
-      smoothScroll?.resize();
-      layoutDirty = true;
-      scrollDirty = true;
-      requestFrame();
+      smoothScroll?.resize(); layoutDirty = true; onScroll();
     });
-    resizeObserver.observe(scrollport);
-    resizeObserver.observe(threeStage);
-    resizeObserver.observe(world);
-    resizeObserver.observe(ending);
-    for (const element of textElements) resizeObserver.observe(element);
-    const layoutObserver = new MutationObserver(() => {
-      layoutDirty = true;
-      scrollDirty = true;
-      requestFrame();
-    });
-    layoutObserver.observe(ending, { childList: true, characterData: true, subtree: true });
-    // Settling changes the opening margin, not the world's size. ResizeObserver
-    // cannot see that position change; refresh the valve/camera coordinates
-    // after React commits it without adding layout reads to every scroll frame.
+    for (const element of [scrollport, stage, world, ...textElements]) resizeObserver.observe(element);
+    const layoutObserver = new MutationObserver(() => { layoutDirty = true; onScroll(); });
     layoutObserver.observe(world, { attributes: true, attributeFilter: ['style'] });
     scrollport.addEventListener('scroll', onScroll, { passive: true });
     scrollport.addEventListener('wheel', onWheel, { passive: true });
+    scrollport.addEventListener('pointerdown', clearPortraitReflow, { passive: true });
+    scrollport.addEventListener('keydown', onScrollKey);
+    window.addEventListener('resize', rememberPortraitReflow);
+    portraitPan.addEventListener('scroll', requestFrame, { passive: true });
     scrollMediaQueries.reducedMotionQuery.addEventListener('change', rebuildSmoothScroll);
     scrollMediaQueries.nativeScrollQuery.addEventListener('change', rebuildSmoothScroll);
-    rebuildSmoothScroll();
-    function onThemeChange() {
-      physics?.setPalette(paletteRef.current);
-      threeScene?.setPalette(paletteRef.current);
-      scrollDirty = true;
-      requestFrame();
-    }
-    function onBallDynamicsChange(event) {
-      physics?.setBallMaterial(event.detail);
-      requestFrame();
-    }
+    function onThemeChange() { portraitRenderer.invalidate(); onScroll(); }
+    function onBallDynamicsChange(event) { physics.setBallMaterial(event.detail); requestFrame(); }
+    function onPortraitChange(event) { capture.setSettings(event.detail); layoutDirty = true; onScroll(); }
     window.addEventListener(THEME_CHANGE_EVENT, onThemeChange);
     window.addEventListener(BALL_DYNAMICS_CHANGE_EVENT, onBallDynamicsChange);
+    window.addEventListener(ABOUT_PORTRAIT_CHANGE_EVENT, onPortraitChange);
     document.addEventListener('visibilitychange', onVisibility);
-    onScroll();
+    rebuildSmoothScroll();
     return () => {
-      disposed = true;
-      cancelAnimationFrame(frameId);
-      window.clearTimeout(preparationTimer);
-      resizeObserver.disconnect();
-      layoutObserver.disconnect();
-      smoothScroll?.destroy();
+      rememberPortraitReflow();
+      disposed = true; cancelAnimationFrame(frameId); window.clearTimeout(preparationTimer);
+      resizeObserver.disconnect(); layoutObserver.disconnect(); smoothScroll?.destroy();
       scrollMediaQueries.reducedMotionQuery.removeEventListener('change', rebuildSmoothScroll);
       scrollMediaQueries.nativeScrollQuery.removeEventListener('change', rebuildSmoothScroll);
-      scrollport.removeEventListener('scroll', onScroll);
-      scrollport.removeEventListener('wheel', onWheel);
+      scrollport.removeEventListener('scroll', onScroll); scrollport.removeEventListener('wheel', onWheel);
+      scrollport.removeEventListener('pointerdown', clearPortraitReflow);
+      scrollport.removeEventListener('keydown', onScrollKey);
+      window.removeEventListener('resize', rememberPortraitReflow);
+      portraitPan.removeEventListener('scroll', requestFrame);
       window.removeEventListener(THEME_CHANGE_EVENT, onThemeChange);
       window.removeEventListener(BALL_DYNAMICS_CHANGE_EVENT, onBallDynamicsChange);
+      window.removeEventListener(ABOUT_PORTRAIT_CHANGE_EVENT, onPortraitChange);
       document.removeEventListener('visibilitychange', onVisibility);
-      renderer.dispose();
-      physicsWorld.dispose();
-      threeScene?.dispose();
-      // React can rerun this effect for responsive layout changes while the
-      // canvas remains attached. Preserve that reusable context on teardown.
-      authoredScene?.dispose();
-      authoredController?.abort();
-      restoreQuietGeometry();
-      drumArt.dispose();
-      handoffArt.dispose();
-      restoreLineWeight();
-      if (window.__ABS_ABOUT_GAME_BOARD__ === diagnostics) {
-        delete window.__ABS_ABOUT_GAME_BOARD__;
-      }
-      physicsRef.current = null;
-      rendererRef.current = null;
-      threeRef.current = null;
+      if (physics.isOpeningReady()) { session.checkpoint = physics.createCheckpoint(); session.layout = layout; }
+      const panRange = portraitPan.scrollWidth - portraitPan.clientWidth;
+      if (panRange > 0) session.pan = portraitPan.scrollLeft / panRange;
+      portraitRenderer.dispose(); renderer.dispose(); physics.dispose();
+      removePortraitChute(); restoreQuietGeometry(); drumArt.dispose(); handoffArt.dispose(); restoreLineWeight();
+      if (diagnostics && window.__ABS_ABOUT_GAME_BOARD__ === diagnostics) delete window.__ABS_ABOUT_GAME_BOARD__;
+      physicsRef.current = null; rendererRef.current = null; portraitRef.current = null;
       drawRef.current = () => {};
     };
-  }, [source, layout, radiusScale, inventory, rememberScrollAnchor]);
+  }, [source, layout, radiusScale, inventory, quietHeights, boardWidth]);
 
   useEffect(() => {
     if (!source || readerMode || !worldRef.current) return undefined;
@@ -895,6 +754,9 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
     const measure = () => {
       cancelAnimationFrame(frameId);
       frameId = requestAnimationFrame(() => {
+        // Hidden descendants can report zero size. Retain the last readable
+        // layout until the machine is shown again, rather than collapsing it.
+        if (worldRef.current?.dataset.machineCovered === 'true') return;
         const next = Object.fromEntries(elements.map(element => [element.dataset.boardTextSlot,
           Math.ceil(element.getBoundingClientRect().height)]));
         setQuietHeights(previous => Object.entries(next).every(([key, value]) => previous[key] === value)
@@ -914,7 +776,7 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
     let settleTimer = 0;
     let disposed = false;
     const inspect = () => {
-      if (disposed) return;
+      if (disposed || worldRef.current?.dataset.machineCovered === 'true') return;
       // A font or responsive text change is measured on the next frame. Do
       // not permanently switch to reader mode against the previous spacing.
       if (document.fonts?.status === 'loading') return;
@@ -962,28 +824,44 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
 
   const email = homeContent.contact?.email || 'alexander@beck.fyi';
   const linkedin = homeContent.socials?.items?.linkedin?.url;
-  const gridOverlap = (layout.mapY(layout.placeY(BOARD_2D_END_Y)) - layout.mapY(layout.placeY(GRID_START_Y)))
-    / BOARD_WIDTH * 100;
   return <section className="about-game-board" style={source?.architectureStyle}
     data-route-content={routeContentId} data-about-scene-ready={sceneReady || Boolean(error) ? 'true' : 'false'}
+    data-about-physics-ready={physicsReady || Boolean(error) ? 'true' : 'false'}
+    aria-busy={!sceneReady && !error}
     aria-labelledby="about-route-title">
     <div className="about-board-viewport-measure" ref={viewportMeasureRef} aria-hidden="true" />
     {error ? <div className="about-board-error" role="alert">
-      <h1 id="about-route-title">About Me</h1>
-      <p>{copy('text-promise-main').description}</p>
+      <h1 id="about-route-title" data-route-focus-target tabIndex={-1}>About Me</h1>
+      <p>{OPENING_COPY}</p>
       <p>The interactive drawing could not load. You can still get in touch below.</p>
       <a href={`mailto:${email}`}>{email}</a>
     </div> : null}
-    <div className="about-board-scrollport" ref={scrollRef} inert={Boolean(error)}
-      aria-hidden={error ? true : undefined}>
+    <div className="about-board-scrollport" ref={scrollRef} inert={!sceneReady || Boolean(error)}
+      aria-hidden={!sceneReady || error ? true : undefined}>
       <div className="about-board-content">
         <div className="about-board-intro">
-          <div className="about-board-intro__copy" data-about-scroll-text
+          <div className="about-board-intro__copy route-title-lockup" data-about-scroll-text
             style={boardEditorialGridSlot('introduction', mobile)}>
-            <h1 id={error ? undefined : 'about-route-title'}>About Me</h1>
-            <p className="about-board-intro__statement">{OPENING_COPY}</p>
+            <h1
+              id={error ? undefined : 'about-route-title'}
+              className="route-centered-page__title route-bookend-title"
+              data-route-enter={error ? undefined : 'identity'}
+              data-route-enter-order="0"
+              data-route-enter-variant="bookend-title"
+              data-route-focus-target={error ? undefined : ''}
+              tabIndex={-1}
+            >
+              About Me
+            </h1>
+            <span className="route-title-lockup__rule" aria-hidden="true" />
+            <p
+              className="about-board-intro__statement route-centered-page__description route-intro-description"
+              data-route-enter={error ? undefined : 'context'}
+              data-route-enter-variant="bookend-description"
+            >
+              {OPENING_COPY}
+            </p>
           </div>
-          <span className="about-board-entry-cue" aria-hidden="true">Follow me <span>↓</span></span>
         </div>
         <div className={readerMode ? 'about-board-reader' : 'about-board-reader is-hidden'}>
           {readerMode ? <BoardEditorial layout={layout} /> : null}
@@ -998,28 +876,40 @@ export function AboutGameBoardExperience({ routeContentId = 'about' }) {
           </> : null}
           {source ? <canvas className="about-board-balls" ref={canvasRef} aria-hidden="true" /> : null}
         </div>
-        {source ? <div className="about-board-three-stage" ref={threeStageRef}
-          style={{ '--about-board-grid-overlap': `${gridOverlap}cqw` }}>
-          <div className="about-board-three-viewport">
-            <canvas className="about-board-three-canvas about-board-three-canvas--handoff"
-              ref={threeCanvasRef} aria-hidden="true" />
-            <canvas className="about-board-three-canvas about-board-three-canvas--authored"
-              ref={authoredCanvasRef} key={authoredCanvasGeneration}
-              style={{ '--about-board-layer-opacity': 0 }} aria-hidden="true" />
-            <footer className="about-board-ending" ref={endingRef} inert>
-              <div>
-                <h2>{copy('text-epilogue-invitation').text}</h2>
-                <p>{copy('text-epilogue-invitation').description}</p>
-                <div className="about-board-ending__actions">
-                  <CvDownloadAction soundSource="about-download-cv" />
-                  <CopyEmailAction email={email} label={email} statusId="about-board-copy-status"
-                    soundSource="about-copy-email" />
-                  <LinkedInAction href={linkedin} soundSource="about-linkedin" />
+        {source ? <>
+          <section className="about-board-portrait-stage" ref={portraitStageRef}
+            aria-label="A portrait of Alex made from the original balls">
+            <div className="about-board-portrait-viewport" ref={portraitPanRef} tabIndex={0}
+              role="group" aria-label="Portrait canvas. Swipe sideways or use left and right arrow keys to explore."
+              onKeyDown={event => {
+                const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+                const viewport = event.currentTarget;
+                if (!direction || viewport.scrollWidth <= viewport.clientWidth) return;
+                event.preventDefault();
+                viewport.scrollBy({ left: direction * 40 });
+              }}>
+              <div className="about-board-portrait-surface" ref={portraitSurfaceRef}>
+                <div className="about-board-portrait-bitmap">
+                  <canvas className="about-board-portrait-canvas" ref={portraitCanvasRef} aria-hidden="true" />
                 </div>
+                <div className="about-board-portrait-ledge" aria-hidden="true" />
               </div>
-            </footer>
-          </div>
-        </div> : null}
+            </div>
+          </section>
+          <footer className="about-board-ending">
+            <div className="about-board-ending__invitation">
+              <h2 className="route-centered-page__title route-bookend-title">{copy('text-epilogue-invitation').text}</h2>
+              <p>{copy('text-epilogue-invitation').description}</p>
+              <div className="about-board-ending__actions">
+                <ActionButton className="about-board-contact-action" href={buildRouteHref('contact')}
+                  label="Contact Me" onClick={navigateToContact}
+                  data-sound-action="press" data-sound-source="about-contact" />
+                <CvDownloadAction soundSource="about-download-cv" showIcon={false} />
+                <LinkedInAction href={linkedin} soundSource="about-linkedin" />
+              </div>
+            </div>
+          </footer>
+        </> : null}
       </div>
     </div>
     {import.meta.env.DEV && new URLSearchParams(window.location.search).get('grid') === '1'

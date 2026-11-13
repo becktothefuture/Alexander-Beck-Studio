@@ -41,7 +41,9 @@ export function boundsOnBoard(element) {
 
 export function railBodies(path) {
   const length = path.getTotalLength();
-  const count = Math.max(1, Math.ceil(length / 32));
+  // These authored rails are single lines. Segmenting them creates internal
+  // collider corners that can hold a small ball on an otherwise smooth slope.
+  const count = path.id.startsWith('direction-ramp-') ? 1 : Math.max(1, Math.ceil(length / 32));
   const thickness = Number(path.getAttribute('stroke-width')) || 18;
   const material = path.id.startsWith('drum-transfer-')
     ? TRANSFER_CANAL_MATERIAL : reboundMaterial(reboundLevelForFixture(path.id));

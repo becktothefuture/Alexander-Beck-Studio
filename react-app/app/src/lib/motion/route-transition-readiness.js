@@ -70,8 +70,7 @@ export function isDailyLabRouteId(routeId) {
 /** The active About renderer owns readiness; shell navigation must not depend
  * on a retired renderer's CSS class or report ready before its first paint. */
 export function isAboutSceneReady() {
-  return document.querySelector('[data-route-content="about"]')
-    ?.dataset.aboutSceneReady === 'true';
+  return document.querySelector('[data-route-content="about"][data-about-scene-ready="true"]') !== null;
 }
 
 function readRouteReadySnapshot(routeId) {
@@ -154,11 +153,7 @@ export function observeRouteBaselineReady(routeId, options = {}, getRuntimeSnaps
   }
 
   if (routeId === 'about') {
-    const comingSoonTitle = document.querySelector('[data-about-publication="held"] #about-coming-soon-title');
-    return Boolean(
-      body.classList.contains('about-page')
-      && (comingSoonTitle || isAboutSceneReady())
-    );
+    return body.classList.contains('about-page') && isAboutSceneReady();
   }
 
   if (routeId === 'contact') {

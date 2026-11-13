@@ -108,7 +108,7 @@ export function createBoardSupportSafety(engine, balls, fixtures) {
   }
 
   return {
-    inspect: () => scan(),
+    inspect: (wakeUnsupported = false) => scan(wakeUnsupported),
     settleSupported(predicate, freeze) {
       // Resolve from the architecture upwards. A temporarily fixed grain must
       // rest on an already fixed support; no suspended island can freeze.

@@ -39,6 +39,7 @@ import {
   formatUtilityRailControlValue,
 } from '../../../lib/utilityRailControls.js';
 import { CUBE_3D_DEFAULTS, CUBE_3D_LIMITS } from '../modes/cube3d-config.js';
+import { ABOUT_PORTRAIT_CONTROLS, publishAboutPortraitChange } from '../../../lib/aboutPortrait.js';
 import {
   DEFAULT_BALL_DYNAMICS,
   publishBallDynamicsChange,
@@ -397,7 +398,8 @@ export const MASTER_GROUPS = [
     sections: [
       'scene',
       'overlay',
-      'entrance'
+      'entrance',
+      'aboutPortrait'
     ]
   },
   {
@@ -849,6 +851,19 @@ function createUtilityRailControls() {
 }
 
 export const CONTROL_SECTIONS = {
+  aboutPortrait: {
+    title: 'About Portrait',
+    icon: '◉',
+    defaultOpen: false,
+    controls: ABOUT_PORTRAIT_CONTROLS.map(control => ({
+      id: control.key, stateKey: control.key, label: control.label,
+      type: 'range', min: control.min, max: control.max, step: control.step,
+      default: control.default, parse: parseFloat,
+      format: value => control.key === 'aboutPortraitSpeed'
+        ? `${value.toFixed(2)}×` : `${Math.round(value * 100)}%`,
+      onChange: globals => publishAboutPortraitChange(globals),
+    })),
+  },
   ...SIMULATION_ATMOSPHERE_CONTROL_SECTIONS,
   ...SIMULATION_BODY_MATERIAL_CONTROL_SECTIONS,
   // ═══════════════════════════════════════════════════════════════════════════

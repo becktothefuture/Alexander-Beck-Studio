@@ -881,19 +881,16 @@ test('superseded Canvas material transitions settle without waiting for a timeou
   }
 });
 
-test('About readiness supports the production hold and still waits for the development scene', () => {
+test('About readiness waits for the scene to paint', () => {
   const harness = createReadinessHarness();
   try {
     const ready = () => observeRouteBaselineReady('about', {}, harness.getRuntimeSnapshot);
     harness.body.classList.add('about-page');
     assert.equal(ready(), false);
-    const holdSelector = '[data-about-publication="held"] #about-coming-soon-title';
-    harness.selectors.set(holdSelector, createFakeElement());
-    assert.equal(ready(), true);
-    harness.selectors.delete(holdSelector);
     const scene = createFakeElement({ dataset: { aboutSceneReady: 'false' } });
-    harness.selectors.set('[data-route-content="about"]', scene);
     assert.equal(ready(), false);
+    const readySelector = '[data-route-content="about"][data-about-scene-ready="true"]';
+    harness.selectors.set(readySelector, scene);
     scene.dataset.aboutSceneReady = 'true';
     assert.equal(ready(), true);
     harness.body.classList.remove('about-page');

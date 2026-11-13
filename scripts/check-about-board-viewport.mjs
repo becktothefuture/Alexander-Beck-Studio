@@ -112,7 +112,7 @@ test('renderer source keeps measurement and backing-store work bounded', async (
   assert.match(renderer, /createBoardViewportWindow\(\)/);
   assert.match(renderer, /backingBytes: canvas\.width \* canvas\.height \* 4/);
   assert.match(css, /\.about-board-art \{[^}]*z-index: 1;/);
-  assert.match(css, /#simulations \.about-board-balls \{[^}]*z-index: 0;/);
+  assert.match(css, /#simulations \.about-board-balls \{[^}]*z-index: 3;/);
   assert.match(css, /\.about-board-text \{[^}]*z-index: 2;/);
   assert.doesNotMatch(css, /data-handoff-ready='false'[^}]*height:/,
     'loading diagnostics must not change the spatial-stage scroll height');

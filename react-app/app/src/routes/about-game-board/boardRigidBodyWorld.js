@@ -2,7 +2,7 @@ import Matter from 'matter-js';
 import { createBoardCircleContactGuard } from './boardCircleContacts.js';
 import { createBoardCircleFixtureContacts } from './boardCircleFixtureContacts.js';
 
-const { Body, Events, Sleeping } = Matter;
+const { Events, Sleeping } = Matter;
 
 export const BOARD_RIGID_BODY_METRE_SCALE = 1000 / 9.81;
 const MATTER_BASE_DELTA_MS = 1000 / 60;
@@ -299,7 +299,7 @@ export function createBoardRigidBodyWorld({ engine, balls, fixtures, movingFixtu
   const projectionPairScratch = new Set();
   const projectionCandidates = [];
   const sweepImpacted = new Set();
-  const circleGuard = createBoardCircleContactGuard({ passes: 12, tolerance: 0.01 });
+  const circleGuard = createBoardCircleContactGuard({ passes: 7, tolerance: 0.01 });
   const circleFixtureContacts = createBoardCircleFixtureContacts();
   const guardedCircles = [];
   const guardedFixtures = [];
@@ -381,7 +381,6 @@ export function createBoardRigidBodyWorld({ engine, balls, fixtures, movingFixtu
       moving: isMovingFixture,
       snapshot: snapshotProxy(proxy),
       translation: { x: boardToMetres(proxy.position.x), y: boardToMetres(proxy.position.y) },
-      exportPosition: { x: proxy.position.x, y: proxy.position.y },
       kinematicStart: { x: proxy.position.x, y: proxy.position.y, angle: proxy.angle },
       kinematicTarget: { x: proxy.position.x, y: proxy.position.y, angle: proxy.angle },
       kinematicCommand: { x: proxy.position.x, y: proxy.position.y, angle: proxy.angle },
@@ -649,13 +648,15 @@ export function createBoardRigidBodyWorld({ engine, balls, fixtures, movingFixtu
     const velocityX = rapierVelocityToMatter(linear.x);
     const velocityY = rapierVelocityToMatter(linear.y);
     const angularVelocity = rigid.angvel() / 60;
-    record.exportPosition.x = metresToBoard(translation.x);
-    record.exportPosition.y = metresToBoard(translation.y);
-    Body.setPosition(proxy, record.exportPosition, false);
-    Body.setAngle(proxy, angle, false);
+    // Matter bodies are render/event proxies here; Rapier owns all live
+    // collision geometry. Update the proxy pose directly instead of asking
+    // Matter to translate and rotate unused polygon vertices every frame.
+    proxy.position.x = metresToBoard(translation.x);
+    proxy.position.y = metresToBoard(translation.y);
+    proxy.angle = angle;
     proxy.positionPrev.x = proxy.position.x - velocityX;
     proxy.positionPrev.y = proxy.position.y - velocityY;
-    proxy.anglePrev = proxy.angle - angularVelocity;
+    proxy.anglePrev = angle - angularVelocity;
     proxy.velocity.x = velocityX;
     proxy.velocity.y = velocityY;
     proxy.speed = Math.hypot(velocityX, velocityY);
@@ -867,7 +868,7 @@ export function createBoardRigidBodyWorld({ engine, balls, fixtures, movingFixtu
     return [...contactsByPair.values()];
   }
 
-  function step(stepMs = FIXED_STEP_MS, minimumSteps = 1, beforeMicroStep = null, preparing = false) {
+  function step(stepMs = FIXED_STEP_MS, minimumSteps = 1, beforeMicroStep = null, skipContactGuard = false) {
     if (disposed) return 0;
     const startTime = performance.now();
     syncMembership();
@@ -956,10 +957,9 @@ export function createBoardRigidBodyWorld({ engine, balls, fixtures, movingFixtu
       }
     }
     for (const record of sweepImpacted) record.rigid.setAdditionalSolverIterations(0);
-    // During the unshown gravity drop, native circle contacts do the settling.
-    // Repeated positional projection would wake the entire dense contact
-    // island before it can sleep. Visible motion keeps per-step protection.
-    if (!preparing) guardCircleContacts();
+    // Native collision solving remains active when unshown. Extra display
+    // projection is needed only for visible balls, not hidden travel or packing.
+    if (!skipContactGuard) guardCircleContacts();
     for (const record of records.values()) if (!record.moving) exportDynamic(record);
     emitInteractionEvents();
     stepCount += 1;

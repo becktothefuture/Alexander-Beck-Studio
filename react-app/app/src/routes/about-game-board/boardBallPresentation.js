@@ -5,6 +5,7 @@ import {
 } from '../../lib/homeSimulationSizing.js';
 import {
   DEFAULT_MOBILE_SIMULATION_BODY_SCALE,
+  isMobileSimulationViewport,
   normalizeMobileSimulationBodyScale,
 } from '../../lib/mobileSimulationSizing.js';
 
@@ -49,6 +50,13 @@ export function resolveBoardBallRadiusScale(presentation = {}, viewportMetrics =
     resolved, viewportMetrics);
   return clampBoardBallRadiusScale(radiusPx * 960 / boardWidth
     / BOARD_AUTHORED_MAX_MOVING_BALL_RADIUS);
+}
+
+/** Nearby 3D balls keep Home's phone size; distant balls retain perspective. */
+export function resolveBoardSpatialBallRadiusLimit(presentation = {}, viewportMetrics = {}) {
+  if (!isMobileSimulationViewport(viewportMetrics)) return 0;
+  return resolveHomeSimulationBodyRadius(presentation.homeSimulationBodyRadiusPx,
+    presentation, viewportMetrics);
 }
 
 export function normalizeBoardBallRadiusScale(value, fallback = 1) {

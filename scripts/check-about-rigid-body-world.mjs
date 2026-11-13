@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import Matter from '../react-app/app/node_modules/matter-js/build/matter.js';
+import { railBodies } from '../react-app/app/src/routes/about-game-board/boardGeometry.js';
+import { BOARD_ARCHITECTURE_LINE_SCALE } from '../react-app/app/src/routes/about-game-board/boardArchitectureWeight.js';
+import { releaseStalledBoardBall } from '../react-app/app/src/routes/about-game-board/boardFlow.js';
+import { createPortraitChute } from '../react-app/app/src/routes/about-game-board/boardPortraitChute.js';
 import {
   BOARD_RIGID_BODY_METRE_SCALE,
   createBoardRigidBodyWorld,
   loadBoardRigidBodyBackend,
 } from '../react-app/app/src/routes/about-game-board/boardRigidBodyWorld.js';
 
-const { Bodies, Body, Composite, Engine, Events, Sleeping } = Matter;
+const { Bodies, Body, Composite, Engine, Events, Sleeping, Vertices } = Matter;
 await loadBoardRigidBodyBackend();
 
 function createHarness(balls = [], fixtures = [], movingFixtures = []) {
@@ -19,6 +23,90 @@ function createHarness(balls = [], fixtures = [], movingFixtures = []) {
 
 assert.ok(Math.abs(BOARD_RIGID_BODY_METRE_SCALE * 9.81 - 1000) < 1e-10,
   'Earth gravity must resolve to 1000 board units per second squared');
+
+// A fast ball can move outwards after clearing the visible lip in the same
+// step. The centre guides must retain it until the portrait reads the pose.
+{
+  const radius = 6.656;
+  const chute = createPortraitChute(12000, radius);
+  const fixtures = chute.guides.map(guide => {
+    const vertices = guide.map(([x, y]) => ({ x, y }));
+    const centre = Vertices.centre(vertices);
+    return Bodies.fromVertices(centre.x, centre.y, vertices, {
+      isStatic: true, restitution: 0, friction: .08, label: 'rail:portrait-chute',
+    });
+  });
+  const balls = [chute.left + radius + 3, chute.right - radius - 3].map((x, index) => {
+    const ball = Bodies.circle(x, chute.outletY - 5, radius, {
+      restitution: .18, plugin: { boardId: `chute-${index}` },
+    });
+    Body.setVelocity(ball, { x: index === 0 ? -20 : 20, y: 48 });
+    return ball;
+  });
+  const harness = createHarness(balls, fixtures);
+  harness.adapter.step(harness.adapter.fixedStepMs, 1, null, true);
+  assert.ok(balls.every(ball => ball.position.y >= chute.outletY
+    && ball.position.x >= chute.left && ball.position.x <= chute.right),
+  'fast arrivals must still be inside the centre throat when captured');
+  harness.dispose();
+}
+
+// The finale needs every released ball. Straight guides have no internal
+// segment corners, and a local wake lets gravity finish a slow rail crossing.
+{
+  const length = Math.hypot(550, 50), radius = 6.656090651558074;
+  const path = { id: 'direction-ramp-regression', getCTM: () => null,
+    getTotalLength: () => length, getAttribute: () => 25 * BOARD_ARCHITECTURE_LINE_SCALE,
+    getPointAtLength: distance => ({ x: -6 + 550 * distance / length, y: 50 * distance / length }) };
+  const fixtures = railBodies(path);
+  assert.equal(fixtures.length, 3, 'a straight guide needs one rail and two visible round caps');
+  fixtures.push(Bodies.rectangle(-80, 400, 160, 2000, { isStatic: true, friction: .015 }));
+  const slope = 50 / 550;
+  const balls = [7.27, 20.42, 33.67, 54.1].map((x, index) => Bodies.circle(x,
+    (x + 6) * slope - (radius + 25 * BOARD_ARCHITECTURE_LINE_SCALE / 2 + .612) * Math.hypot(slope, 1), radius,
+    { friction: .018, frictionStatic: .036, frictionAir: .0006, restitution: .18,
+      plugin: { boardId: `rail-holdout-${index}` } }));
+  for (const ball of balls) Sleeping.set(ball, true);
+  const harness = createHarness(balls, fixtures);
+  for (let frame = 0; frame < 1200; frame += 1) {
+    for (const ball of balls) if (ball.isSleeping) Sleeping.set(ball, false);
+    harness.adapter.step(harness.adapter.fixedStepMs, 1, null, true);
+  }
+  assert.ok(balls.every(ball => ball.position.x > 544 && ball.position.y > 1000),
+    'every original small ball must leave the guide under real gravity');
+  harness.dispose();
+}
+
+// Recorded phone bumper spacing admits a stable two-ball arch. Clearing adds
+// a small momentum impulse to the original bodies, never a position command.
+{
+  const radius = 20.320864864864866, bumperRadius = 23.0980166667;
+  const left = 388.8949, right = 480, y = 1321, centre = (left + right) / 2;
+  const offset = centre - radius - left;
+  const ballY = y - Math.sqrt((radius + bumperRadius) ** 2 - offset ** 2);
+  const fixtures = [left, right].map(x => Bodies.circle(x, y, bumperRadius,
+    { isStatic: true, friction: .05, restitution: .9 }));
+  const balls = [centre - radius, centre + radius].map((x, index) => Bodies.circle(x, ballY, radius,
+    { friction: .018, frictionStatic: .036, frictionAir: .0006, restitution: .18,
+      plugin: { boardId: `arch-${index}`, boardColour: '#ffcf00' } }));
+  const harness = createHarness(balls, fixtures);
+  for (let frame = 0; frame < 480; frame += 1) {
+    for (const ball of balls) assert.equal(releaseStalledBoardBall(ball, harness.adapter.fixedStepMs, false), false);
+    harness.adapter.step(harness.adapter.fixedStepMs);
+  }
+  assert.ok(balls.every(ball => ball.position.y < y), 'a real stable arch must reproduce before testing its release');
+  let impulses = 0;
+  for (let frame = 0; frame < 1200; frame += 1) {
+    for (const ball of balls) impulses += Number(releaseStalledBoardBall(ball, harness.adapter.fixedStepMs, true));
+    harness.adapter.step(harness.adapter.fixedStepMs);
+  }
+  assert.ok(impulses > 0 && impulses <= 12, 'clearing must be sparse and bounded');
+  assert.ok(balls.every(ball => ball.position.y > y + radius * 2), 'every original must leave the bumper arch');
+  assert.equal(harness.adapter.getStats().externalPoseSyncs, 0, 'clearing must not teleport a body');
+  assert.deepEqual(balls.map(ball => [ball.plugin.boardId, ball.plugin.boardColour, ball.circleRadius]),
+    [['arch-0', '#ffcf00', radius], ['arch-1', '#ffcf00', radius]]);
+  harness.dispose();
+}
 
 // Exact circles in the authored pack are tangent at 2r. Native ball contact
 // skin must not inflate that distance and release latent compression when the
@@ -55,9 +143,15 @@ assert.ok(Math.abs(BOARD_RIGID_BODY_METRE_SCALE * 9.81 - 1000) < 1e-10,
   const first = Bodies.circle(0, 0, 5, { plugin: { boardId: 'gravity-a' } });
   const balls = [first];
   const harness = createHarness(balls);
+  const proxyVertices = first.vertices.map(({ x, y }) => [x, y]);
+  const proxyBounds = { min: { ...first.bounds.min }, max: { ...first.bounds.max } };
   harness.adapter.step(harness.adapter.fixedStepMs);
   assert.ok(first.position.y > 0 && first.velocity.y > 0,
     'an unsupported awake ball must accelerate downward');
+  assert.deepEqual(first.vertices.map(({ x, y }) => [x, y]), proxyVertices,
+    'Rapier owns live collision geometry, so proxy vertex transforms are unnecessary');
+  assert.deepEqual(first.bounds, proxyBounds,
+    'render-only Matter proxy bounds remain untouched during native export');
   const second = Bodies.circle(30, 0, 5, { plugin: { boardId: 'gravity-b' } });
   balls.push(second);
   harness.adapter.step(harness.adapter.fixedStepMs);

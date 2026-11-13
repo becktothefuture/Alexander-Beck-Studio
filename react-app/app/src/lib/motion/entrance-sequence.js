@@ -294,19 +294,20 @@ export function measureBookendTitleGlyphLines(element) {
   const lines = [];
   words.forEach((word) => {
     const top = word.getBoundingClientRect().top;
-    let lineIndex = lines.findIndex((lineTop) => Math.abs(lineTop - top) <= 1.5);
+    let lineIndex = lines.findIndex((line) => Math.abs(line.top - top) <= 1.5);
     if (lineIndex < 0) {
       lineIndex = lines.length;
-      lines.push(top);
+      lines.push({ top, glyphCount: 0 });
     }
+    const line = lines[lineIndex];
     const glyphs = Array.from(word.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
-    const priorGlyphCount = Array.from(element.querySelectorAll(
-      `${ENTRANCE_GLYPH_SELECTOR}[data-route-enter-line-index="${lineIndex}"]`,
-    )).length;
+    // A title is measured again between staging and playback. Only count
+    // glyphs from the current measurement when assigning its timing slots.
     glyphs.forEach((glyph, glyphIndex) => {
       glyph.dataset.routeEnterLineIndex = String(lineIndex);
-      glyph.dataset.routeEnterLineGlyphIndex = String(priorGlyphCount + glyphIndex);
+      glyph.dataset.routeEnterLineGlyphIndex = String(line.glyphCount + glyphIndex);
     });
+    line.glyphCount += glyphs.length;
   });
   element.dataset.routeEnterLineCount = String(Math.max(1, lines.length));
   return Array.from(element.querySelectorAll(ENTRANCE_GLYPH_SELECTOR));
@@ -469,7 +470,7 @@ function getTargetEndMs(target) {
   return target.delayMs + target.durationMs;
 }
 
-function sequenceTargets(targets, profile) {
+function sequenceTargets(targets, profile, titleActivation) {
   const identityTargets = targets
     .filter((target) => target.groupName === 'identity')
     .sort((left, right) => left.order - right.order);
@@ -484,6 +485,20 @@ function sequenceTargets(targets, profile) {
     target.delayMs = identityStartMs + (glyphOffset * target.letterStepMs);
     glyphOffset += target.glyphs.length;
   });
+
+  // Cue the rule from the actual glyph slots, including slots retained on recollection.
+  if (titleActivation) {
+    const key = identityTitles.map((target) => target.glyphs.map((glyph) => glyph.textContent).join('')).join('');
+    const slots = identityTitles.flatMap((target) => target.glyphs.map((_glyph, index) => (
+      target.delayMs + getTitleGlyphDelayOffset(target, index)
+    )));
+    const delays = titleActivation.delaysFor(key, slots);
+    let offset = 0;
+    identityTitles.forEach((target) => {
+      target.glyphActivationDelays = delays.slice(offset, offset + target.glyphs.length);
+      offset += target.glyphs.length;
+    });
+  }
 
   const identityEndMs = Math.max(...identityTitles.map(getTargetEndMs));
   if (lockupRuleTargets.length > 0) {
@@ -703,25 +718,11 @@ function collectTargets(scopes, profile, {
       });
     });
 
-  const sequenced = sequenceTargets(targets.sort((a, b) => (
+  return sequenceTargets(targets.sort((a, b) => (
     a.delayMs - b.delayMs
     || a.groupName.localeCompare(b.groupName)
     || a.order - b.order
-  )), profile);
-  if (titleActivation) {
-    const titles = sequenced.filter((target) => target.variant === 'bookend-title');
-    const key = titles.map((target) => target.glyphs.map((glyph) => glyph.textContent).join('')).join('');
-    const slots = titles.flatMap((target) => target.glyphs.map((_glyph, index) => (
-      target.delayMs + getTitleGlyphDelayOffset(target, index)
-    )));
-    const delays = titleActivation.delaysFor(key, slots);
-    let offset = 0;
-    titles.forEach((target) => {
-      target.glyphActivationDelays = delays.slice(offset, offset + target.glyphs.length);
-      offset += target.glyphs.length;
-    });
-  }
-  return sequenced;
+  )), profile, titleActivation);
 }
 
 function setHomePhase(root, phase) {

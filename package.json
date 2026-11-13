@@ -129,7 +129,7 @@
     "check:release-package" : "node scripts/check-release-package.mjs",
     "check:public-runtime-boundary" : "node scripts\/check-public-runtime-boundary.mjs",
     "check:about-rollercoaster-assets": "node scripts/check-about-rollercoaster-assets.mjs",
-    "check:about-game-board" : "node --test scripts/check-about-game-board.mjs scripts/check-about-rigid-body-world.mjs scripts/check-about-circle-contacts.mjs scripts/check-about-circle-fixtures.mjs scripts/check-about-board-viewport.mjs scripts/check-about-scene-lifecycle.mjs",
+    "check:about-game-board" : "node --test scripts/check-about-assembly-geometry.mjs scripts/check-about-portrait.mjs scripts/check-about-game-board.mjs scripts/check-about-rigid-body-world.mjs scripts/check-about-circle-contacts.mjs scripts/check-about-circle-fixtures.mjs scripts/check-about-board-viewport.mjs scripts/check-about-scene-lifecycle.mjs",
     "audit:about-game-board" : "node scripts/audit-about-game-board.mjs",
     "audit:about-game-board-recovery" : "node scripts/audit-about-board-recovery.mjs",
     "audit:about-reservoir-rest" : "node scripts/audit-about-reservoir-rest.mjs",

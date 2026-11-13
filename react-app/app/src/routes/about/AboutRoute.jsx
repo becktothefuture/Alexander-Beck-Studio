@@ -1,15 +1,23 @@
 import { lazy, Suspense } from 'react';
-import { AboutComingSoon } from './AboutComingSoon.jsx';
 import { AboutNarrativeLoadingFrame } from './AboutNarrativeLoadingFrame.jsx';
 import { PortfolioGateRoute } from '../portfolio/PortfolioGateRoute.jsx';
 
-// A separate local build exercises the complete journey without changing the
-// production publication decision or adding a URL/storage bypass.
-const FULL_JOURNEY = import.meta.env.DEV || import.meta.env.MODE === 'certification';
 let aboutNarrativeExperiencePromise = null;
+let aboutPhysicsPrewarmPromise = null;
+
+function prewarmAboutPhysics() {
+  if (!aboutPhysicsPrewarmPromise) {
+    aboutPhysicsPrewarmPromise = import('../about-game-board/boardRigidBodyWorld.js')
+      .then((module) => module.loadBoardRigidBodyBackend())
+      .catch((error) => {
+        aboutPhysicsPrewarmPromise = null;
+        throw error;
+      });
+  }
+  return aboutPhysicsPrewarmPromise;
+}
 
 function loadAboutNarrativeExperience() {
-  if (!FULL_JOURNEY) return Promise.resolve();
   if (!aboutNarrativeExperiencePromise) {
     aboutNarrativeExperiencePromise = import('../about-game-board/AboutGameBoardExperience.jsx')
       .then((module) => ({ default: module.AboutGameBoardExperience }))
@@ -21,42 +29,31 @@ function loadAboutNarrativeExperience() {
   return aboutNarrativeExperiencePromise;
 }
 
-const AboutNarrativeExperience = FULL_JOURNEY ? lazy(loadAboutNarrativeExperience) : null;
+function loadAboutNarrativeForRender() {
+  const experience = loadAboutNarrativeExperience();
+  void prewarmAboutPhysics().catch(() => {});
+  return experience;
+}
+
+const AboutNarrativeExperience = lazy(loadAboutNarrativeForRender);
 
 export const ABOUT_ROUTE_RUNTIME = {
   legacyRuntime: false,
-  prewarm: ({ stage } = {}) => {
-    if (!FULL_JOURNEY) return Promise.resolve();
+  prewarm: ({ stage, reason } = {}) => {
     if (stage === 'data') return true;
-    return loadAboutNarrativeExperience();
+    const experience = loadAboutNarrativeExperience();
+    if (reason === 'idle') return experience;
+    return Promise.all([experience, prewarmAboutPhysics()]);
   },
 };
 
 export function getAboutRouteView() {
-  // Like Work, publication is decided at build time. No URL or storage bypass.
-  if (!FULL_JOURNEY) {
-    return {
-      bodyClass: 'body about-page',
-      mainLandmarkHeadingId: 'about-coming-soon-title',
-      legacyRuntime: false,
-      surfaceRouteId: 'about',
-      routeRenderKey: 'about',
-      contentRenderKey: 'about-coming-soon',
-      studioWindowClassName: 'about-simulation route-page-window w-embed',
-      simulationLayer: null,
-      uiLayer: {
-        chrome: null,
-        secondary: <AboutComingSoon />,
-      },
-    };
-  }
-
   return {
     bodyClass: 'body about-page about-narrative-page',
     mainLandmarkHeadingId: 'about-route-title',
     legacyRuntime: false,
     surfaceRouteId: 'about',
-    routeRenderKey: 'about-narrative',
+    routeRenderKey: 'about',
     contentRenderKey: 'about-narrative',
     studioWindowClassName: 'about-simulation route-page-window w-embed',
     // The purpose key discards an unfinished Work prompt on a route change.

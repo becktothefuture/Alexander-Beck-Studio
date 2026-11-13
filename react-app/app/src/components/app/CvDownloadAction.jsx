@@ -4,7 +4,7 @@ import { hasGateAccess } from '../../lib/access-gates.js';
 import { CV_ACCESS_EVENTS, downloadCv } from '../../lib/cv-download.js';
 
 /** Reuse the Work invite gate without changing route or duplicating its modal. */
-export function CvDownloadAction({ soundSource = 'download-cv' }) {
+export function CvDownloadAction({ soundSource = 'download-cv', showIcon = true }) {
   const requestId = useId();
   const pendingRef = useRef(null);
   const [pending, setPending] = useState(false);
@@ -64,7 +64,7 @@ export function CvDownloadAction({ soundSource = 'download-cv' }) {
       aria-haspopup="dialog"
       aria-expanded={pending}
       onClick={handleActivate}
-      icon={<i className="ti ti-download" aria-hidden="true" />}
+      icon={showIcon ? <i className="ti ti-download" aria-hidden="true" /> : null}
       iconPosition="trailing"
       label="Download CV"
     />

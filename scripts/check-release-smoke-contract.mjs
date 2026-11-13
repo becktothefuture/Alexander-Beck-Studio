@@ -23,7 +23,7 @@ assert.equal(
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.identitySelector,
-  '[data-about-publication="held"] #about-coming-soon-title',
+  '[data-route-content="about"][data-about-scene-ready="true"] .about-board-intro #about-route-title',
 );
 assert.equal(
   RELEASE_SMOKE_ROUTES.find((route) => route.id === 'about')?.semanticContract.mainSelector,

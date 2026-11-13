@@ -1,8 +1,6 @@
 import { BOARD_ARCHITECTURE_LINE_SCALE } from './boardArchitectureWeight.js';
 import { BOARD_PINBALL_BUMPERS, BOARD_ROTORS, BOARD_SEESAWS } from './boardMachineParts.js';
 
-export const PRODUCT_RECEIVER_LIFT = 400;
-
 /** Replace complete authored mechanisms, including their collision IDs.
  * No hidden flippers or leaves remain after their artwork is removed. */
 export function installBoardPinball(svg) {

@@ -18,12 +18,13 @@ export function boardTextGridSlot(column, span, centered = false) {
 }
 
 export const BOARD_TEXT_SLOTS = Object.freeze({
-  introduction: { desktop: [1, 6], mobile: [1, 12] },
+  introduction: { desktop: [1, 12], mobile: [1, 12] },
   'garden-ideas': { desktop: [4, 6], mobile: [2, 10] },
   disciplines: { desktop: [2, 10], mobile: [2, 10] },
   practice: { desktop: [4, 6], mobile: [2, 10] },
   making: { desktop: [4, 6], mobile: [2, 10] },
   'working-together': { desktop: [1, 12], mobile: [1, 12] },
+  'career-timeline': { desktop: [4, 6], mobile: [2, 10] },
   'final-statement': { desktop: [4, 6], mobile: [2, 10] },
 });
 

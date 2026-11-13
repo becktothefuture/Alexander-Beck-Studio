@@ -6,12 +6,20 @@ const copy = id => fields.get(id);
 const disciplines = copy('text-discipline-labels').block.items;
 const clients = copy('text-selected-clients').block;
 const background = copy('text-background-unit').block.modules;
-// Optical plate widths from Figma; content retains its existing shared schema.
-const clientWidths = { yoti: 212.16, 'sp-global': 216, bentley: 145.44, sunexpress: 254.64,
-  mccann: 234.24, 'american-heart-association': 193.44, sony: 232.08,
-  'jaguar-land-rover': 193.44, 'maybourne-hotels': 300, experian: 260.4, dcc: 257.52,
-  'tourism-ireland': 289.2, lufthansa: 282.48, 'general-motors': 271.44,
-  'think-money-think-life': 146.744 };
+const purpose = copy('text-life-character').block.modules.find(module => module.id === 'purpose');
+// Visible artwork bounds remove the source plates' unequal transparent padding.
+// The last value is an optically balanced width, not a common bounding-box size.
+const clientArtwork = {
+  yoti: [75, 39, 90, 42, 68], 'sp-global': [52, 45, 136, 30, 100],
+  bentley: [51, 37, 138, 45, 90], sunexpress: [49, 44, 142, 32, 112],
+  mccann: [50, 44, 140, 32, 105], 'american-heart-association': [68, 29, 103, 62, 74],
+  sony: [52, 48, 136, 24, 98], 'jaguar-land-rover': [85, 29, 70, 62, 48],
+  'maybourne-hotels': [48, 52, 144, 16, 122], experian: [55, 39, 130, 42, 104],
+  dcc: [48, 37, 144, 46, 107], 'tourism-ireland': [47, 45, 146, 29, 112],
+  lufthansa: [49, 47, 142, 26, 116], 'general-motors': [42, 39, 156, 42, 120],
+  'think-money-think-life': [11, 34, 199, 42, 104],
+  'mccann-agency': [0, 0, 1825, 436.455, 80],
+};
 
 function BoardText({ layout, y, className = '', slotId, label, children }) {
   const physicalY = layout.placement?.textY(slotId) ?? layout.placeY(y);
@@ -36,7 +44,7 @@ function DisciplineGrid() {
             style={{ backgroundColor: `var(--simulation-role-${role})` }} />
           <span>{discipline.label}</span>
         </h3>
-        <p>{discipline.description}</p>
+        <p className="route-centered-page__description route-intro-description">{discipline.description}</p>
       </li>;
     })}
   </ul>;
@@ -44,12 +52,32 @@ function DisciplineGrid() {
 
 function ClientLogoGrid({ module }) {
   return <ul className="about-board-client-logos" aria-label={module.label}>
-    {module.items.map(item => <li key={item.id} data-client-id={item.id}>
-      <img src={item.src} alt={item.alt || item.label} loading="lazy" decoding="async"
-        style={{ '--about-client-scale': item.scale || 1,
-          '--about-client-width': `${clientWidths[item.id] || 216}px` }} />
-    </li>)}
+    {module.items.map(item => {
+      const [x, y, width, height, opticalWidth] = clientArtwork[item.id] || [0, 0, 240, 120, 100];
+      const [plateWidth, plateHeight] = item.id === 'mccann-agency' ? [1825, 436.455]
+        : item.id === 'think-money-think-life' ? [221, 110] : [240, 120];
+      return <li key={item.id} data-client-id={item.id}>
+        <svg viewBox={`${x} ${y} ${width} ${height}`} role="img"
+          aria-label={item.alt || item.label} width={width} height={height}
+          style={{ '--about-client-width': opticalWidth }}>
+          <image href={item.src} width={plateWidth} height={plateHeight} />
+        </svg>
+      </li>;
+    })}
   </ul>;
+}
+
+function CareerTimeline({ module }) {
+  return <ol className="about-board-career-timeline" aria-label={module.label}>
+    {[...module.items].reverse().map(item => <li key={item.id}>
+      <time dateTime={item.yearLabel}>{item.yearLabel}</time>
+      <div className="about-board-timeline-entry">
+        <h3>{item.employer}</h3>
+        <p className="route-centered-page__description route-intro-description">{item.role}</p>
+        {item.description ? <p className="about-board-timeline-description route-centered-page__description route-intro-description">{item.description}</p> : null}
+      </div>
+    </li>)}
+  </ol>;
 }
 
 export function BoardEditorial({ layout }) {
@@ -74,8 +102,11 @@ export function BoardEditorial({ layout }) {
       </div>
       <ClientLogoGrid module={clients.modules.find(module => module.kind === 'logo-grid')} />
     </BoardText>
-    <BoardText layout={layout} slotId="final-statement" className="about-board-prose" label="Working with me">
-      <p>{copy('text-life-character').block.modules.find(module => module.id === 'purpose').text}</p>
+    <BoardText layout={layout} slotId="career-timeline" className="about-board-career" label="Career and purpose">
+      <CareerTimeline module={background.find(module => module.kind === 'career-sequence')} />
+      <p className="about-board-final-statement" data-about-scroll-text data-board-text-slot="final-statement">
+        {purpose.text}
+      </p>
     </BoardText>
   </>;
 }

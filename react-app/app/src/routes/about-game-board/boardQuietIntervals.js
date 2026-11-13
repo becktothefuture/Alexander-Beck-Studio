@@ -1,20 +1,19 @@
 import { boundsOnBoard } from './boardGeometry.js';
-import { BOARD_GARDEN, BOARD_MACHINE_MODULES, BOARD_MODULE_HEIGHTS } from './boardMachineParts.js';
+import { BOARD_GARDEN, BOARD_MACHINE_MODULES } from './boardMachineParts.js';
 import { resolveFieldBumperRadius } from './boardHandoffs.js';
 
 // A join follows each complete machine module. Reading heights are measured
 // in CSS pixels; mechanical dimensions stay in the shared 960-unit grid.
-const JOINS = Object.freeze([
-  { clearance: 80 },
-  { id: 'garden-ideas', desktopLines: 2, mobileLines: 2 },
-  { id: 'disciplines', desktopLines: 19.25, mobileLines: 37.2 },
-  { clearance: 0 },
-  { id: 'practice', desktopLines: 12, mobileLines: 19 },
-  { clearance: 90 },
-  { id: 'making', desktopLines: 2, mobileLines: 2 },
-  { id: 'working-together', desktopLines: 16, mobileLines: 30 },
-  { id: 'final-statement', desktopLines: 5, mobileLines: 8 },
-]);
+const JOINS = Object.freeze({
+  reservoir: { clearance: 157.8889 },
+  'garden-upper': { id: 'garden-ideas', desktopLines: 2, mobileLines: 2 },
+  'garden-lower': { id: 'disciplines', desktopLines: 19.25, mobileLines: 37.2 },
+  rotors: { clearance: 114.3203 },
+  pinball: { id: 'practice', desktopLines: 12, mobileLines: 19 },
+  assembly: { id: 'making', desktopLines: 2, mobileLines: 2 },
+  impact: { id: 'working-together', desktopLines: 16, mobileLines: 30 },
+  'direction-ramps': { id: 'career-timeline', desktopLines: 18, mobileLines: 24 },
+});
 
 export function createQuietIntervals(boardWidth, heights = {}) {
   const scale = boardWidth / 960;
@@ -23,17 +22,17 @@ export function createQuietIntervals(boardWidth, heights = {}) {
   const padding = mobile ? 72 : 100;
   const modules = [];
   const seams = [];
-  let top = BOARD_MACHINE_MODULES[0][1];
-  BOARD_MACHINE_MODULES.forEach(([name, sourceTop, sourceEnd, selector], index) => {
-    const height = BOARD_MODULE_HEIGHTS[index];
-    modules.push({ name, sourceTop, sourceEnd, selector, top, height, offset: top - sourceTop });
+  let top = BOARD_MACHINE_MODULES[0].sourceTop;
+  BOARD_MACHINE_MODULES.forEach((module, index) => {
+    const { id, sourceTop, sourceEnd, height } = module;
+    modules.push({ ...module, top, offset: top - sourceTop });
     top += height;
-    const join = JOINS[index];
+    const join = JOINS[id];
     if (!join) return;
     const contentHeight = heights[join.id]
       ?? (mobile ? join.mobileLines : join.desktopLines) * fontSize * 1.5;
     const joinHeight = join.id ? (padding * 2 + contentHeight) / scale : join.clearance;
-    seams.push({ ...join, after: sourceEnd, before: BOARD_MACHINE_MODULES[index + 1][1],
+    seams.push({ ...join, after: sourceEnd, before: BOARD_MACHINE_MODULES[index + 1].sourceTop,
       top, height: joinHeight, textY: join.id ? top + padding / scale : undefined });
     top += joinHeight;
   });
@@ -90,11 +89,22 @@ export function installQuietIntervalGeometry(svg, placement, ballRadius = 13) {
   const wedgeTransform = wedge?.getAttribute('transform');
   if (wedge) {
     const box = boundsOnBoard(wedge);
-    const inverse = geometry.getCTM().inverse().multiply(wedge.parentElement.getCTM()).inverse();
+    const parentToBoard = geometry.getCTM().inverse().multiply(wedge.parentElement.getCTM());
+    const inverse = parentToBoard.inverse();
     const dx = BOARD_GARDEN.exitRamp.x - box.x;
     const dy = 1760 + BOARD_GARDEN.exitRamp.y - box.y;
-    wedge.setAttribute('transform', `translate(${inverse.a * dx + inverse.c * dy} `
-      + `${inverse.b * dx + inverse.d * dy}) ${wedgeTransform || ''}`);
+    const leftPose = `translate(${inverse.a * dx + inverse.c * dy} `
+      + `${inverse.b * dx + inverse.d * dy}) ${wedgeTransform || ''}`;
+    wedge.setAttribute('transform', leftPose);
+    // 326:67786 is the same source outline reflected about the board centre.
+    const right = wedge.cloneNode(false);
+    const boardMirror = svg.createSVGMatrix().translate(960, 0).scaleNonUniform(-1, 1);
+    const reflected = inverse.multiply(boardMirror).multiply(parentToBoard);
+    const matrix = [reflected.a, reflected.b, reflected.c, reflected.d, reflected.e, reflected.f];
+    right.id = 'garden-ramp-right';
+    right.setAttribute('transform', `matrix(${matrix.join(' ')}) ${leftPose}`);
+    wedge.after(right);
+    additions.push(right);
   }
   function translate(node, shift, moduleName) {
     const wrapper = make('g', {});
@@ -110,7 +120,7 @@ export function installQuietIntervalGeometry(svg, placement, ballRadius = 13) {
   // old source intervals. Looking up each leaf's Y would place them twice.
   for (const module of placement.modules) {
     for (const node of svg.querySelectorAll(module.selector)) {
-      if (!node.closest('[data-board-module]')) translate(node, module.offset, module.name);
+      if (!node.closest('[data-board-module]')) translate(node, module.offset, module.id);
     }
   }
   function visit(node) {

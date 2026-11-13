@@ -77,9 +77,9 @@ test('copy mapping covers the canonical titles, nested practice prose, disciplin
       assert.ok(controls.some(control => control.fieldId === 'text-discipline-labels' && control.path.at(-1) === key && control.value === item[key]));
     }
   }
-  assert.equal(controls.filter(control => control.path.at(-1) === 'alt').length, 15);
+  assert.equal(controls.filter(control => control.path.at(-1) === 'alt').length, 16);
   assert.ok(controls.some(control => control.value === 'Let’s talk.'));
-  assert.ok(controls.some(control => control.value === 'Get in touch to discuss a project or collaboration.'));
+  assert.ok(controls.some(control => control.value === 'I’m interested in hearing about new projects and collaborations.'));
 });
 
 test('editing changes only the selected website value and rejects scene, timing, unsafe or invalid writes', () => {

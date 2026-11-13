@@ -6847,7 +6847,7 @@ body.portfolio-page--locked #simulations {
   --route-intro-description-opacity: var(--supporting-description-opacity);
   --route-title-rule-width: 2rem;
   --route-title-rule-thickness: 2px;
-  --route-title-rule-offset: clamp(8px, 0.8vw, 12px);
+  --route-title-rule-offset: clamp(16px, 1.6vw, 24px);
   --route-title-description-gap: 16px;
 }
 
@@ -6950,7 +6950,7 @@ body.portfolio-page--locked #simulations {
 }
 
 /* Keep the Coming soon descender clear of the shared separator rule. */
-:is([data-work-publication='held'], [data-about-publication='held']) .route-centered-page__title {
+[data-work-publication='held'] .route-centered-page__title {
   padding-bottom: var(--route-title-rule-offset);
 }
 

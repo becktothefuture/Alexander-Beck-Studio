@@ -1,23 +1,24 @@
 import Matter from 'matter-js';
-import { BOARD_ROTORS, BOARD_SEESAWS, stepBoardSeesaw, strikeBoardSeesaw } from './boardMachineParts.js';
+import { BOARD_DIRECTION_RAMPS, BOARD_ROTORS, BOARD_SEESAWS, stepBoardSeesaw, strikeBoardSeesaw } from './boardMachineParts.js';
 import { createBoardArtwork } from './boardArtwork.js';
 import { BOARD_ARCHITECTURE_LINE_SCALE } from './boardArchitectureWeight.js';
-import { boundsOnBoard, pointOnBoard, railBodies } from './boardGeometry.js';
+import { boundsOnBoard, pointOnBoard } from './boardGeometry.js';
 import { normalizeBoardBallRadiusScale, resolveBoardBallRadius } from './boardBallPresentation.js';
 import {
   ballColourFromRoleColours,
   createBoardBallRoleAssignments,
   MECHANISM as AUTHORED_MECHANISM,
-  RAIL_PATH_IDS,
   resolveBoardBallRoleColours,
 } from './boardScene.js';
 import { reboundLevelForFixture, reboundMaterial } from './boardMaterials.js';
 import { createBoardDrumPhysics } from './boardDrums.js';
+import { reservoirFloorPolygons } from './boardHandoffs.js';
 import { boardValveSweepSteps } from './boardScrollMotion.js';
-import { boardGridCaptureDuration, sampleBoardGridCapture } from './boardGrid.js';
+import { boardGridCaptureDuration, nearestBoardGridCell, sampleBoardGridCapture } from './boardGrid.js';
 import { createBoardReservoirPreparation, createBoardSupportSafety } from './boardRestingState.js';
 import { createRestingReservoirPacking } from './boardReservoirPacking.js';
 import { createBoardRigidBodyWorld } from './boardRigidBodyWorld.js';
+import { releaseStalledBoardBall, reservoirSealIsClear } from './boardFlow.js';
 import {
   applyBoardWorldGravity,
   applyMatterBallMaterial,
@@ -132,7 +133,7 @@ function turnVane(vane, rotation) {
 /** One route-owned world. The scroll position opens the gate, while fixed
  * clock steps keep physics independent of scroll speed and frame cadence. */
 export function createBoardPhysics(svg, balls, palette, {
-  drumArt = null,
+  drumArt,
   ballDynamics = undefined,
   grid = null,
   radiusScale = 1,
@@ -140,6 +141,11 @@ export function createBoardPhysics(svg, balls, palette, {
   handoffArt = null,
   originY = 0,
   placement = null,
+  portraitChute = null,
+  portrait = null,
+  getRoleAssignments = null,
+  initialCheckpoint = null,
+  remapY = y => y,
 } = {}) {
   const placeY = placement?.placeY || (y => y);
   const placePoint = placement?.placePoint || (point => point);
@@ -148,10 +154,7 @@ export function createBoardPhysics(svg, balls, palette, {
     ...(spec.end ? { end: placePoint(spec.end) } : {}),
     ...(spec.artPivot ? { artPivot: placePoint(spec.artPivot) } : {}),
   }]));
-  const placedDrumArt = drumArt && { ...drumArt, specs: drumArt.specs.map(spec => ({
-    ...spec, centre: placePoint(spec.centre),
-  })) };
-  const gridCaptureY = placeY(10000) - (10000 - GRID_CAPTURE_Y);
+  const gridCaptureY = portraitChute?.outletY ?? placeY(10000) - (10000 - GRID_CAPTURE_Y);
   const resolvedRadiusScale = normalizeBoardBallRadiusScale(radiusScale);
   const artwork = createBoardArtwork(svg, originY);
   const physicsBalls = inventory?.balls || balls.map(ball => ({
@@ -166,25 +169,18 @@ export function createBoardPhysics(svg, balls, palette, {
   });
   applyBoardWorldGravity(engine);
   const staticBodies = [];
-  for (const id of RAIL_PATH_IDS) {
-    const path = svg.querySelector(`#${id}`);
-    if (path) staticBodies.push(...railBodies(path));
-  }
   for (const sling of handoffArt?.pinball?.slingPolygons || []) {
     staticBodies.push(solidArchitecturePolygon(sling.vertices.map(placePoint), `rail:${sling.id}`, 'high'));
   }
-  // These two convex under-floors turn the visible reservoir strokes into a
-  // watertight funnel. They sit entirely below the artwork, preserve the
-  // central outlet, and remove the possibility of a fast compact ball
-  // tunnelling through a segmented curve approximation.
+  // The two solid floors meet the exact edges of the filled funnel. Each
+  // uninterrupted slope gives the packed balls one continuous support face.
   const gateSpec = handoffArt?.reservoirGate || MECHANISM.reservoirGate;
-  const floorLeft = gateSpec.pivot[0];
-  const floorRight = handoffArt?.reservoirRight ?? 509;
+  const [leftFloor, rightFloor] = reservoirFloorPolygons(gateSpec);
+  const floorLeft = leftFloor[1][0];
+  const floorRight = rightFloor[1][0];
   staticBodies.push(
-    solidArchitecturePolygon([[0, 891], [51, 891], [floorLeft, 1102], [floorLeft, 1140], [0, 1140]],
-      'reservoir-left-underfloor'),
-    solidArchitecturePolygon([[floorRight, 1102], [909, 891], [960, 891], [960, 1140], [floorRight, 1140]],
-      'reservoir-right-underfloor'),
+    solidArchitecturePolygon(leftFloor, 'reservoir-left-underfloor'),
+    solidArchitecturePolygon(rightFloor, 'reservoir-right-underfloor'),
   );
   svg.querySelectorAll('[id^="geometry-bumper-"], [id^="geometry-pinball-bumper-"]')
     .forEach((group) => {
@@ -205,20 +201,34 @@ export function createBoardPhysics(svg, balls, palette, {
         isStatic: true, ...reboundMaterial(reboundLevelForFixture(id)), label: `post:${id}`,
       }));
   }
-  const wedge = svg.querySelector('#Vector_140');
-  if (wedge) {
+  for (const wedge of svg.querySelectorAll('#Vector_140, #garden-ramp-right')) {
+    const length = wedge.getTotalLength();
     const points = Array.from({ length: 24 }, (_, i) => {
-      const p = pointOnBoard(wedge, wedge.getPointAtLength(wedge.getTotalLength() * i / 24));
+      const p = pointOnBoard(wedge, wedge.getPointAtLength(length * i / 24));
       return [p.x, p.y];
     });
-    staticBodies.push(solidArchitecturePolygon(points, 'transfer-wedge'));
+    staticBodies.push(solidArchitecturePolygon(points, `transfer-wedge:${wedge.id}`));
   }
-  const drums = createBoardDrumPhysics(placedDrumArt);
+  for (const { id } of BOARD_DIRECTION_RAMPS) {
+    const ramp = svg.querySelector(`#${id}`);
+    if (!ramp) continue;
+    const points = Array.from(ramp.points, point => {
+      const { x, y } = pointOnBoard(ramp, point);
+      return [x, y];
+    });
+    staticBodies.push(solidArchitecturePolygon(points, `rail:${id}`));
+  }
+  portraitChute?.guides.forEach((points, index) => {
+    staticBodies.push(solidArchitecturePolygon(points, `rail:portrait-chute-${index}`, 'zero'));
+  });
+  const drums = createBoardDrumPhysics(drumArt);
   staticBodies.push(...drums.fixedBodies);
   // Invisible page limits close the wide open receivers without drawing walls.
+  const wallBottom = portraitChute?.outletY ?? placeY(10000);
+  const wallCentre = (wallBottom + originY) / 2;
   staticBodies.push(
-    Bodies.rectangle(-25, (placeY(10000) + originY) / 2, 50, placeY(10000) - originY, { isStatic: true, label: 'page-bound' }),
-    Bodies.rectangle(968, (placeY(10000) + originY) / 2, 50, placeY(10000) - originY, { isStatic: true, label: 'page-bound' }),
+    Bodies.rectangle(-25, wallCentre, 50, wallBottom - originY, { isStatic: true, label: 'page-bound' }),
+    Bodies.rectangle(968, wallCentre, 50, wallBottom - originY, { isStatic: true, label: 'page-bound' }),
   );
   const gate = arm(gateSpec.pivot, gateSpec.end, gateSpec.width, 'reservoir-gate');
   const gatePivot = Bodies.circle(gateSpec.pivot[0], gateSpec.pivot[1], gateSpec.pivotRadius, {
@@ -226,23 +236,17 @@ export function createBoardPhysics(svg, balls, palette, {
     ...reboundMaterial(reboundLevelForFixture(gateSpec.id)),
     label: 'reservoir-gate-pivot',
   });
-  // The drawn arm and two rounded floor caps meet exactly. At the compact ball
-  // scale, solver tolerance can turn that mathematical join into a traversable
-  // sub-pixel seam. This collider supplements the fully closed arm only;
-  // partial openings are governed by the actual rotating valve geometry.
-  const reservoirSeal = Bodies.rectangle(478, 1124, floorRight - floorLeft + 16, 20, {
+  // This seal supplements the fully closed arm only. Partial openings are
+  // governed by the actual rotating valve and the shared funnel geometry.
+  const reservoirSeal = Bodies.rectangle((floorLeft + floorRight) / 2, gateSpec.pivot[1],
+    floorRight - floorLeft + 16, 20, {
     isStatic: true,
     ...reboundMaterial('zero'),
     label: 'reservoir-closed-seal',
   });
   staticBodies.push(reservoirSeal);
-  const meterSpec = handoffArt?.meterGate ? {
-    pivot: placePoint(handoffArt.meterGate.pivot), end: placePoint(handoffArt.meterGate.end),
-  } : {
-    pivot: MECHANISM.meterGate.pivot, end: [410, MECHANISM.meterGate.pivot[1] - 14],
-  };
-  const meter = arm(meterSpec.pivot, meterSpec.end, 21 * BOARD_ARCHITECTURE_LINE_SCALE,
-    'meter-gate');
+  const meterSpec = drums.gate;
+  const meter = arm(meterSpec.pivot, meterSpec.end, meterSpec.width, 'meter-gate');
   const seesaws = BOARD_SEESAWS.map(spec => {
     const pivot = placePoint(spec.pivot);
     const dx = Math.cos(spec.angle) * spec.length / 2;
@@ -266,7 +270,7 @@ export function createBoardPhysics(svg, balls, palette, {
     ...drums.carrierBodies, ...propellerVanes.map(vane => vane.body)];
   const architectureBodies = [...staticBodies, gatePivot, ...movingFixtures];
   Composite.add(engine.world, architectureBodies);
-  const packing = inventory && createRestingReservoirPacking({
+  const packing = !initialCheckpoint && inventory && createRestingReservoirPacking({
     radius: inventory.radius, top: originY, fixtures: architectureBodies, seeds: inventory.reservoir,
   });
   const restingPacking = packing?.settled ? packing.balls : null;
@@ -278,7 +282,14 @@ export function createBoardPhysics(svg, balls, palette, {
     ballById.clear();
     for (const ball of physicsBalls) ballById.set(ball.id, ball);
   }
-  const architectureBlockedSourceIds = sourceBallsBlockedByBodies(physicsBalls, architectureBodies);
+  const checkpointOffsets = new Map();
+  initialCheckpoint?.bodyIndices.forEach((sourceIndex, index) => {
+    const ball = physicsBalls[sourceIndex];
+    if (ball) checkpointOffsets.set(ball.id, index);
+  });
+  const architectureBlockedSourceIds = initialCheckpoint
+    ? new Set([...initialCheckpoint.retiredIndices].map(index => physicsBalls[index]?.id).filter(Boolean))
+    : sourceBallsBlockedByBodies(physicsBalls, architectureBodies);
 
   // The authored seam starts with one occupied receptacle. Back that visual
   // state with a real reservoir identity instead of a synthetic grid ID. Pick
@@ -301,28 +312,37 @@ export function createBoardPhysics(svg, balls, palette, {
   // Invalid authored positions never become invisible
   // colliders or a separate layer of frozen illustration balls.
   const pending = physicsBalls.filter(ball => !architectureBlockedSourceIds.has(ball.id)
-    && !prefilledInventoryIds.has(ball.id));
+    && !prefilledInventoryIds.has(ball.id)
+    && (!initialCheckpoint || checkpointOffsets.has(ball.id)));
   // Every loose visible ball now belongs to live physics. Figma is layout evidence,
   // never a second layer of motionless balls behind the live population.
   // Automatic mechanisms are SVG; a resting pile needs no new ball bitmap.
   // Advance this revision whenever physics, capture or colour can change it.
   let renderRevision = 0;
   const bodyView = Object.freeze({ bodies: moving, get revision() { return renderRevision; } });
-  const preparingView = Object.freeze({ bodies: [], revision: -1 });
   let gateProgress = 0;
   let meterProgress = 0;
   let reservoirSealed = true;
-  let elapsedMs = 0;
-  let mechanismElapsedMs = 0;
+  let elapsedMs = initialCheckpoint?.elapsedMs || 0;
+  let mechanismElapsedMs = initialCheckpoint?.mechanismElapsedMs || 0;
   let accumulated = 0;
   let paletteSnapshot = palette;
   let roleColours = resolveBoardBallRoleColours(paletteSnapshot);
-  let roleAssignments = createBoardBallRoleAssignments(physicsBalls, paletteSnapshot);
+  let roleAssignments = getRoleAssignments?.()
+    || createBoardBallRoleAssignments(physicsBalls, paletteSnapshot);
   for (const entry of grid?.occupied?.values() || []) {
     const source = ballById.get(entry.sourceId);
     if (!source) continue;
     entry.roleIndex = roleAssignments.get(source.id) ?? 0;
     entry.colour = ballColourFromRoleColours(source, roleColours, roleAssignments);
+  }
+  // Seat the existing reservoir identity in its own pigment lane, too.
+  for (const [cellId, entry] of [...(grid?.occupied?.entries() || [])]) {
+    const cell = grid.entries.find(candidate => candidate.id === cellId);
+    if (cell?.laneIndex === undefined || cell.laneIndex === entry.roleIndex) continue;
+    const target = grid.entries.find(candidate => candidate.laneIndex === entry.roleIndex
+      && !grid.occupied.has(candidate.id));
+    if (target) { grid.occupied.delete(cellId); grid.occupied.set(target.id, entry); }
   }
   let propellerAngle = 0;
   let activeBallMaterial = matterBallMaterial(ballDynamics);
@@ -338,6 +358,7 @@ export function createBoardPhysics(svg, balls, palette, {
   let maximumFixturePenetration = 0;
   let maximumFixtureContact = null;
   let maximumMicroStepsUsed = 1;
+  let flowClearingImpulses = 0;
   const gridCaptures = new Map();
   // A claimed socket remains claimed after its incoming rigid body is retired.
   // This preserves the one-ball-per-receptacle contract even though the
@@ -349,16 +370,11 @@ export function createBoardPhysics(svg, balls, palette, {
   const gridIndexById = new Map((grid?.entries || []).map((entry, index) => [entry.id, index]));
   const inventoryFingerprint = `${physicsBalls.length}:${physicsBalls[0]?.id || ''}`
     + `:${physicsBalls.at(-1)?.id || ''}:${inventory?.radius || resolvedRadiusScale}`;
+  if (initialCheckpoint) assertCheckpoint(initialCheckpoint);
   let absorbedByGrid = capturedInventoryIds.size;
-  const drumSpecs = placedDrumArt?.specs || [];
-  const authoredCanal = handoffArt?.transferCanal?.bounds;
-  const transferCanal = authoredCanal && { ...authoredCanal,
-    minY: placeY(authoredCanal.minY), maxY: placeY(authoredCanal.maxY) };
-  const mechanismMaterialMinY = Math.min(
-    transferCanal?.minY ?? Infinity,
-    ...drumSpecs.map(drum => drum.centre[1] - drum.casingRadius - drum.throatLength
-      - (inventory?.radius || 13)),
-  );
+  const drumSpecs = drums.specs;
+  const assemblyTop = drumArt.top + drumArt.geometry.casing.top;
+  const assemblyBottom = drumArt.top + drumArt.geometry.casing.bottom;
   const valveSweep = { gateStart: 0, gateTarget: 0, meterStart: 0, meterTarget: 0 };
   function applyValveSweep(fraction) {
     // A scroll jump is a position command, not an instantaneous motor kick.
@@ -377,7 +393,7 @@ export function createBoardPhysics(svg, balls, palette, {
 
   function renderMechanisms() {
     artwork.rotate(gateSpec.id, gate.angle - gate.baseAngle, gateSpec.pivot);
-    artwork.rotate(MECHANISM.meterGate.id, meter.angle - meter.baseAngle, meter.pivot);
+    artwork.rotate(meterSpec.id, meter.angle - meter.baseAngle, meter.pivot);
     for (const part of seesaws) artwork.rotate(part.id, part.angle - part.baseAngle, part.pivot);
     for (const spec of rotors) artwork.rotate(spec.id, propellerAngle * spec.direction, spec.pivot);
     drums.render(artwork);
@@ -394,15 +410,11 @@ export function createBoardPhysics(svg, balls, palette, {
   }
 
   function updateMechanismContactState(body) {
-    if (body.position.y < mechanismMaterialMinY - body.circleRadius) {
+    if (body.position.y < assemblyTop - body.circleRadius
+      || body.position.y > assemblyBottom + body.circleRadius) {
       applyMechanismMaterial(body, 'normal');
       return;
     }
-    const inCanal = transferCanal
-      && body.position.y >= transferCanal.minY - body.circleRadius
-      && body.position.y <= transferCanal.maxY + body.circleRadius
-      && body.position.x >= transferCanal.minX - body.circleRadius
-      && body.position.x <= transferCanal.maxX + body.circleRadius;
     let inDrum = false;
     for (const drum of drumSpecs) {
       const dx = body.position.x - drum.centre[0];
@@ -416,7 +428,7 @@ export function createBoardPhysics(svg, balls, palette, {
         break;
       }
     }
-    applyMechanismMaterial(body, inCanal ? 'canal' : inDrum ? 'drum' : 'normal');
+    applyMechanismMaterial(body, inDrum ? 'drum' : 'canal');
   }
 
   function onCollision(event) {
@@ -481,9 +493,9 @@ export function createBoardPhysics(svg, balls, palette, {
 
   function resealReservoir() {
     if (reservoirSealed || gateProgress > 0) return;
-    // Never insert a collider through a ball during reverse scrubbing. The
-    // physical arm closes first; the tolerance seal returns once it is clear.
-    if (Query.collides(reservoirSeal, moving).some(contact => contact.depth > .1)) return;
+    // Let balls on the downstream side of the closed arm clear the neck
+    // before restoring its hidden tolerance seal.
+    if (!reservoirSealIsClear(moving, reservoirSeal.bounds, gateSpec)) return;
     Composite.add(engine.world, reservoirSeal);
     architectureBodies.push(reservoirSeal);
     staticBodies.push(reservoirSeal);
@@ -493,6 +505,10 @@ export function createBoardPhysics(svg, balls, palette, {
   function spawn(nextBall = null) {
     const ball = nextBall || pending.shift();
     if (!ball) return;
+    if (portrait?.owns(ball.id)) {
+      capturedInventoryIds.add(ball.id);
+      return;
+    }
     const body = Bodies.circle(ball.x, ball.y,
       ballColliderRadius(ball.radius), {
       density: activeBallMaterial.density,
@@ -510,7 +526,19 @@ export function createBoardPhysics(svg, balls, palette, {
         boardMechanismMaterial: 'normal',
       },
     });
-    if (Query.collides(body, moving).some(collision => collision.depth > .1)) return;
+    if (!initialCheckpoint && Query.collides(body, moving).some(collision => collision.depth > .1)) {
+      retiredInventoryIds.add(ball.id);
+      return;
+    }
+    if (initialCheckpoint) {
+      const index = checkpointOffsets.get(ball.id), offset = index * BODY_STATE_STRIDE;
+      const values = initialCheckpoint.bodyState;
+      Body.setPosition(body, { x: values[offset], y: remapY(values[offset + 1]) });
+      Body.setAngle(body, values[offset + 2]);
+      Body.setVelocity(body, { x: values[offset + 3], y: values[offset + 4] });
+      Body.setAngularVelocity(body, values[offset + 5]);
+      Sleeping.set(body, Boolean(initialCheckpoint.bodyFlags[index] & BODY_FLAG_SLEEPING));
+    }
     ballById.set(ball.id, ball);
     moving.push(body);
     Composite.add(engine.world, body);
@@ -529,19 +557,8 @@ export function createBoardPhysics(svg, balls, palette, {
 
   function nearestAvailableGridCell(body) {
     if (!grid?.entries?.length) return null;
-    let nearest = null;
-    let nearestDistance = Infinity;
-    for (const entry of grid.entries) {
-      if (claimedGridCells.has(entry.id)) continue;
-      const dx = entry.flatX - body.position.x;
-      const dy = entry.flatY - body.position.y;
-      const distance = dx * dx + dy * dy;
-      if (distance < nearestDistance) {
-        nearest = entry;
-        nearestDistance = distance;
-      }
-    }
-    return nearest;
+    return nearestBoardGridCell(body.position, roleAssignments.get(body.plugin.boardId) ?? 0,
+      grid.entries, claimedGridCells);
   }
 
   function beginGridCapture(body) {
@@ -599,10 +616,14 @@ export function createBoardPhysics(svg, balls, palette, {
     return true;
   }
 
-  function update(deltaMs) {
+  function update(deltaMs, paintMechanisms = true) {
     if (disposed || suspendedCheckpoint) return;
     if (!preparation.ready) {
-      if (!preparation.advance()) return;
+      if (!preparation.advance()) {
+        renderRevision += 1;
+        return;
+      }
+      renderRevision += 1;
       moving.sort((a, b) => b.position.y - a.position.y);
       if (inventory) inventory.surfaceY = Math.min(...moving.map(body => body.position.y));
       for (const body of moving) applyMatterBallMaterial(body, activeBallMaterial.dynamics);
@@ -611,7 +632,7 @@ export function createBoardPhysics(svg, balls, palette, {
       accumulated = 0;
       updateAutomaticFixtures(deltaMs);
       rigidBodyWorld.syncMovingFixtures();
-      renderMechanisms();
+      if (paintMechanisms) renderMechanisms();
       return;
     }
     const stepMs = rigidBodyWorld.fixedStepMs;
@@ -629,11 +650,18 @@ export function createBoardPhysics(svg, balls, palette, {
       const gateStart = gate.angle;
       const meterStart = meter.angle;
       const gateTarget = gate.baseAngle + gateProgress * gateSpec.openAngle;
-      const meterTarget = meter.baseAngle + meterProgress * (Math.PI / 2 - meter.baseAngle);
+      const meterTarget = meter.baseAngle + meterProgress * meterSpec.openAngle;
       if (gateProgress > 0) unsealReservoir();
       for (const part of seesaws) rotateArm(part, stepBoardSeesaw(part, stepMs / 1000));
       updateAutomaticFixtures(stepMs);
-      for (const body of moving) updateMechanismContactState(body);
+      for (const body of moving) {
+        // Native sleep can hold a slow ball on a shallow rail. Once released,
+        // it must keep following gravity until its real outlet crossing.
+        if (body.isSleeping && (gateProgress > 0 || body.position.y > gate.pivot[1])) Sleeping.set(body, false);
+        updateMechanismContactState(body);
+        if (releaseStalledBoardBall(body, stepMs,
+          gateProgress >= .99 && meterProgress >= .99 && body.position.y > gate.pivot[1])) flowClearingImpulses += 1;
+      }
       const valveTravel = Math.max(Math.abs(gateTarget - gateStart) * gate.length,
         Math.abs(meterTarget - meterStart) * meter.length);
       const valveSteps = boardValveSweepSteps(valveTravel,
@@ -641,7 +669,7 @@ export function createBoardPhysics(svg, balls, palette, {
       valveSweep.gateStart = gateStart; valveSweep.gateTarget = gateTarget;
       valveSweep.meterStart = meterStart; valveSweep.meterTarget = meterTarget;
       maximumMicroStepsUsed = Math.max(maximumMicroStepsUsed,
-        rigidBodyWorld.step(stepMs, valveSteps, valveTravel > .0001 ? applyValveSweep : null));
+        rigidBodyWorld.step(stepMs, valveSteps, valveTravel > .0001 ? applyValveSweep : null, !paintMechanisms));
       renderRevision += 1;
       resealReservoir();
       for (let index = moving.length - 1; index >= 0; index -= 1) {
@@ -652,9 +680,12 @@ export function createBoardPhysics(svg, balls, palette, {
           continue;
         }
         if (body.position.y < gridCaptureY) continue;
+        if (portrait?.acceptBody(body, gridCaptureY)) {
+          retireBody(index, true);
+          continue;
+        }
         if (beginGridCapture(body)) continue;
-        // A missing handoff record must fail closed rather than leaving a live
-        // body below the 2D scene where it can overlap the Three.js field.
+        // An unregistered identity must never become a portrait dot.
         retireBody(index);
       }
       accumulated = Math.max(0, accumulated - stepMs);
@@ -664,7 +695,7 @@ export function createBoardPhysics(svg, balls, palette, {
       // delay with catch-up work. Fast frames retain the two-step allowance.
       if (performance.now() - updateStarted >= stepMs * .5) break;
     }
-    renderMechanisms();
+    if (paintMechanisms) renderMechanisms();
   }
 
   function indicesFor(ids) {
@@ -838,7 +869,7 @@ export function createBoardPhysics(svg, balls, palette, {
   const supportSafety = createBoardSupportSafety(engine, moving, architectureBodies);
   // The unshown drop uses a dissipative granular material. It removes bounce
   // while the pile forms, then restores the shared Home material before reveal.
-  if (!restingPacking) for (const body of moving) {
+  if (!restingPacking && !initialCheckpoint) for (const body of moving) {
     body.restitution = 0;
     body.friction = .2;
     body.frictionStatic = .3;
@@ -846,19 +877,34 @@ export function createBoardPhysics(svg, balls, palette, {
   }
   // Reject an unsupported initial sleep state before transferring the pack to
   // the native solver. This is the only point where cold-start rest is applied.
-  supportSafety.update(100);
+  if (initialCheckpoint) {
+    const saved = initialCheckpoint.mechanism;
+    rotateArm(gate, saved.gateAngle); rotateArm(meter, saved.meterAngle);
+    seesaws.forEach((part, index) => {
+      rotateArm(part, saved.seesaws[index].angle);
+      part.angularVelocity = saved.seesaws[index].angularVelocity;
+    });
+    updateAutomaticFixtures(0);
+    if (!saved.reservoirSealed) unsealReservoir();
+    initialCheckpoint.capturedIndices.forEach(index => capturedInventoryIds.add(physicsBalls[index].id));
+  } else supportSafety.update(100);
   rigidBodyWorld = createBoardRigidBodyWorld({
     engine, balls: moving, fixtures: architectureBodies, movingFixtures,
   });
   const initialNativeContacts = rigidBodyWorld.getContactSnapshot()
     .filter(contact => contact.depth > .25)
     .sort((a, b) => b.depth - a.depth).slice(0, 5);
-  const inspectSupport = () => {
+  const inspectSupport = (wakeUnsupported = false) => {
     rigidBodyWorld.refreshContacts();
-    return supportSafety.inspect();
+    return supportSafety.inspect(wakeUnsupported);
   };
-  const preparation = createBoardReservoirPreparation(engine, moving, architectureBodies,
-    { inspect: inspectSupport, settleSupported: supportSafety.settleSupported, update: () => {} }, rigidBodyWorld);
+  const preparation = initialCheckpoint
+    ? { ready: true, settled: moving.every(body => body.isSleeping), steps: 0, advance: () => true }
+    : createBoardReservoirPreparation(engine, moving, architectureBodies,
+      // A native sleeper can stop just outside the current support graph.
+      // Wake it on the preparation scan so gravity can establish contact.
+      { inspect: () => inspectSupport(true), settleSupported: supportSafety.settleSupported, update: () => {} },
+      rigidBodyWorld);
 
   function hasCommandedMechanismMotion() {
     const automaticMotion = drumSpecs.length > 0 || propellerVanes.length > 0;
@@ -883,14 +929,18 @@ export function createBoardPhysics(svg, balls, palette, {
 
   return {
     update, dispose, setScrollProgress, createCheckpoint, suspend, resume,
+    hasUncapturedBalls: () => moving.length > 0 || pending.length > 0,
+    getPortraitOutletY: () => gridCaptureY,
     isSuspended: () => Boolean(suspendedCheckpoint),
     isReady: () => preparation.ready,
+    isOpeningReady: () => preparation.ready && (preparation.settled || Boolean(initialCheckpoint)),
     setVisibleRange: artwork.setVisibleRange,
     setPalette: next => {
       renderRevision += 1;
       paletteSnapshot = next;
       roleColours = resolveBoardBallRoleColours(paletteSnapshot);
-      roleAssignments = createBoardBallRoleAssignments(physicsBalls, paletteSnapshot);
+      roleAssignments = getRoleAssignments?.()
+        || createBoardBallRoleAssignments(physicsBalls, paletteSnapshot);
       for (const entry of grid?.occupied?.values() || []) {
         if (Number.isInteger(entry.roleIndex)) entry.colour = roleColours[entry.roleIndex];
       }
@@ -905,7 +955,9 @@ export function createBoardPhysics(svg, balls, palette, {
     setBallMaterial,
     getBallMaterial: () => ({ ...activeBallMaterial.dynamics }),
     getInventorySnapshot,
-    getBodies: () => preparation.ready ? bodyView : preparingView,
+    // The opening gravity drop is real scene content. Keep those live bodies
+    // renderable while packing finishes so route readiness follows visible work.
+    getBodies: () => bodyView,
     getSupportSnapshot: () => rigidBodyWorld ? inspectSupport() : supportSafety.inspect(),
     // Inspect final true-circle poses, not the inscribed Matter display proxy
     // or the solver's pre-correction contact depths.
@@ -938,6 +990,7 @@ export function createBoardPhysics(svg, balls, palette, {
       }
       const currentRigidStats = rigidBodyWorld?.getStats() || null;
       return { moving: moving.length, pending: pending.length, sleeping,
+        portraitOutletY: gridCaptureY,
         outsidePage, furthestY: Math.round(furthestY), stages,
         gridCapturing: gridCaptures.size,
         gridAbsorbed: absorbedByGrid,
@@ -974,9 +1027,11 @@ export function createBoardPhysics(svg, balls, palette, {
         gateProgress, meterProgress,
         gateAngle: Number((gate.angle - gate.baseAngle).toFixed(3)),
         meterAngle: Number((meter.angle - meter.baseAngle).toFixed(3)),
+        meterPivotY: meter.pivot[1],
         maximumFixturePenetration: Number(maximumFixturePenetration.toFixed(3)),
         maximumFixtureContact,
         maximumMicroStepsUsed,
+        flowClearingImpulses,
         inventory: {
           total: physicsBalls.length,
           live: moving.length - gridCaptures.size,

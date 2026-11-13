@@ -119,6 +119,16 @@ body :is(button, a[href], [role='button'], [role='tab']) :where(*) {
   line-height: 1;
 }
 
+.abs-circular-utility.abs-icon-btn > .ti {
+  display: grid;
+  place-items: center;
+}
+
+.abs-circular-utility.abs-icon-btn > .ti::before {
+  /* Tabler's visible strokes sit half a pixel above centre at 16px. */
+  translate: 0 0.03125em;
+}
+
 :is(.abs-labelled-action, .abs-circular-utility.abs-icon-btn):focus-visible {
   outline: var(--abs-focus-ring-width) solid currentColor;
   outline-offset: var(--abs-focus-ring-offset);

@@ -1,5 +1,6 @@
 {
   "sectionOrder": [
+    "aboutPortrait",
     "atmosphereCommon",
     "atmosphereLight",
     "atmosphereDark",
@@ -36,12 +37,12 @@
     "cube3d",
     "entrance"
   ],
-  "controlCount": 298,
-  "descriptorDigest": "b1b86be7a2dee19880d9c8ed117af47fd158bd0e5d7edd32d71797ad9a895443",
-  "renderedControlCount": 274,
-  "renderedIdDigest": "29717426a8430b437f376b9c2cca24e4c77f15dd7020e937da46a43a91331e5f",
-  "generatedMarkupDigest": "767ddaf38fbe4be991a6e7fa584e87cd8bc14c7f1ca75b713fa64655a38f6fb1",
-  "parseFormatDigest": "96104f53e1d57a6a9822a155b885ff8324175c1713a34cc2dc12fe9fbb5ec4cd",
+  "controlCount": 300,
+  "descriptorDigest": "9065a8b4ccb734eb9677d5fa9d75816a8d79160a2ae5b9e229c389ec4ec25e74",
+  "renderedControlCount": 276,
+  "renderedIdDigest": "43e882de012c951711e8b2e02603be66a446a77a2277eac389d3298e2ea09d59",
+  "generatedMarkupDigest": "81fc8fc6890a20204dbaa60dd35cc1ae8f2903a380400bc0e332bceb76648f87",
+  "parseFormatDigest": "26c7b775fa52730fe80373e448a58df03cec87b93026aafe1708eb61ccfaeaea",
   "sentinels": [
     {
       "id": "ballMassKg",

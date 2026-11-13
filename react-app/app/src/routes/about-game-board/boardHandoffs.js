@@ -1,9 +1,7 @@
-import { BOARD_DIRECTION_RAMPS } from './boardMachineParts.js';
+import { BOARD_DIRECTION_RAMPS, FIGMA_TO_BOARD } from './boardMachineParts.js';
 import { boundsOnBoard } from './boardGeometry.js';
 import { BOARD_ARCHITECTURE_LINE_SCALE } from './boardArchitectureWeight.js';
-import { drumPortEdges } from './boardDrums.js';
-import { createDrumTransferCanal } from './boardTransferCanal.js';
-import { installBoardPinball, PRODUCT_RECEIVER_LIFT } from './boardPinball.js';
+import { installBoardPinball } from './boardPinball.js';
 
 /** Leave one Home-sized ball plus running clearance between field bumpers. */
 export function resolveFieldBumperRadius(radius, spacing, ballRadius) {
@@ -11,12 +9,12 @@ export function resolveFieldBumperRadius(radius, spacing, ballRadius) {
 }
 
 export function reservoirGateForBallRadius(ballRadius = 13) {
-  // The edited Figma master restores the original, deliberately slow outlet.
-  // Keep its 62-unit neck at both authored widths. Below the 370px mobile
-  // reference only, preserve one physical ball's passage around the hinge.
-  const halfGap = Math.max(31, (ballRadius * 2.08 + 14.4 + 10 / 3) / 2);
-  const left = 478 - halfGap;
-  const right = 478 + halfGap;
+  // A one-ball neck lets the larger phone bodies form an arch. Four diameters
+  // of clear passage keep the original inventory flowing without shrinking it.
+  // The same dimensions own the visible floors, valve and native colliders.
+  const halfGap = Math.max(31, (ballRadius * 8 + 14.4 + 10 / 3) / 2);
+  const left = 480 - halfGap;
+  const right = 480 + halfGap;
   const closedAngle = Math.atan2(-24, right - 10 - left);
   return { id: 'geometry-fixture-0001', pivot: [left, 1124], end: [right - 10, 1100],
     // Swing down into the outlet. Swinging up through the pile creates a
@@ -25,8 +23,21 @@ export function reservoirGateForBallRadius(ballRadius = 13) {
     openAngle: Math.PI / 2 - closedAngle };
 }
 
+/** Native funnel master 280:80449, aligned to the existing hinge height. */
+export function reservoirFloorPolygons(gate) {
+  const shoulderY = 825 + 103.6899 * FIGMA_TO_BOARD;
+  const neckY = shoulderY + 310.3458 * FIGMA_TO_BOARD;
+  const bottom = 1140;
+  const left = gate.pivot[0];
+  const right = gate.end[0] + 10;
+  return [
+    [[0, shoulderY], [left, neckY], [left, bottom], [0, bottom]],
+    [[960, shoulderY], [right, neckY], [right, bottom], [960, bottom]],
+  ];
+}
+
 export function installBoardHandoffArt(svg, {
-  ballRadius = 13, reservoirBallRadius = ballRadius, drums = [],
+  ballRadius = 13, reservoirBallRadius = ballRadius,
 } = {}) {
   const restored = [];
   const translated = [];
@@ -74,58 +85,28 @@ export function installBoardHandoffArt(svg, {
   };
   const reservoirGate = reservoirGateForBallRadius(reservoirBallRadius);
   const left = reservoirGate.pivot[0];
-  const right = reservoirGate.end[0] + 10;
-  replace('reservoir-left-floor', `M0 825C0 850.333 17 872.333 51 891L${left} 1102V1140`);
-  replace('reservoir-right-floor', `M960 825C960 850.333 943 872.333 909 891L${right} 1102V1140`);
-  replace('Vector', `M${left} 1124L${right - 10} 1100`);
+  const [leftFloor, rightFloor] = reservoirFloorPolygons(reservoirGate);
+  const top = svg.viewBox.baseVal.y;
+  const funnel = [[0, top], [960, top], ...rightFloor.slice(0, 3), ...leftFloor.slice(0, 3).reverse()];
+  const fill = make('polygon', { id: 'reservoir-fill', points: funnel.map(point => point.join(',')).join(' '),
+    fill: 'var(--about-architecture-static)' });
+  geometry.prepend(fill); added.push(fill);
+  replace('Vector', `M${reservoirGate.pivot.join(' ')}L${reservoirGate.end.join(' ')}`);
   moveHub('geometry-fixture-0001', 'Vector', left - 447);
-  const meterHalf = Math.max(33, ballRadius * 1.6 + 19);
-  const meterLeft = 382 - meterHalf;
-  const meterRight = 382 + meterHalf;
-  const lift = PRODUCT_RECEIVER_LIFT;
-  replace('Vector_152', `M0 ${5408 - lift}L${meterLeft} ${5529 - lift}V${5554 - lift}`);
-  replace('Vector_153', `M960 ${5388 - lift}L${meterRight} ${5529 - lift}V${5554 - lift}`);
-  replace('Vector_170', `M${meterLeft} ${5544 - lift}L${meterRight - 5} ${5530 - lift}`);
-  moveHub('geometry-fixture-0004', 'Vector_170', meterLeft - 349, -lift);
-  // Keep the large receiver joined to the measured drum inlet at every size.
-  const large = drums[0];
-  if (large) {
-    const [inletLeft, inletRight] = drumPortEdges(large).inlet;
-    replace('Vector_156', `M-41 6333L${inletLeft[0] - 25} ${inletLeft[1] - 92}`
-      + `Q${inletLeft[0]} ${inletLeft[1] - 84} ${inletLeft[0]} ${inletLeft[1] - 55}`
-      + `V${inletLeft[1]}`);
-    replace('Vector_157', `M960 6455L${inletRight[0] + 25} ${inletRight[1] - 92}`
-      + `Q${inletRight[0]} ${inletRight[1] - 84} ${inletRight[0]} ${inletRight[1] - 55}`
-      + `V${inletRight[1]}`);
-  }
-  const ramp = svg.querySelector('#Vector_159');
-  if (ramp) {
-    hidden.push([ramp, ramp.getAttribute('display')]);
-    ramp.setAttribute('display', 'none');
-  }
-  const transferCanal = drums.length === 2 ? createDrumTransferCanal(...drums) : null;
-  if (geometry && transferCanal) {
-    transferCanal.paths.forEach((d, index) => {
-      const path = make('path', { id: `drum-transfer-${index ? 'right' : 'left'}`,
-        d, fill: 'none', stroke: 'var(--about-architecture-wall)',
-        'stroke-width': transferCanal.width, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-      geometry.append(path); added.push(path);
-    });
+  for (const id of ['reservoir-left-floor', 'reservoir-right-floor']) {
+    const node = svg.querySelector(`#${id}`);
+    if (!node) continue;
+    hidden.push([node, node.getAttribute('display')]);
+    node.setAttribute('display', 'none');
   }
   for (const spec of BOARD_DIRECTION_RAMPS) {
-    const ramp = make('path', { id: spec.id,
-      d: `M${spec.start.join(' ')}L${spec.end.join(' ')}`, fill: 'none',
-      stroke: 'var(--about-architecture-wall)',
-      'stroke-width': 25 * BOARD_ARCHITECTURE_LINE_SCALE, 'stroke-linecap': 'round' });
+    const ramp = make('polygon', { id: spec.id, points: spec.vertices.map(point => point.join(',')).join(' '),
+      fill: 'var(--about-architecture-wall)' });
     geometry.append(ramp); added.push(ramp);
   }
   return {
-    // Both valves retain their closed pose and hang vertically when open.
     reservoirGate,
-    reservoirRight: right,
-    meterGate: { pivot: [meterLeft, 5544 - lift], end: [meterRight - 5, 5530 - lift] },
     pinball,
-    transferCanal,
     dispose() {
       pinball.dispose();
       for (const node of added) node.remove();
